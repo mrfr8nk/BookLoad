@@ -14,17 +14,11 @@
     --text: #f0f0f0;
     --muted: rgba(255,255,255,0.45);
     --accent: #ffffff;
-    --accent-dim: rgba(255,255,255,0.15);
-    --danger: rgba(255,80,80,0.85);
-    --success: rgba(80,220,120,0.85);
-    --warn: rgba(255,200,60,0.85);
     --glass: blur(18px) saturate(180%);
     --radius: 16px;
     --radius-sm: 10px;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     background: var(--bg);
     color: var(--text);
@@ -32,14 +26,12 @@
     min-height: 100vh;
     overflow-x: hidden;
   }
-
-  /* background orbs */
   body::before, body::after {
     content: '';
     position: fixed;
     border-radius: 50%;
     filter: blur(120px);
-    opacity: 0.18;
+    opacity: 0.15;
     pointer-events: none;
     z-index: 0;
   }
@@ -50,7 +42,7 @@
   }
   body::after {
     width: 500px; height: 500px;
-    background: radial-gradient(circle, #888888 0%, transparent 70%);
+    background: radial-gradient(circle, #888 0%, transparent 70%);
     bottom: -150px; right: -150px;
   }
 
@@ -58,7 +50,7 @@
   #login-screen {
     position: fixed; inset: 0; z-index: 999;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.92);
+    background: rgba(0,0,0,0.95);
     backdrop-filter: blur(30px);
   }
   .login-card {
@@ -66,20 +58,19 @@
     border: 1px solid var(--border-bright);
     border-radius: 24px;
     padding: 48px 40px;
-    width: 360px;
+    width: 380px;
+    max-width: 95vw;
     backdrop-filter: var(--glass);
-    display: flex; flex-direction: column; gap: 20px;
+    display: flex; flex-direction: column; gap: 18px;
     box-shadow: 0 40px 80px rgba(0,0,0,0.6);
   }
-  .login-logo {
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 8px;
-  }
-  .login-logo img { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; }
-  .login-logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-  .login-logo-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .login-card h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-  .login-card p { color: var(--muted); font-size: 14px; }
+  .login-logo { display: flex; align-items: center; gap: 12px; }
+  .login-logo img { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
+  .login-logo-name { font-size: 20px; font-weight: 700; }
+  .login-logo-sub  { font-size: 12px; color: var(--muted); }
+  .login-card h2 { font-size: 26px; font-weight: 700; }
+  .login-card p  { color: var(--muted); font-size: 14px; line-height: 1.5; }
+  #login-err { color: #ff8080; font-size: 13px; display: none; }
 
   /* ── Shared inputs ── */
   input, select, textarea {
@@ -93,11 +84,16 @@
     transition: border-color .2s, background .2s;
     outline: none;
     font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
   }
-  input::placeholder, textarea::placeholder { color: var(--muted); }
-  input:focus, select:focus, textarea:focus {
-    border-color: var(--border-bright);
-    background: rgba(255,255,255,0.09);
+  input::placeholder { color: var(--muted); }
+  input:focus, select:focus { border-color: var(--border-bright); background: rgba(255,255,255,0.09); }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
   }
   select option { background: #1a1a1a; color: var(--text); }
 
@@ -106,76 +102,71 @@
     display: inline-flex; align-items: center; justify-content: center; gap: 7px;
     padding: 10px 20px;
     border-radius: var(--radius-sm);
-    font-size: 13.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .18s;
+    font-size: 13.5px; font-weight: 600;
+    cursor: pointer; transition: all .18s;
     border: 1px solid transparent;
-    font-family: inherit;
-    white-space: nowrap;
+    font-family: inherit; white-space: nowrap;
   }
-  .btn-primary {
-    background: white; color: #111;
-    border-color: white;
-  }
-  .btn-primary:hover { background: #e8e8e8; border-color: #e8e8e8; }
-  .btn-ghost {
-    background: var(--surface); color: var(--text);
-    border-color: var(--border);
-  }
+  .btn-primary  { background: white; color: #111; border-color: white; }
+  .btn-primary:hover { background: #e8e8e8; }
+  .btn-ghost    { background: var(--surface); color: var(--text); border-color: var(--border); }
   .btn-ghost:hover { background: var(--surface-hover); border-color: var(--border-bright); }
-  .btn-danger {
-    background: rgba(255,60,60,0.15); color: #ff8080;
-    border-color: rgba(255,60,60,0.3);
-  }
+  .btn-danger   { background: rgba(255,60,60,0.15); color: #ff8080; border-color: rgba(255,60,60,0.3); }
   .btn-danger:hover { background: rgba(255,60,60,0.25); }
   .btn-sm { padding: 7px 13px; font-size: 12px; }
-  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-full { width: 100%; }
 
-  /* ── App shell ── */
+  /* ── App ── */
   #app { display: none; position: relative; z-index: 1; min-height: 100vh; }
 
-  /* ── Top nav ── */
+  /* ── Nav ── */
   .nav {
     position: sticky; top: 0; z-index: 100;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 28px;
-    height: 62px;
-    background: rgba(10,10,10,0.7);
+    padding: 0 28px; height: 62px;
+    background: rgba(10,10,10,0.75);
     backdrop-filter: blur(24px);
     border-bottom: 1px solid var(--border);
   }
   .nav-brand { display: flex; align-items: center; gap: 11px; }
   .nav-brand img { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; }
-  .nav-brand-name { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-  .nav-brand-sub { font-size: 11px; color: var(--muted); }
+  .nav-brand-name { font-size: 16px; font-weight: 700; }
+  .nav-brand-sub  { font-size: 11px; color: var(--muted); }
   .nav-right { display: flex; align-items: center; gap: 10px; }
-  .nav-stat { 
+  .nav-stat {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 8px; padding: 5px 12px;
     font-size: 12px; color: var(--muted);
   }
   .nav-stat span { color: var(--text); font-weight: 600; margin-left: 4px; }
 
-  /* ── Main layout ── */
-  .main { display: grid; grid-template-columns: 300px 1fr; gap: 0; min-height: calc(100vh - 62px); }
+  /* ── Layout ── */
+  .main {
+    display: grid;
+    grid-template-columns: 310px 1fr;
+    min-height: calc(100vh - 62px);
+  }
 
   /* ── Sidebar ── */
   .sidebar {
     border-right: 1px solid var(--border);
-    padding: 24px 20px;
-    display: flex; flex-direction: column; gap: 20px;
+    padding: 20px 18px;
+    display: flex; flex-direction: column; gap: 18px;
     background: rgba(255,255,255,0.015);
     position: sticky; top: 62px; height: calc(100vh - 62px); overflow-y: auto;
   }
-  .sidebar-section { display: flex; flex-direction: column; gap: 8px; }
-  .sidebar-label { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; padding: 0 4px; }
+  .sidebar-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    color: var(--muted); text-transform: uppercase;
+    padding: 0 2px; margin-bottom: 2px;
+  }
 
-  /* ── Upload zone ── */
+  /* ── Drop zone ── */
   .upload-zone {
     border: 2px dashed rgba(255,255,255,0.15);
     border-radius: var(--radius);
-    padding: 28px 20px;
+    padding: 24px 16px;
     text-align: center;
     cursor: pointer;
     transition: all .2s;
@@ -185,154 +176,149 @@
     border-color: rgba(255,255,255,0.45);
     background: rgba(255,255,255,0.05);
   }
-  .upload-zone-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-zone-icon { font-size: 26px; margin-bottom: 8px; }
   .upload-zone-text { font-size: 13px; color: var(--muted); }
-  .upload-zone-sub { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 4px; }
+  .upload-zone-sub  { font-size: 11px; color: rgba(255,255,255,0.22); margin-top: 4px; }
   #file-input { display: none; }
 
+  /* ── Form ── */
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
   /* ── File queue ── */
-  .file-queue { display: flex; flex-direction: column; gap: 6px; }
+  .file-queue { display: flex; flex-direction: column; gap: 5px; max-height: 320px; overflow-y: auto; }
   .file-item {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 10px 12px;
+    padding: 9px 11px;
     display: flex; flex-direction: column; gap: 6px;
+    position: relative;
   }
-  .file-item-header { display: flex; align-items: center; gap: 8px; }
-  .file-icon { font-size: 16px; flex-shrink: 0; }
-  .file-orig { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-  .file-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; }
+  .file-item.uploading { border-color: rgba(255,255,255,0.2); }
+  .file-item.done      { border-color: rgba(80,220,120,0.3); }
+  .file-item.errored   { border-color: rgba(255,80,80,0.3); }
+  .file-item-header { display: flex; align-items: center; gap: 7px; }
+  .file-icon   { font-size: 15px; flex-shrink: 0; }
+  .file-orig   { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .file-status { font-size: 13px; flex-shrink: 0; }
+  .file-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 0 2px; line-height: 1; flex-shrink: 0; }
   .file-remove:hover { color: #ff8080; }
+  .file-name-input { font-size: 12px !important; padding: 6px 10px !important; }
 
-  /* ── Upload form ── */
-  .upload-form { display: flex; flex-direction: column; gap: 10px; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .form-group { display: flex; flex-direction: column; gap: 5px; }
-  .form-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
-
-  /* ── Content area ── */
-  .content { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
-
-  /* ── Toolbar ── */
-  .toolbar {
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  /* Per-file progress */
+  .file-progress-wrap {
+    background: rgba(255,255,255,0.06);
+    border-radius: 99px; height: 3px; overflow: hidden;
   }
-  .search-wrap { position: relative; flex: 1; min-width: 200px; }
-  .search-wrap input { padding-left: 36px; }
-  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
-  .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .filter-group select { width: auto; }
+  .file-progress-bar {
+    height: 100%; background: white; border-radius: 99px;
+    width: 0%; transition: width .25s;
+  }
+  .file-progress-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
 
-  /* ── Stats row ── */
-  .stats-row { display: flex; gap: 12px; flex-wrap: wrap; }
-  .stat-card {
-    background: var(--surface);
+  /* Overall progress */
+  .overall-progress {
+    background: rgba(255,255,255,0.05);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 14px 18px;
-    flex: 1; min-width: 100px;
-    backdrop-filter: blur(10px);
+    padding: 10px 12px;
+    display: none; flex-direction: column; gap: 6px;
   }
-  .stat-card-val { font-size: 26px; font-weight: 700; letter-spacing: -1px; }
+  .overall-progress-header { display: flex; justify-content: space-between; font-size: 12px; }
+  .overall-progress-label  { font-weight: 600; }
+  .overall-progress-count  { color: var(--muted); }
+  .overall-bar-wrap { background: rgba(255,255,255,0.06); border-radius: 99px; height: 5px; overflow: hidden; }
+  .overall-bar      { height: 100%; background: white; border-radius: 99px; width: 0%; transition: width .3s; }
+
+  /* ── Content ── */
+  .content { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; }
+
+  /* ── Stats ── */
+  .stats-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 14px 18px;
+    flex: 1; min-width: 90px;
+  }
+  .stat-card-val   { font-size: 26px; font-weight: 700; letter-spacing: -1px; }
   .stat-card-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-  /* ── Resources table ── */
+  /* ── Toolbar ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .search-wrap { position: relative; flex: 1; min-width: 180px; }
+  .search-wrap input { padding-left: 36px; }
+  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+  .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-group select { width: auto; }
+
+  /* ── Bulk bar ── */
+  .bulk-bar {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 16px;
+    display: none; align-items: center; gap: 12px; font-size: 13px;
+  }
+  .bulk-count { font-weight: 600; color: white; }
+
+  /* ── Table ── */
   .table-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    backdrop-filter: blur(10px);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
   }
   .table-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
+    padding: 13px 18px; border-bottom: 1px solid var(--border);
     background: rgba(255,255,255,0.02);
   }
   .table-title { font-size: 14px; font-weight: 600; }
-  .table-actions { display: flex; gap: 8px; }
-
   table { width: 100%; border-collapse: collapse; }
   thead th {
-    text-align: left;
-    padding: 11px 16px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
+    text-align: left; padding: 10px 16px;
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    letter-spacing: 0.6px; text-transform: uppercase;
     border-bottom: 1px solid var(--border);
     background: rgba(255,255,255,0.015);
     white-space: nowrap;
   }
-  tbody tr {
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    transition: background .15s;
-  }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background .15s; }
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: rgba(255,255,255,0.03); }
-  tbody td { padding: 12px 16px; font-size: 13px; vertical-align: middle; }
-
+  tbody td { padding: 11px 16px; font-size: 13px; vertical-align: middle; }
   .check-col { width: 36px; }
-  input[type="checkbox"] {
-    width: 15px; height: 15px; cursor: pointer;
-    accent-color: white;
-    border-radius: 3px;
-    background: var(--surface);
-    border-color: var(--border);
-    padding: 0;
-  }
+  input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: white; border-radius: 3px; padding: 0; }
 
   .badge {
-    display: inline-block;
-    padding: 3px 9px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
+    display: inline-block; padding: 3px 9px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
   }
-  .badge-paper     { background: rgba(255,255,255,0.10); color: #e0e0e0; }
-  .badge-textbook  { background: rgba(120,200,255,0.12); color: #90d4ff; }
-  .badge-syllabus  { background: rgba(180,255,130,0.12); color: #a8e890; }
-  .badge-marking   { background: rgba(255,200,80,0.12);  color: #ffd980; }
-  .badge-approved  { background: rgba(80,220,120,0.12);  color: #70d888; }
-  .badge-pending   { background: rgba(255,180,60,0.12);  color: #ffc44a; }
+  .badge-paper    { background: rgba(255,255,255,0.10); color: #e0e0e0; }
+  .badge-textbook { background: rgba(120,200,255,0.12); color: #90d4ff; }
+  .badge-syllabus { background: rgba(180,255,130,0.12); color: #a8e890; }
+  .badge-marking  { background: rgba(255,200,80,0.12);  color: #ffd980; }
+  .badge-live     { background: rgba(80,220,120,0.12);  color: #70d888; }
+  .badge-pending  { background: rgba(255,180,60,0.12);  color: #ffc44a; }
 
   .row-actions { display: flex; gap: 6px; opacity: 0; transition: opacity .15s; }
   tbody tr:hover .row-actions { opacity: 1; }
 
-  .title-cell { max-width: 260px; }
-  .title-cell .title-text { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
-  .title-cell .url-link { font-size: 11px; color: var(--muted); text-decoration: none; }
-  .title-cell .url-link:hover { color: white; }
+  .title-cell { max-width: 240px; }
+  .title-text { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .url-link   { font-size: 11px; color: var(--muted); text-decoration: none; }
+  .url-link:hover { color: white; }
+  .year-pill  { display: inline-block; background: rgba(255,255,255,0.08); border-radius: 4px; padding: 2px 7px; font-size: 11px; color: var(--muted); }
 
-  .level-cell { white-space: nowrap; }
-  .year-pill {
-    display: inline-block;
-    background: rgba(255,255,255,0.08);
-    border-radius: 4px;
-    padding: 2px 7px;
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  /* ── Empty state ── */
-  .empty-state {
-    padding: 60px 20px;
-    text-align: center;
-    color: var(--muted);
-  }
-  .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
-  .empty-state-text { font-size: 15px; }
-  .empty-state-sub { font-size: 13px; margin-top: 6px; color: rgba(255,255,255,0.25); }
+  /* ── Empty / loading ── */
+  .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+  .empty-icon  { font-size: 40px; margin-bottom: 12px; }
+  .empty-text  { font-size: 15px; }
+  .empty-sub   { font-size: 13px; margin-top: 6px; color: rgba(255,255,255,0.22); }
+  .loading-row td { text-align: center; padding: 40px; }
 
   /* ── Pagination ── */
   .pagination {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 18px;
-    border-top: 1px solid var(--border);
+    padding: 11px 18px; border-top: 1px solid var(--border);
     background: rgba(255,255,255,0.015);
     font-size: 13px; color: var(--muted);
   }
@@ -341,102 +327,58 @@
   /* ── Modal ── */
   .modal-overlay {
     position: fixed; inset: 0; z-index: 500;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(8px);
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
     display: flex; align-items: center; justify-content: center;
     opacity: 0; pointer-events: none; transition: opacity .2s;
   }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
   .modal {
-    background: #141414;
-    border: 1px solid var(--border-bright);
-    border-radius: 20px;
-    padding: 32px;
-    width: 480px;
-    max-width: 95vw;
+    background: #141414; border: 1px solid var(--border-bright);
+    border-radius: 20px; padding: 30px; width: 480px; max-width: 95vw;
     box-shadow: 0 40px 80px rgba(0,0,0,0.7);
-    transform: translateY(20px);
-    transition: transform .2s;
-    display: flex; flex-direction: column; gap: 18px;
+    transform: translateY(20px); transition: transform .2s;
+    display: flex; flex-direction: column; gap: 16px;
   }
   .modal-overlay.open .modal { transform: translateY(0); }
   .modal-header { display: flex; align-items: center; justify-content: space-between; }
-  .modal-title { font-size: 18px; font-weight: 700; }
-  .modal-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0; }
+  .modal-title  { font-size: 18px; font-weight: 700; }
+  .modal-close  { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0; }
   .modal-close:hover { color: white; }
   .modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
 
   /* ── Toast ── */
-  #toast-container {
-    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-    display: flex; flex-direction: column; gap: 10px;
-  }
+  #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
   .toast {
-    padding: 13px 18px;
-    border-radius: 12px;
-    font-size: 13.5px;
-    font-weight: 500;
-    min-width: 240px;
-    backdrop-filter: blur(16px);
-    border: 1px solid;
-    animation: slideUp .25s ease forwards;
+    padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 500;
+    min-width: 220px; backdrop-filter: blur(16px); border: 1px solid;
+    animation: slideUp .2s ease forwards;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 9px;
   }
   .toast-success { background: rgba(20,60,30,0.9); border-color: rgba(80,220,120,0.4); color: #90e8a8; }
   .toast-error   { background: rgba(60,20,20,0.9); border-color: rgba(255,80,80,0.4);  color: #ff9898; }
-  .toast-info    { background: rgba(20,20,40,0.9); border-color: rgba(120,120,255,0.4);color: #b0b0ff; }
-  @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+  .toast-info    { background: rgba(20,20,40,0.9); border-color: rgba(150,150,255,0.4);color: #c0c0ff; }
+  @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 
-  /* ── Progress bar ── */
-  .progress-bar-wrap {
-    background: rgba(255,255,255,0.06);
-    border-radius: 999px;
-    height: 5px;
-    overflow: hidden;
+  /* ── Spinner ── */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid rgba(255,255,255,0.12);
+    border-top-color: white; border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: inline-block; flex-shrink: 0;
   }
-  .progress-bar {
-    height: 100%;
-    background: white;
-    border-radius: 999px;
-    transition: width .3s;
-    width: 0%;
-  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ── Scrollbar ── */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
-
-  /* ── Loading spinner ── */
-  .spinner {
-    width: 20px; height: 20px;
-    border: 2px solid rgba(255,255,255,0.12);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-    display: inline-block;
-    flex-shrink: 0;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .loading-row td { text-align: center; padding: 40px; }
-  .bulk-bar {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px 16px;
-    display: flex; align-items: center; gap: 12px;
-    font-size: 13px;
-  }
-  .bulk-bar-count { font-weight: 600; color: white; }
 
   @media (max-width: 900px) {
     .main { grid-template-columns: 1fr; }
     .sidebar { position: relative; top: 0; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
     .form-row { grid-template-columns: 1fr; }
-    thead th:nth-child(4), td:nth-child(4),
     thead th:nth-child(5), td:nth-child(5),
     thead th:nth-child(6), td:nth-child(6) { display: none; }
   }
@@ -450,7 +392,7 @@
     <div class="login-logo">
       <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo AI" onerror="this.style.display='none'"/>
       <div>
-        <div class="login-logo-text">Fundo AI</div>
+        <div class="login-logo-name">Fundo AI</div>
         <div class="login-logo-sub">Resource Portal</div>
       </div>
     </div>
@@ -464,13 +406,14 @@
       <label class="form-label">Password</label>
       <input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password"/>
     </div>
-    <div id="login-err" style="color:#ff8080;font-size:13px;display:none"></div>
-    <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Sign In →</button>
+    <div id="login-err"></div>
+    <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">Sign In →</button>
   </div>
 </div>
 
 <!-- ═══ APP ═══ -->
 <div id="app">
+
   <!-- NAV -->
   <nav class="nav">
     <div class="nav-brand">
@@ -488,29 +431,30 @@
   </nav>
 
   <div class="main">
-    <!-- SIDEBAR -->
+
+    <!-- ═══ SIDEBAR ═══ -->
     <aside class="sidebar">
-      <!-- Upload zone -->
-      <div class="sidebar-section">
-        <div class="sidebar-label">Upload Resources</div>
-        <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+
+      <!-- Drop zone -->
+      <div>
+        <div class="sidebar-label" style="margin-bottom:8px">Upload Resources</div>
+        <div class="upload-zone" id="drop-zone"
+          onclick="document.getElementById('file-input').click()"
+          ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
           <div class="upload-zone-icon">📂</div>
           <div class="upload-zone-text">Drop files here or click to browse</div>
-          <div class="upload-zone-sub">PDF, DOC, DOCX, JPG, PNG · Max 50MB each</div>
+          <div class="upload-zone-sub">PDF, DOC, DOCX, JPG, PNG · Up to 100 files · 80 MB each</div>
         </div>
-        <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.pptx" onchange="onFilePick(event)"/>
+        <input type="file" id="file-input" multiple
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.pptx"
+          onchange="onFilePick(event)"/>
       </div>
 
-      <!-- File queue -->
-      <div class="sidebar-section" id="file-queue-section" style="display:none">
-        <div class="sidebar-label">Selected Files (<span id="file-count">0</span>)</div>
-        <div class="file-queue" id="file-queue"></div>
-      </div>
+      <!-- Metadata -->
+      <div>
+        <div class="sidebar-label" style="margin-bottom:8px">Resource Details</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
 
-      <!-- Metadata form -->
-      <div class="sidebar-section">
-        <div class="sidebar-label">Resource Metadata</div>
-        <div class="upload-form">
           <div class="form-group">
             <label class="form-label">Category</label>
             <select id="up-category" onchange="onCategoryChange()">
@@ -520,37 +464,29 @@
               <option value="marking_scheme">Marking Scheme</option>
             </select>
           </div>
+
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Level</label>
               <select id="up-level" onchange="onLevelChange()">
                 <option value="primary">Primary</option>
-                <option value="olevel">O-Level</option>
+                <option value="olevel" selected>O-Level</option>
                 <option value="alevel">A-Level</option>
               </select>
             </div>
             <div class="form-group">
               <label class="form-label">Grade / Form</label>
-              <select id="up-grade">
-                <option value="">All</option>
-                <option value="Grade 1">Grade 1</option>
-                <option value="Grade 2">Grade 2</option>
-                <option value="Grade 3">Grade 3</option>
-                <option value="Grade 4">Grade 4</option>
-                <option value="Grade 5">Grade 5</option>
-                <option value="Grade 6">Grade 6</option>
-                <option value="Grade 7">Grade 7</option>
-              </select>
+              <select id="up-grade"></select>
             </div>
           </div>
+
           <div class="form-group">
             <label class="form-label">Subject</label>
-            <input type="text" id="up-subject" placeholder="e.g. Mathematics"/>
+            <select id="up-subject">
+              <option value="">— Select subject —</option>
+            </select>
           </div>
-          <div class="form-group" id="year-group">
-            <label class="form-label">Year (Past Papers)</label>
-            <input type="text" id="up-year" placeholder="e.g. 2023"/>
-          </div>
+
           <div class="form-group">
             <label class="form-label">Curriculum</label>
             <select id="up-curriculum">
@@ -559,24 +495,52 @@
               <option value="">Both / General</option>
             </select>
           </div>
-          <button class="btn btn-primary" id="upload-btn" onclick="doUpload()" disabled>
-            <span id="upload-btn-text">↑ Upload Files</span>
-          </button>
-          <div id="upload-progress" style="display:none">
-            <div class="progress-bar-wrap"><div class="progress-bar" id="progress-fill"></div></div>
-            <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center" id="progress-label">Uploading…</div>
+
+          <div class="form-group" id="year-group" style="display:none">
+            <label class="form-label">Year</label>
+            <select id="up-year">
+              <option value="">— Select year —</option>
+            </select>
           </div>
+
         </div>
       </div>
+
+      <!-- File queue -->
+      <div id="file-queue-section" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="sidebar-label">Files (<span id="file-count">0</span>)</div>
+          <button class="btn btn-ghost btn-sm" onclick="clearFiles()" style="padding:4px 10px;font-size:11px">Clear all</button>
+        </div>
+        <div class="file-queue" id="file-queue"></div>
+      </div>
+
+      <!-- Overall progress -->
+      <div class="overall-progress" id="overall-progress">
+        <div class="overall-progress-header">
+          <span class="overall-progress-label" id="op-label">Uploading…</span>
+          <span class="overall-progress-count" id="op-count"></span>
+        </div>
+        <div class="overall-bar-wrap">
+          <div class="overall-bar" id="overall-bar"></div>
+        </div>
+      </div>
+
+      <!-- Upload button -->
+      <button class="btn btn-primary btn-full" id="upload-btn" onclick="doUpload()" disabled>
+        ↑ Upload Files
+      </button>
+
     </aside>
 
-    <!-- CONTENT -->
+    <!-- ═══ CONTENT ═══ -->
     <main class="content">
+
       <!-- Stats -->
-      <div class="stats-row" id="stats-row">
+      <div class="stats-row">
         <div class="stat-card"><div class="stat-card-val" id="s-total">—</div><div class="stat-card-label">Total Resources</div></div>
         <div class="stat-card"><div class="stat-card-val" id="s-approved">—</div><div class="stat-card-label">Live on Bot</div></div>
-        <div class="stat-card"><div class="stat-card-val" id="s-pending">—</div><div class="stat-card-label">Pending Approval</div></div>
+        <div class="stat-card"><div class="stat-card-val" id="s-pending">—</div><div class="stat-card-label">Pending</div></div>
         <div class="stat-card"><div class="stat-card-val" id="s-papers">—</div><div class="stat-card-label">Past Papers</div></div>
         <div class="stat-card"><div class="stat-card-val" id="s-books">—</div><div class="stat-card-label">Textbooks</div></div>
       </div>
@@ -605,8 +569,8 @@
       </div>
 
       <!-- Bulk bar -->
-      <div class="bulk-bar" id="bulk-bar" style="display:none">
-        <span class="bulk-bar-count" id="bulk-count">0</span> selected
+      <div class="bulk-bar" id="bulk-bar">
+        <span class="bulk-count" id="bulk-count">0</span> selected
         <button class="btn btn-danger btn-sm" onclick="bulkDelete()">🗑 Delete Selected</button>
         <button class="btn btn-ghost btn-sm" onclick="clearSelection()">✕ Clear</button>
       </div>
@@ -614,10 +578,8 @@
       <!-- Table -->
       <div class="table-wrap">
         <div class="table-header">
-          <div class="table-title">Resources</div>
-          <div class="table-actions">
-            <button class="btn btn-ghost btn-sm" onclick="loadMaterials()">↻ Refresh</button>
-          </div>
+          <div class="table-title">Resources Library</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadMaterials()">↻ Refresh</button>
         </div>
         <table>
           <thead>
@@ -625,7 +587,7 @@
               <th class="check-col"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"/></th>
               <th>Title</th>
               <th>Category</th>
-              <th>Level</th>
+              <th>Level / Grade</th>
               <th>Subject</th>
               <th>Year</th>
               <th>Status</th>
@@ -644,6 +606,7 @@
           </div>
         </div>
       </div>
+
     </main>
   </div>
 </div>
@@ -656,7 +619,7 @@
       <button class="modal-close" onclick="closeModal('edit-modal')">✕</button>
     </div>
     <div class="form-group">
-      <label class="form-label">Title</label>
+      <label class="form-label">Title / Display Name</label>
       <input type="text" id="edit-title"/>
     </div>
     <div class="form-row">
@@ -671,7 +634,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Level</label>
-        <select id="edit-level">
+        <select id="edit-level" onchange="populateEditSubjects()">
           <option value="primary">Primary</option>
           <option value="olevel">O-Level</option>
           <option value="alevel">A-Level</option>
@@ -681,23 +644,27 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Subject</label>
-        <input type="text" id="edit-subject"/>
+        <select id="edit-subject"></select>
       </div>
       <div class="form-group">
         <label class="form-label">Year</label>
-        <input type="text" id="edit-year" placeholder="e.g. 2023"/>
+        <select id="edit-year">
+          <option value="">No year</option>
+        </select>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Grade / Form</label>
-      <input type="text" id="edit-grade" placeholder="e.g. Grade 7, Form 4"/>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Status</label>
-      <select id="edit-approved">
-        <option value="true">Approved (Live on bot)</option>
-        <option value="false">Pending</option>
-      </select>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Grade / Form</label>
+        <input type="text" id="edit-grade" placeholder="e.g. Grade 7, Form 4"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select id="edit-approved">
+          <option value="true">✓ Live on bot</option>
+          <option value="false">Pending</option>
+        </select>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
@@ -713,7 +680,11 @@
       <div class="modal-title">Delete Resource</div>
       <button class="modal-close" onclick="closeModal('delete-modal')">✕</button>
     </div>
-    <p style="color:var(--muted);font-size:14px;">Are you sure you want to delete <strong id="delete-name" style="color:white"></strong>? This cannot be undone.</p>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6">
+      Are you sure you want to delete<br/>
+      <strong id="delete-name" style="color:white"></strong>?<br/>
+      This cannot be undone.
+    </p>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('delete-modal')">Cancel</button>
       <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
@@ -721,40 +692,138 @@
   </div>
 </div>
 
-<!-- Toast container -->
 <div id="toast-container"></div>
 
 <script>
-// ── State ─────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// SUBJECTS — mirrors the bot's MAT_SUBJECTS list exactly
+// ═══════════════════════════════════════════════════════════════
+const MAT_SUBJECTS = {
+  primary: [
+    'Mathematics','English','Shona','Ndebele',
+    'Environmental Science','Social Studies','Agriculture',
+    'Religious & Moral Education','Art','Music',
+    'Physical Education','ICT (Basic)','General Paper',
+  ],
+  olevel: [
+    'Mathematics','Biology','Physics','Chemistry','Combined Science',
+    'History','Geography','English Language','English Literature',
+    'Shona','Ndebele','Family & Religious Studies',
+    'Business Studies','Commerce','Accounting','Economics',
+    'Agriculture','Food & Nutrition','Technical Graphics',
+    'Woodwork','Metalwork','Computer Science','Art & Design',
+    'Fashion & Fabrics','Building Studies',
+  ],
+  alevel: [
+    'Accounting','Additional Mathematics','Animal Science',
+    'Biology','Building Technology & Design','Business & Enterprise Skills',
+    'Business Studies','Chemistry','Communication Skills','Computer Science',
+    'Crop Science','Economics','Family & Religious Studies',
+    'Food Technology & Design','Geography','History','Horticulture',
+    'Literature in Ndebele','Literature in Shona','Literature in English',
+    'Mechanical Mathematics','Metal Technology & Design','Ndebele Language',
+    'Physics','Pure Mathematics','Shona Language','Sociology',
+    'Software Engineering','Statistics','Technical Graphics & Design',
+    'Textile Technology & Design','Wood Technology & Design',
+  ],
+};
+
+const MAT_GRADES = {
+  primary: ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7'],
+  olevel:  ['Form 1','Form 2','Form 3','Form 4'],
+  alevel:  ['Form 5','Form 6'],
+};
+
+const YEARS = (() => {
+  const y = [];
+  for (let yr = new Date().getFullYear(); yr >= 1990; yr--) y.push(String(yr));
+  return y;
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
 let TOKEN    = localStorage.getItem('fundo_token') || '';
-let files    = [];  // { file, name }
+let files    = [];   // { file, name }
 let page     = 1;
 let totalPages = 1;
 let editId   = null;
 let deleteId = null;
 let selected = new Set();
-let searchTimer = null;
+let searchTimer  = null;
+let isUploading  = false;
 
-// ── Boot ──────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════
 window.onload = () => {
-  if (TOKEN) {
-    showApp();
-  }
+  populateYearSelect('up-year');
+  onLevelChange();     // populate grade + subject dropdowns
+  onCategoryChange();  // show/hide year field
+  if (TOKEN) showApp();
   document.getElementById('login-pass').addEventListener('keydown', e => {
     if (e.key === 'Enter') doLogin();
   });
 };
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// DROPDOWN POPULATION
+// ═══════════════════════════════════════════════════════════════
+function populateYearSelect(id) {
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  sel.innerHTML = `<option value="">— Select year —</option>` +
+    YEARS.map(y => `<option value="${y}"${y === current ? ' selected' : ''}>${y}</option>`).join('');
+}
+
+function populateSubjects(selectId, level, currentVal = '') {
+  const sel  = document.getElementById(selectId);
+  const list = MAT_SUBJECTS[level] || [];
+  sel.innerHTML = `<option value="">— Select subject —</option>` +
+    list.map(s => `<option value="${s}"${s === currentVal ? ' selected' : ''}>${s}</option>`).join('');
+}
+
+function populateGrades(selectId, level, currentVal = '') {
+  const sel   = document.getElementById(selectId);
+  const list  = MAT_GRADES[level] || [];
+  if (!list.length) {
+    sel.innerHTML = `<option value="">All / General</option>`;
+    return;
+  }
+  sel.innerHTML = `<option value="">All / General</option>` +
+    list.map(g => `<option value="${g}"${g === currentVal ? ' selected' : ''}>${g}</option>`).join('');
+}
+
+function onLevelChange() {
+  const level = document.getElementById('up-level').value;
+  populateGrades('up-grade', level);
+  populateSubjects('up-subject', level);
+}
+
+function onCategoryChange() {
+  const cat = document.getElementById('up-category').value;
+  const show = cat === 'paper' || cat === 'marking_scheme';
+  document.getElementById('year-group').style.display = show ? '' : 'none';
+}
+
+function populateEditSubjects() {
+  const level = document.getElementById('edit-level').value;
+  const cur   = document.getElementById('edit-subject').value;
+  populateSubjects('edit-subject', level, cur);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
 async function doLogin() {
   const btn  = document.getElementById('login-btn');
   const user = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value;
   const err  = document.getElementById('login-err');
-  if (!user || !pass) { err.textContent = 'Enter username and password.'; err.style.display = ''; return; }
+  if (!user || !pass) { showErr(err, 'Enter username and password.'); return; }
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
-    const res = await fetch('/api/login', {
+    const res  = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: user, password: pass }),
@@ -766,12 +835,13 @@ async function doLogin() {
     err.style.display = 'none';
     showApp();
   } catch (e) {
-    err.textContent = e.message;
-    err.style.display = '';
+    showErr(err, e.message);
   } finally {
     btn.disabled = false; btn.textContent = 'Sign In →';
   }
 }
+
+function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
 
 function doLogout() {
   TOKEN = '';
@@ -787,36 +857,39 @@ function showApp() {
   loadMaterials();
 }
 
-// ── API helpers ───────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// API HELPER
+// ═══════════════════════════════════════════════════════════════
 async function api(method, path, body) {
-  const opts = {
-    method,
-    headers: { 'x-admin-token': TOKEN, 'Content-Type': 'application/json' },
-  };
+  const opts = { method, headers: { 'x-admin-token': TOKEN, 'Content-Type': 'application/json' } };
   if (body && method !== 'GET') opts.body = JSON.stringify(body);
-  const res = await fetch(path, opts);
+  const res  = await fetch(path, opts);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }
 
-// ── Stats ─────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════════════════
 async function loadStats() {
   try {
     const s = await api('GET', '/api/stats');
-    document.getElementById('s-total').textContent   = s.total || 0;
-    document.getElementById('s-approved').textContent= s.approved || 0;
-    document.getElementById('s-pending').textContent = s.pending || 0;
-    document.getElementById('nav-total').textContent  = s.total || 0;
-    document.getElementById('nav-pending').textContent= s.pending || 0;
+    document.getElementById('s-total').textContent    = s.total    || 0;
+    document.getElementById('s-approved').textContent = s.approved || 0;
+    document.getElementById('s-pending').textContent  = s.pending  || 0;
+    document.getElementById('nav-total').textContent   = s.total   || 0;
+    document.getElementById('nav-pending').textContent = s.pending || 0;
     const byCat = {};
     (s.byCategory || []).forEach(c => byCat[c._id] = c.count);
-    document.getElementById('s-papers').textContent = byCat['paper'] || 0;
+    document.getElementById('s-papers').textContent = byCat['paper']    || 0;
     document.getElementById('s-books').textContent  = byCat['textbook'] || 0;
-  } catch(e) { console.warn('stats error', e); }
+  } catch(e) { console.warn('stats:', e); }
 }
 
-// ── Materials list ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// MATERIALS LIST
+// ═══════════════════════════════════════════════════════════════
 async function loadMaterials() {
   const tbody = document.getElementById('materials-tbody');
   tbody.innerHTML = '<tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr>';
@@ -824,8 +897,7 @@ async function loadMaterials() {
   const search   = document.getElementById('search-input').value.trim();
   const category = document.getElementById('f-category').value;
   const level    = document.getElementById('f-level').value;
-
-  const params = new URLSearchParams({ page, limit: 30 });
+  const params   = new URLSearchParams({ page, limit: 30 });
   if (search)   params.set('search', search);
   if (category) params.set('category', category);
   if (level)    params.set('level', level);
@@ -835,8 +907,7 @@ async function loadMaterials() {
     totalPages = data.pages || 1;
     renderTable(data.items || []);
     renderPagination(data.total || 0, data.page || 1, data.pages || 1);
-    selected.clear();
-    updateBulkBar();
+    selected.clear(); updateBulkBar();
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#ff8080">${e.message}</td></tr>`;
   }
@@ -844,46 +915,54 @@ async function loadMaterials() {
 
 function debounceSearch() {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => { page = 1; loadMaterials(); }, 400);
+  searchTimer = setTimeout(() => { page = 1; loadMaterials(); }, 350);
 }
+
+const CAT_BADGE = {
+  paper:          '<span class="badge badge-paper">Past Paper</span>',
+  textbook:       '<span class="badge badge-textbook">Textbook</span>',
+  syllabus:       '<span class="badge badge-syllabus">Syllabus</span>',
+  marking_scheme: '<span class="badge badge-marking">Marking Scheme</span>',
+};
+const CAT_FROM_BADGE = {
+  'Past Paper':'paper','Textbook':'textbook','Syllabus':'syllabus','Marking Scheme':'marking_scheme',
+};
 
 function renderTable(items) {
   const tbody = document.getElementById('materials-tbody');
   if (!items.length) {
-    tbody.innerHTML = `<tr><td colspan="8">
-      <div class="empty-state">
-        <div class="empty-state-icon">📭</div>
-        <div class="empty-state-text">No resources found</div>
-        <div class="empty-state-sub">Upload some materials using the panel on the left</div>
-      </div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-text">No resources found</div>
+      <div class="empty-sub">Upload materials using the panel on the left</div>
+    </div></td></tr>`;
     return;
   }
-
-  const categoryBadge = {
-    paper:          '<span class="badge badge-paper">Past Paper</span>',
-    textbook:       '<span class="badge badge-textbook">Textbook</span>',
-    syllabus:       '<span class="badge badge-syllabus">Syllabus</span>',
-    marking_scheme: '<span class="badge badge-marking">Marking Scheme</span>',
-  };
-
   tbody.innerHTML = items.map(m => `
-    <tr data-id="${m._id}">
+    <tr data-id="${m._id}"
+        data-title="${esc(m.title)}"
+        data-category="${m.category}"
+        data-level="${m.level}"
+        data-grade="${esc(m.grade||'')}"
+        data-subject="${esc(m.subject||'')}"
+        data-year="${esc(m.year||'')}"
+        data-approved="${m.approved}">
       <td class="check-col"><input type="checkbox" class="row-check" value="${m._id}" onchange="onCheckChange(this)"/></td>
       <td class="title-cell">
         <div class="title-text" title="${esc(m.title)}">${esc(m.title)}</div>
         <a class="url-link" href="${esc(m.url)}" target="_blank">↗ View file</a>
       </td>
-      <td>${categoryBadge[m.category] || m.category}</td>
-      <td class="level-cell">${esc(m.level)}${m.grade ? `<br><span style="font-size:11px;color:var(--muted)">${esc(m.grade)}</span>` : ''}</td>
+      <td>${CAT_BADGE[m.category] || m.category}</td>
+      <td>${esc(m.level)}${m.grade ? `<br><span style="font-size:11px;color:var(--muted)">${esc(m.grade)}</span>` : ''}</td>
       <td>${esc(m.subject)}</td>
       <td>${m.year ? `<span class="year-pill">${esc(m.year)}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
       <td>${m.approved
-        ? '<span class="badge badge-approved">✓ Live</span>'
+        ? '<span class="badge badge-live">✓ Live</span>'
         : '<span class="badge badge-pending">Pending</span>'}</td>
       <td>
         <div class="row-actions">
-          <button class="btn btn-ghost btn-sm" onclick="openEdit('${m._id}')">✏ Rename</button>
-          <button class="btn btn-danger btn-sm" onclick="openDelete('${m._id}', '${esc(m.title)}')">🗑</button>
+          <button class="btn btn-ghost btn-sm" onclick="openEdit('${m._id}')">✏ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="openDelete('${m._id}','${esc(m.title)}')">🗑</button>
         </div>
       </td>
     </tr>
@@ -891,13 +970,12 @@ function renderTable(items) {
 }
 
 function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function renderPagination(total, pg, pages) {
-  const info = document.getElementById('page-info');
-  const pag  = document.getElementById('pagination');
-  info.textContent = `${total} resource${total !== 1 ? 's' : ''} · Page ${pg} of ${pages}`;
+  const pag = document.getElementById('pagination');
+  document.getElementById('page-info').textContent = `${total} resource${total!==1?'s':''} · Page ${pg} of ${pages}`;
   document.getElementById('prev-btn').disabled = pg <= 1;
   document.getElementById('next-btn').disabled = pg >= pages;
   pag.style.display = total ? 'flex' : 'none';
@@ -908,206 +986,233 @@ function changePage(dir) {
   loadMaterials();
 }
 
-// ── Selection ─────────────────────────────────────────────────────────────────
-function onCheckChange(cb) {
-  if (cb.checked) selected.add(cb.value);
-  else selected.delete(cb.value);
-  updateBulkBar();
-}
-
+// ═══════════════════════════════════════════════════════════════
+// SELECTION
+// ═══════════════════════════════════════════════════════════════
+function onCheckChange(cb) { cb.checked ? selected.add(cb.value) : selected.delete(cb.value); updateBulkBar(); }
 function toggleSelectAll() {
   const all = document.getElementById('select-all').checked;
   document.querySelectorAll('.row-check').forEach(cb => {
     cb.checked = all;
-    if (all) selected.add(cb.value); else selected.delete(cb.value);
+    all ? selected.add(cb.value) : selected.delete(cb.value);
   });
   updateBulkBar();
 }
-
 function clearSelection() {
   selected.clear();
   document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
   document.getElementById('select-all').checked = false;
   updateBulkBar();
 }
-
 function updateBulkBar() {
-  const bar = document.getElementById('bulk-bar');
   document.getElementById('bulk-count').textContent = selected.size;
-  bar.style.display = selected.size > 0 ? 'flex' : 'none';
+  document.getElementById('bulk-bar').style.display = selected.size > 0 ? 'flex' : 'none';
 }
-
 async function bulkDelete() {
   if (!selected.size) return;
-  if (!confirm(`Delete ${selected.size} selected resource(s)? This cannot be undone.`)) return;
+  if (!confirm(`Delete ${selected.size} resource(s)? This cannot be undone.`)) return;
   try {
     const r = await api('DELETE', '/api/materials', { ids: [...selected] });
     toast(`Deleted ${r.deleted} resource(s)`, 'success');
-    clearSelection();
-    loadMaterials();
-    loadStats();
+    clearSelection(); loadMaterials(); loadStats();
   } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── File upload ───────────────────────────────────────────────────────────────
-function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+// ═══════════════════════════════════════════════════════════════
+// FILE UPLOAD — per-file with progress bar
+// ═══════════════════════════════════════════════════════════════
+function onDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
 function onDragLeave()  { document.getElementById('drop-zone').classList.remove('drag-over'); }
 function onDrop(e)      { e.preventDefault(); onDragLeave(); addFiles(e.dataTransfer.files); }
 function onFilePick(e)  { addFiles(e.target.files); e.target.value = ''; }
 
 function addFiles(fileList) {
-  Array.from(fileList).forEach(f => {
-    files.push({ file: f, name: f.name.replace(/\.[^.]+$/, '') });
-  });
+  Array.from(fileList).forEach(f => files.push({ file: f, name: f.name.replace(/\.[^.]+$/, '') }));
   renderQueue();
 }
 
-function removeFile(i) {
-  files.splice(i, 1);
-  renderQueue();
-}
-
-function renderQueue() {
-  const section = document.getElementById('file-queue-section');
-  const queue   = document.getElementById('file-queue');
-  const count   = document.getElementById('file-count');
-  const btn     = document.getElementById('upload-btn');
-
-  count.textContent = files.length;
-  section.style.display = files.length ? '' : 'none';
-  btn.disabled = files.length === 0;
-
-  queue.innerHTML = files.map((f, i) => `
-    <div class="file-item">
-      <div class="file-item-header">
-        <span class="file-icon">${fileIcon(f.file.name)}</span>
-        <span class="file-orig" title="${esc(f.file.name)}">${esc(f.file.name)}</span>
-        <button class="file-remove" onclick="removeFile(${i})">✕</button>
-      </div>
-      <input type="text" value="${esc(f.name)}" placeholder="Display name" oninput="files[${i}].name = this.value" style="font-size:12px;padding:7px 10px"/>
-    </div>
-  `).join('');
-}
+function removeFile(i) { files.splice(i, 1); renderQueue(); }
+function clearFiles()  { files = []; renderQueue(); }
 
 function fileIcon(name) {
   const ext = name.split('.').pop().toLowerCase();
   return { pdf:'📄', doc:'📝', docx:'📝', pptx:'📊', jpg:'🖼', jpeg:'🖼', png:'🖼' }[ext] || '📁';
 }
 
+function renderQueue() {
+  const section = document.getElementById('file-queue-section');
+  const queue   = document.getElementById('file-queue');
+  document.getElementById('file-count').textContent = files.length;
+  section.style.display = files.length ? '' : 'none';
+  document.getElementById('upload-btn').disabled = files.length === 0 || isUploading;
+
+  queue.innerHTML = files.map((f, i) => `
+    <div class="file-item" id="fitem-${i}">
+      <div class="file-item-header">
+        <span class="file-icon">${fileIcon(f.file.name)}</span>
+        <span class="file-orig" title="${esc(f.file.name)}">${esc(f.file.name)}</span>
+        <span class="file-status" id="fstatus-${i}"></span>
+        <button class="file-remove" onclick="removeFile(${i})" title="Remove">✕</button>
+      </div>
+      <input class="file-name-input" type="text" value="${esc(f.name)}"
+        placeholder="Display name (rename here)"
+        oninput="files[${i}].name = this.value"/>
+      <div class="file-progress-wrap" id="fprog-wrap-${i}" style="display:none">
+        <div class="file-progress-bar" id="fprog-${i}"></div>
+      </div>
+      <div class="file-progress-label" id="fprog-label-${i}"></div>
+    </div>
+  `).join('');
+}
+
 async function doUpload() {
-  if (!files.length) return;
-  const subject  = document.getElementById('up-subject').value.trim();
-  const category = document.getElementById('up-category').value;
-  const level    = document.getElementById('up-level').value;
-  const grade    = document.getElementById('up-grade').value;
-  const year     = document.getElementById('up-year').value.trim();
+  if (!files.length || isUploading) return;
+
+  const subject    = document.getElementById('up-subject').value;
+  const category   = document.getElementById('up-category').value;
+  const level      = document.getElementById('up-level').value;
+  const grade      = document.getElementById('up-grade').value;
+  const year       = document.getElementById('up-year').value;
   const curriculum = document.getElementById('up-curriculum').value;
 
-  if (!subject) { toast('Please enter a subject name', 'error'); return; }
+  if (!subject) { toast('Please select a subject', 'error'); return; }
 
-  const btn = document.getElementById('upload-btn');
-  const progressWrap = document.getElementById('upload-progress');
-  const progressFill = document.getElementById('progress-fill');
-  const progressLabel = document.getElementById('progress-label');
-  btn.disabled = true;
-  document.getElementById('upload-btn-text').textContent = 'Uploading…';
-  progressWrap.style.display = '';
-  progressFill.style.width = '0%';
+  const subjectFull = curriculum ? `${subject} (${curriculum})` : subject;
 
-  const fd = new FormData();
-  fd.append('category', category);
-  fd.append('level', level);
-  fd.append('grade', grade);
-  fd.append('subject', curriculum ? `${subject} (${curriculum})` : subject);
-  fd.append('year', year);
+  isUploading = true;
+  document.getElementById('upload-btn').disabled = true;
+  document.getElementById('upload-btn').textContent = 'Uploading…';
 
-  files.forEach((f, i) => {
-    fd.append('files', f.file, f.file.name);
-    fd.append('titles', f.name);
-  });
+  const op    = document.getElementById('overall-progress');
+  const opBar = document.getElementById('overall-bar');
+  const opLbl = document.getElementById('op-label');
+  const opCnt = document.getElementById('op-count');
+  op.style.display = 'flex';
 
-  try {
-    progressLabel.textContent = `Uploading ${files.length} file(s)…`;
-    progressFill.style.width = '30%';
+  let done = 0, succeeded = 0, failed = 0;
+  const total = files.length;
 
-    const res = await fetch('/api/materials/upload', {
-      method: 'POST',
-      headers: { 'x-admin-token': TOKEN },
-      body: fd,
-    });
-    progressFill.style.width = '90%';
-    const data = await res.json();
-    progressFill.style.width = '100%';
+  for (let i = 0; i < total; i++) {
+    const f    = files[i];
+    const item = document.getElementById(`fitem-${i}`);
+    const bar  = document.getElementById(`fprog-${i}`);
+    const bwrap= document.getElementById(`fprog-wrap-${i}`);
+    const lbl  = document.getElementById(`fprog-label-${i}`);
+    const stat = document.getElementById(`fstatus-${i}`);
 
-    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    if (!item) continue;  // already removed
 
-    const errMsg = data.errors?.length ? ` (${data.errors.length} failed)` : '';
-    toast(`✓ Uploaded ${data.uploaded} resource(s)${errMsg}`, data.errors?.length ? 'info' : 'success');
+    item.classList.add('uploading');
+    bwrap.style.display = '';
+    bar.style.width = '0%';
+    lbl.textContent = 'Preparing…';
+    stat.textContent = '⏳';
 
-    if (data.errors?.length) {
-      data.errors.forEach(e => toast(`⚠ ${e.file}: ${e.error}`, 'error'));
+    opLbl.textContent = `Uploading ${i + 1} of ${total}…`;
+    opCnt.textContent = `${succeeded} done · ${failed} failed`;
+    opBar.style.width = `${Math.round((done / total) * 100)}%`;
+
+    try {
+      const fd = new FormData();
+      fd.append('file',     f.file, f.file.name);
+      fd.append('title',    f.name || f.file.name);
+      fd.append('category', category);
+      fd.append('level',    level);
+      fd.append('grade',    grade);
+      fd.append('subject',  subjectFull);
+      fd.append('year',     year);
+
+      bar.style.width = '40%';
+      lbl.textContent = 'Uploading to CDN…';
+
+      const res = await fetch('/api/materials/upload', {
+        method: 'POST',
+        headers: { 'x-admin-token': TOKEN },
+        body: fd,
+      });
+
+      bar.style.width = '80%';
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+      bar.style.width = '100%';
+      bar.style.background = '#70d888';
+      lbl.textContent = '✓ Uploaded';
+      stat.textContent = '✅';
+      item.classList.remove('uploading');
+      item.classList.add('done');
+      succeeded++;
+    } catch(e) {
+      bar.style.width = '100%';
+      bar.style.background = '#ff8080';
+      lbl.textContent = `Error: ${e.message}`;
+      stat.textContent = '❌';
+      item.classList.remove('uploading');
+      item.classList.add('errored');
+      failed++;
     }
 
-    files = [];
-    renderQueue();
-    loadMaterials();
-    loadStats();
-  } catch(e) {
-    toast(e.message, 'error');
-  } finally {
-    setTimeout(() => { progressWrap.style.display = 'none'; }, 1500);
-    btn.disabled = false;
-    document.getElementById('upload-btn-text').textContent = '↑ Upload Files';
+    done++;
+    opBar.style.width = `${Math.round((done / total) * 100)}%`;
+    opCnt.textContent = `${succeeded} done · ${failed} failed`;
   }
-}
 
-// ── Level / category change ───────────────────────────────────────────────────
-function onLevelChange() {
-  const level = document.getElementById('up-level').value;
-  const gradeSelect = document.getElementById('up-grade');
-  gradeSelect.innerHTML = '<option value="">All / General</option>';
-  if (level === 'primary') {
-    ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7'].forEach(g => {
-      gradeSelect.innerHTML += `<option value="${g}">${g}</option>`;
-    });
-  } else if (level === 'olevel') {
-    ['Form 1','Form 2','Form 3','Form 4'].forEach(g => {
-      gradeSelect.innerHTML += `<option value="${g}">${g}</option>`;
-    });
+  // Final state
+  opLbl.textContent = `Complete — ${succeeded} uploaded${failed ? `, ${failed} failed` : ''}`;
+  opBar.style.width = '100%';
+
+  if (succeeded)  toast(`✓ ${succeeded} file(s) uploaded successfully`, 'success');
+  if (failed)     toast(`${failed} file(s) failed to upload`, 'error');
+
+  // Clear only the succeeded files, keep failed ones for retry
+  files = files.filter((_, i) => {
+    const item = document.getElementById(`fitem-${i}`);
+    return item && item.classList.contains('errored');
+  });
+
+  isUploading = false;
+  document.getElementById('upload-btn').disabled = false;
+  document.getElementById('upload-btn').textContent = '↑ Upload Files';
+
+  if (!files.length) {
+    setTimeout(() => { op.style.display = 'none'; }, 3000);
+    document.getElementById('file-queue-section').style.display = 'none';
   } else {
-    ['Form 5','Form 6'].forEach(g => {
-      gradeSelect.innerHTML += `<option value="${g}">${g}</option>`;
-    });
+    renderQueue();
   }
+
+  loadMaterials();
+  loadStats();
 }
 
-function onCategoryChange() {
-  const cat = document.getElementById('up-category').value;
-  document.getElementById('year-group').style.display =
-    (cat === 'paper' || cat === 'marking_scheme') ? '' : 'none';
-}
-
-// ── Edit modal ────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// EDIT MODAL
+// ═══════════════════════════════════════════════════════════════
 function openEdit(id) {
   const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (!row) return;
   editId = id;
-  const tds = row.querySelectorAll('td');
-  document.getElementById('edit-title').value    = row.querySelector('.title-text')?.textContent?.trim() || '';
-  document.getElementById('edit-subject').value  = tds[4]?.textContent?.trim() || '';
-  document.getElementById('edit-year').value     = row.querySelector('.year-pill')?.textContent?.trim() || '';
-  document.getElementById('edit-grade').value    = tds[3]?.querySelector('span')?.textContent?.trim() || '';
 
-  const catBadge = tds[2]?.querySelector('.badge')?.textContent?.trim() || '';
-  const catMap   = { 'Past Paper':'paper', 'Textbook':'textbook', 'Syllabus':'syllabus', 'Marking Scheme':'marking_scheme' };
-  document.getElementById('edit-category').value = catMap[catBadge] || 'paper';
+  const level   = row.dataset.level   || 'olevel';
+  const subject = row.dataset.subject || '';
+  const year    = row.dataset.year    || '';
 
-  const levelText = tds[3]?.textContent?.trim().split('\n')[0].trim();
-  const levelMap  = { 'primary':'primary', 'olevel':'olevel', 'alevel':'alevel',
-                      'Primary':'primary', 'O-Level':'olevel', 'A-Level':'alevel' };
-  document.getElementById('edit-level').value = levelMap[levelText] || 'primary';
+  document.getElementById('edit-title').value       = row.dataset.title    || '';
+  document.getElementById('edit-category').value    = row.dataset.category || 'paper';
+  document.getElementById('edit-level').value       = level;
+  document.getElementById('edit-grade').value       = row.dataset.grade    || '';
+  document.getElementById('edit-approved').value    = row.dataset.approved;
 
-  const status = tds[6]?.textContent?.trim();
-  document.getElementById('edit-approved').value = status?.includes('Live') ? 'true' : 'false';
+  populateSubjects('edit-subject', level, subject);
+  populateYearSelect('edit-year');
+
+  // set year after populating
+  const editYearSel = document.getElementById('edit-year');
+  const noYearOpt   = document.createElement('option');
+  noYearOpt.value = ''; noYearOpt.textContent = '— No year —';
+  editYearSel.prepend(noYearOpt);
+  editYearSel.value = year;
 
   openModal('edit-modal');
 }
@@ -1119,18 +1224,19 @@ async function saveEdit() {
       category: document.getElementById('edit-category').value,
       level:    document.getElementById('edit-level').value,
       grade:    document.getElementById('edit-grade').value.trim(),
-      subject:  document.getElementById('edit-subject').value.trim(),
-      year:     document.getElementById('edit-year').value.trim(),
+      subject:  document.getElementById('edit-subject').value,
+      year:     document.getElementById('edit-year').value,
       approved: document.getElementById('edit-approved').value === 'true',
     });
     toast('Resource updated', 'success');
     closeModal('edit-modal');
-    loadMaterials();
-    loadStats();
+    loadMaterials(); loadStats();
   } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── Delete modal ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// DELETE MODAL
+// ═══════════════════════════════════════════════════════════════
 function openDelete(id, name) {
   deleteId = id;
   document.getElementById('delete-name').textContent = name;
@@ -1142,34 +1248,31 @@ async function confirmDelete() {
     await api('DELETE', `/api/materials/${deleteId}`);
     toast('Resource deleted', 'success');
     closeModal('delete-modal');
-    loadMaterials();
-    loadStats();
+    loadMaterials(); loadStats();
   } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── Modal helpers ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════════════════════
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
+  if (e.key === 'Escape')
     document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
-  }
 });
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
 function toast(msg, type = 'info') {
-  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  const icons = { success:'✓', error:'✕', info:'ℹ' };
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
   el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
   document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 4000);
+  setTimeout(() => el.remove(), 4500);
 }
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-onCategoryChange();
-onLevelChange();
 </script>
 </body>
 </html>

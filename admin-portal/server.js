@@ -3,7 +3,6 @@ import multer from 'multer';
 import mongoose from 'mongoose';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { createRequire } from 'module';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -12,7 +11,8 @@ const app  = express();
 const PORT = process.env.PORTAL_PORT || 5000;
 
 // ─── Mongo ────────────────────────────────────────────────────────────────────
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://darexmucheri:cMd7EoTwGglJGXwR@cluster0.uwf6z.mongodb.net/fun?retryWrites=true&w=majority&appName=Cluster0';
+const MONGO_URI = process.env.MONGO_URI ||
+  'mongodb+srv://darexmucheri:cMd7EoTwGglJGXwR@cluster0.uwf6z.mongodb.net/fun?retryWrites=true&w=majority&appName=Cluster0';
 
 const materialSchema = new mongoose.Schema({
   category:   { type: String, required: true, enum: ['syllabus', 'paper', 'textbook', 'marking_scheme'] },
@@ -29,7 +29,8 @@ const materialSchema = new mongoose.Schema({
   year:       { type: String, default: '' },
 }, { timestamps: true });
 
-const MaterialModel = mongoose.models?.Material || mongoose.model('Material', materialSchema);
+const MaterialModel = mongoose.models?.Material ||
+  mongoose.model('Material', materialSchema);
 
 mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 10000 })
   .then(() => console.log('✅ MongoDB connected'))
@@ -65,14 +66,21 @@ function requireAuth(req, res, next) {
   res.status(401).json({ error: 'Unauthorized' });
 }
 
-// ─── Multer (memory storage) ──────────────────────────────────────────────────
+// ─── Multer — supports up to 100 files, 80 MB each ───────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB per file
+  limits: {
+    fileSize:      80 * 1024 * 1024,  // 80 MB per file
+    files:         100,               // up to 100 files per batch
+    fields:        210,               // title fields (1 per file) + metadata
+    fieldNameSize: 200,
+    fieldSize:     2 * 1024 * 1024,   // 2 MB per field value
+  },
 });
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Auth endpoint ────────────────────────────────────────────────────────────
@@ -112,43 +120,36 @@ app.get('/api/materials', requireAuth, async (req, res) => {
 });
 
 // ─── POST /api/materials/upload ───────────────────────────────────────────────
-app.post('/api/materials/upload', requireAuth, upload.array('files', 20), async (req, res) => {
+// Upload files one-at-a-time via individual POST requests (called by frontend
+// per-file to support accurate progress bars and avoid multer field limits).
+app.post('/api/materials/upload', requireAuth, upload.single('file'), async (req, res) => {
   try {
-    const { category, level, grade, subject, year, titles } = req.body;
-    const titlesArr = Array.isArray(titles) ? titles : (titles ? [titles] : []);
-    const files = req.files || [];
+    const { category, level, grade, subject, year, title } = req.body;
+    const file = req.file;
 
-    if (!files.length) return res.status(400).json({ error: 'No files provided' });
+    if (!file) return res.status(400).json({ error: 'No file provided' });
+    if (!subject) return res.status(400).json({ error: 'Subject is required' });
 
-    const results = [];
-    const errors  = [];
+    const displayTitle = (title || file.originalname).replace(/\.[^.]+$/, '').trim();
 
-    for (let i = 0; i < files.length; i++) {
-      const file  = files[i];
-      const title = titlesArr[i] || file.originalname.replace(/\.[^.]+$/, '');
-      try {
-        const cdnUrl = await uploadToCDN(file.buffer, file.originalname, file.mimetype);
-        const mat = await MaterialModel.create({
-          category,
-          level,
-          grade:      grade || '',
-          subject,
-          title,
-          url:        cdnUrl,
-          mimeType:   file.mimetype,
-          fileSize:   file.size,
-          uploadedBy: 'admin-portal',
-          approved:   true,
-          approvedBy: 'admin-portal',
-          year:       year || '',
-        });
-        results.push(mat);
-      } catch (e) {
-        errors.push({ file: file.originalname, error: e.message });
-      }
-    }
+    const cdnUrl = await uploadToCDN(file.buffer, file.originalname, file.mimetype);
 
-    res.json({ uploaded: results.length, errors, results });
+    const mat = await MaterialModel.create({
+      category:   category   || 'paper',
+      level:      level      || 'olevel',
+      grade:      grade      || '',
+      subject:    subject    || 'General',
+      title:      displayTitle,
+      url:        cdnUrl,
+      mimeType:   file.mimetype,
+      fileSize:   file.size,
+      uploadedBy: 'admin-portal',
+      approved:   true,
+      approvedBy: 'admin-portal',
+      year:       year       || '',
+    });
+
+    res.json({ ok: true, material: mat });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -167,7 +168,9 @@ app.patch('/api/materials/:id', requireAuth, async (req, res) => {
     if (year      !== undefined) update.year      = year;
     if (approved  !== undefined) update.approved  = approved;
 
-    const mat = await MaterialModel.findByIdAndUpdate(req.params.id, update, { new: true });
+    const mat = await MaterialModel.findByIdAndUpdate(
+      req.params.id, update, { new: true }
+    );
     if (!mat) return res.status(404).json({ error: 'Not found' });
     res.json(mat);
   } catch (e) {
@@ -190,7 +193,8 @@ app.delete('/api/materials/:id', requireAuth, async (req, res) => {
 app.delete('/api/materials', requireAuth, async (req, res) => {
   try {
     const { ids } = req.body;
-    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'No ids' });
+    if (!Array.isArray(ids) || !ids.length)
+      return res.status(400).json({ error: 'No ids provided' });
     const result = await MaterialModel.deleteMany({ _id: { $in: ids } });
     res.json({ deleted: result.deletedCount });
   } catch (e) {
