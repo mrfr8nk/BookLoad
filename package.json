@@ -1,0 +1,23 @@
+{
+  "name": "fundo-ai",
+  "version": "1.0.0",
+  "description": "Fundo AI - WhatsApp Educational Chatbot by Darrell Mucheri",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@tavily/core": "^0.7.2",
+    "@whiskeysockets/baileys": "latest",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "gifted-btns": "^1.0.2",
+    "mongoose": "^9.4.1",
+    "node-cache": "^5.1.2",
+    "paynow": "^2.2.2",
+    "pdf-parse": "^1.1.1",
+    "pdfkit": "^0.15.0",
+    "pino": "^9.6.0"
+  }
+}
