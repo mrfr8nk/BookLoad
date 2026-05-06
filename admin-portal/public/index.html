@@ -1046,6 +1046,7 @@ function renderQueue() {
   section.style.display = files.length ? '' : 'none';
   document.getElementById('upload-btn').disabled = files.length === 0 || isUploading;
 
+  // Build HTML without putting the value in the attribute (avoids HTML-encoding issues)
   queue.innerHTML = files.map((f, i) => `
     <div class="file-item" id="fitem-${i}">
       <div class="file-item-header">
@@ -1054,15 +1055,27 @@ function renderQueue() {
         <span class="file-status" id="fstatus-${i}"></span>
         <button class="file-remove" onclick="removeFile(${i})" title="Remove">✕</button>
       </div>
-      <input class="file-name-input" type="text" value="${esc(f.name)}"
-        placeholder="Display name (rename here)"
-        oninput="files[${i}].name = this.value"/>
+      <input class="file-name-input" type="text" id="fname-${i}"
+        placeholder="Display name — edit before uploading"
+        data-idx="${i}" oninput="updateFileName(this)"/>
       <div class="file-progress-wrap" id="fprog-wrap-${i}" style="display:none">
         <div class="file-progress-bar" id="fprog-${i}"></div>
       </div>
       <div class="file-progress-label" id="fprog-label-${i}"></div>
     </div>
   `).join('');
+
+  // Set input values via JS so there is zero HTML-encoding involved
+  files.forEach((f, i) => {
+    const inp = document.getElementById(`fname-${i}`);
+    if (inp) inp.value = f.name;  // raw string, no encoding
+  });
+}
+
+// Called by the name inputs (data-idx attribute approach avoids stale closures)
+function updateFileName(el) {
+  const i = parseInt(el.dataset.idx, 10);
+  if (!isNaN(i) && files[i] !== undefined) files[i].name = el.value;
 }
 
 async function doUpload() {
@@ -1113,9 +1126,13 @@ async function doUpload() {
     opBar.style.width = `${Math.round((done / total) * 100)}%`;
 
     try {
+      // Read title directly from the input element — this is what the user actually sees
+      const nameInput = document.getElementById(`fname-${i}`);
+      const displayTitle = (nameInput ? nameInput.value.trim() : '') || f.file.name.replace(/\.[^.]+$/, '');
+
       const fd = new FormData();
       fd.append('file',     f.file, f.file.name);
-      fd.append('title',    f.name || f.file.name);
+      fd.append('title',    displayTitle);
       fd.append('category', category);
       fd.append('level',    level);
       fd.append('grade',    grade);
