@@ -45,6 +45,14 @@ const userSchema = new mongoose.Schema({
   extraProjects: { type: Number, default: 0 },   // bonus project PDFs earned (3 uploads = 1)
   extraMessages: { type: Number, default: 0 },   // bonus chat messages earned from uploads
   extraImages:   { type: Number, default: 0 },   // bonus image generations earned from uploads
+  // ── Referral system ──────────────────────────────────────────────────────────
+  referralCode:  { type: String, default: '', index: true },
+  referredBy:    { type: String, default: '' },  // phone of referrer
+  referralCount: { type: Number, default: 0 },   // how many people this user referred
+  referredUsers: { type: [String], default: [] }, // phones referred (duplicate guard)
+  // ── Limit exhaustion timestamps (ms since epoch, 0 = not hit today) ─────────
+  exhaustedChatAt:  { type: Number, default: 0 },
+  exhaustedImageAt: { type: Number, default: 0 },
   usage: {
     chatToday:        { type: Number, default: 0 },
     imagesToday:      { type: Number, default: 0 },
@@ -241,10 +249,12 @@ export async function getAllUserPhones() {
   try { return (await UserModel.find({}, 'phone')).map(u => u.phone).filter(Boolean); } catch (e) { return []; }
 }
 
-export async function getAllUsersInfo({ limit = 50 } = {}) {
+export async function getAllUsersInfo({ limit = 0 } = {}) {
   if (!dbReady) return [];
   try {
-    return await UserModel.find({}, 'phone plan createdAt uploadCount').sort({ createdAt: -1 }).limit(limit);
+    let q = UserModel.find({}, 'phone plan createdAt uploadCount referralCount').sort({ createdAt: -1 });
+    if (limit > 0) q = q.limit(limit);
+    return await q;
   } catch (e) { return []; }
 }
 
@@ -268,12 +278,12 @@ export async function useExtraProject(phone) {
   } catch (e) { return false; }
 }
 
-// ─── Media download limit (free users: 10/day) ────────────────────────────────
+// ─── Media download limit (free users: 5/day) ─────────────────────────────────
 export function checkDownloadLimit(user) {
   if (!user) return false;
   const p = PLANS[user.plan] || PLANS.FREE;
   if (p.price > 0) return false; // paid users: unlimited downloads
-  return (user.usage.mediaDownloads || 0) >= 10;
+  return (user.usage.mediaDownloads || 0) >= 5;
 }
 
 export async function incrementDownload(user) {
@@ -306,11 +316,16 @@ export async function resetUsageIfNeeded(user) {
     if (user.plan === 'FREE') user.usage.pdfToday = 0;
     user.usage.lastDayReset      = today;
     user.usage.lastDownloadReset = today;
+    // Reset exhaustion timestamps for the new day
+    user.exhaustedChatAt  = 0;
+    user.exhaustedImageAt = 0;
     set['usage.chatToday']        = 0;
     set['usage.imagesToday']      = 0;
     set['usage.mediaDownloads']   = 0;
     set['usage.lastDayReset']     = today;
     set['usage.lastDownloadReset']= today;
+    set['exhaustedChatAt']        = 0;
+    set['exhaustedImageAt']       = 0;
     if (user.plan === 'FREE') set['usage.pdfToday'] = 0;
   }
   if (user.usage.lastMonthReset !== month) {
@@ -440,6 +455,76 @@ export async function pollPaynow(pollUrl) {
     const st = await pn.pollTransaction(pollUrl);
     return (st.status || 'unknown').toLowerCase();
   } catch (_) { return 'unknown'; }
+}
+
+// ─── Referral system ───────────────────────────────────────────────────────────
+function makeReferralCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'REF-';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+export async function generateReferralCode(phone) {
+  if (!dbReady) return null;
+  try {
+    const user = await UserModel.findOne({ phone });
+    if (!user) return null;
+    if (user.referralCode) return user.referralCode;
+    let code, exists;
+    do {
+      code = makeReferralCode();
+      exists = await UserModel.findOne({ referralCode: code });
+    } while (exists);
+    await UserModel.updateOne({ phone }, { $set: { referralCode: code } });
+    return code;
+  } catch (e) { return null; }
+}
+
+export async function processReferral(newPhone, referralCode) {
+  if (!dbReady) return { ok: false, reason: 'db_off' };
+  try {
+    const code = (referralCode || '').trim().toUpperCase();
+    const referrer = await UserModel.findOne({ referralCode: code });
+    if (!referrer) return { ok: false, reason: 'invalid_code' };
+    if (referrer.phone === newPhone) return { ok: false, reason: 'self_referral' };
+    if (referrer.referredUsers.includes(newPhone)) return { ok: false, reason: 'already_referred' };
+    const newUser = await UserModel.findOne({ phone: newPhone });
+    if (newUser?.referredBy) return { ok: false, reason: 'already_referred' };
+    // Reward referrer: +5 messages, +2 images, +1 project
+    await UserModel.updateOne(
+      { phone: referrer.phone },
+      { $inc: { referralCount: 1, extraMessages: 5, extraImages: 2, extraProjects: 1 }, $push: { referredUsers: newPhone } }
+    );
+    // Mark new user as referred
+    await UserModel.findOneAndUpdate(
+      { phone: newPhone },
+      { $set: { referredBy: referrer.phone } },
+      { upsert: true }
+    );
+    return { ok: true, referrerPhone: referrer.phone };
+  } catch (e) { return { ok: false, reason: 'error' }; }
+}
+
+export async function getTopUploaders(limit = 10) {
+  if (!dbReady) return [];
+  try {
+    return await UserModel.find({ uploadCount: { $gt: 0 } })
+      .sort({ uploadCount: -1 })
+      .limit(limit)
+      .select('phone uploadCount referralCount plan');
+  } catch (e) { return []; }
+}
+
+// Record when user first hits a daily limit (only sets once per day; cleared at daily reset)
+export async function recordLimitExhaustion(phone, type) {
+  if (!dbReady) return;
+  const field = type === 'chat' ? 'exhaustedChatAt' : type === 'image' ? 'exhaustedImageAt' : null;
+  if (!field) return;
+  try {
+    // Only set if not already set (value is 0) — don't overwrite the original hit time
+    await UserModel.updateOne({ phone, [field]: 0 }, { $set: { [field]: Date.now() } });
+  } catch (_) {}
 }
 
 // ─── Gift Code System (file-based) ────────────────────────────────────────────

@@ -39,6 +39,7 @@ import {
   checkDownloadLimit, incrementDownload,
   listAllMaterials, countAllMaterials, deleteMaterialById, renameMaterialById, getAllUserPhones, getAllUsersInfo,
   getConfig, setConfig, approveAllMaterials, recordManualPayment,
+  generateReferralCode, processReferral, getTopUploaders, recordLimitExhaustion,
 } from './db.js';
 const { sendButtons, sendInteractiveMessage } = giftedBtns;
 
@@ -256,7 +257,7 @@ FUNDO AI PLANS & PRICING 💳:
 When a user asks about plans, pricing, upgrading, or subscriptions — guide them warmly and make them WANT to upgrade. Be enthusiastic and highlight the value!
 
 🆓 *FREE* — $0/month
-• 25 chats/day, 3 images/day, 1 PDF/day, 10 material downloads/day
+• 25 chats/day, 3 images/day, 1 PDF/day, 5 material downloads/day
 • Great for trying Fundo AI out!
 
 ⚡ *STARTER* — Only $1/month 🔥 ← MOST POPULAR!
@@ -508,8 +509,9 @@ function parseAge(input) {
   return null;
 }
 
-// ─── Cooldown timer for daily reset ──────────────────────────────────────────
+// ─── Cooldown timer: 24 hours from the moment limit was hit ──────────────────
 function getDailyResetCountdown() {
+  // Kept for legacy call-sites; returns midnight countdown as fallback
   const now = new Date();
   const tomorrow = new Date();
   tomorrow.setHours(24, 0, 0, 0);
@@ -517,7 +519,18 @@ function getDailyResetCountdown() {
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
   const s = Math.floor((diff % 60000) / 1000);
-  return `${h} hour${h !== 1 ? 's' : ''}, ${m} minute${m !== 1 ? 's' : ''}, ${s} second${s !== 1 ? 's' : ''}`;
+  return `${h}h ${m}m ${s}s`;
+}
+// Returns countdown from the moment the limit was first hit today (or 24h from now)
+function get24hCountdown(exhaustedAt) {
+  const from = exhaustedAt && exhaustedAt > 0 ? exhaustedAt : Date.now();
+  const resetMs = from + 24 * 3600 * 1000;
+  const diff    = resetMs - Date.now();
+  if (diff <= 0) return 'shortly';
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${h}h ${m}m ${s}s`;
 }
 
 // ─── Main Menu ────────────────────────────────────────────────────────────────
@@ -2807,14 +2820,13 @@ ${topUsers || '  None yet'}
             continue;
           }
 
-          // !users — list all users by scanning profile files (LID-safe)
+          // !users — list all users sorted newest first, grouped by level
           if (/^!?users$/i.test(ownerCmd)) {
             let dbUserMap = {};
             try {
-              const dbAll = await getAllUsersInfo({ limit: 200 });
+              const dbAll = await getAllUsersInfo();
               for (const u of dbAll) dbUserMap[(u.phone || '').replace(/\D/g, '')] = u;
             } catch (_) {}
-            // Scan all profile files for real user data
             const profileEntries = [];
             try {
               const files = fs.readdirSync(PROFILES_DIR).filter(f => f.endsWith('.json'));
@@ -2822,7 +2834,6 @@ ${topUsers || '  None yet'}
                 try {
                   const p = JSON.parse(fs.readFileSync(path.join(PROFILES_DIR, fname), 'utf8'));
                   if (p.name || p.email) {
-                    // Extract phone/LID from filename if not already stored inside the profile
                     if (!p.phone) {
                       p.phone = fname
                         .replace(/_lid\.json$/, '')
@@ -2837,43 +2848,48 @@ ${topUsers || '  None yet'}
             if (!profileEntries.length && !Object.keys(dbUserMap).length) {
               await send(jid, `👥 *No users found yet.*\n\n— _FUNDO AI 🤖🔥_`, msg); continue;
             }
-            // Merge: profiles that have phone → lookup DB; DB users without profile → show phone only
+            // Build merged list
+            const allEntries = [];
             const shown = new Set();
-            const lines = [];
-            let i = 0;
-            // First: profile users (have name/email)
             for (const p of profileEntries) {
               const phone = (p.phone || '').replace(/\D/g, '');
               const dbRec = phone ? (dbUserMap[phone] || {}) : {};
-              const plan  = dbRec.plan || 'FREE';
-              const joined = dbRec.createdAt ? new Date(dbRec.createdAt).toLocaleDateString('en-GB', { timeZone: 'Africa/Harare', day: '2-digit', month: 'short', year: 'numeric' }) : '—';
               if (phone) shown.add(phone);
-              i++;
-              let line = `*${i}.* 📱 *${phone ? `+${phone}` : '(no number)'}*`;
-              if (p.name)   line += `\n   👤 ${p.name}`;
-              if (p.email)  line += `  📧 ${p.email}`;
-              if (p.school) line += `\n   🏫 ${p.school}`;
-              if (p.levelLabel || p.grade) {
-                const lvlStr = [p.levelLabel, p.grade].filter(Boolean).join(' — ');
-                line += `\n   🎓 ${lvlStr}`;
-              }
-              line += `\n   💳 ${plan}`;
-              if (joined !== '—') line += `\n   📅 Joined: ${joined}`;
-              lines.push(line);
+              allEntries.push({ phone, plan: dbRec.plan || 'FREE', createdAt: dbRec.createdAt || null, uploadCount: dbRec.uploadCount || 0, referralCount: dbRec.referralCount || 0, name: p.name, email: p.email, school: p.school, levelLabel: p.levelLabel, grade: p.grade, levelType: p.levelType });
             }
-            // Then: DB users without a profile (show phone + plan only)
             for (const [phone, dbRec] of Object.entries(dbUserMap)) {
               if (shown.has(phone)) continue;
-              const plan   = dbRec.plan || 'FREE';
-              const joined = dbRec.createdAt ? new Date(dbRec.createdAt).toLocaleDateString('en-GB', { timeZone: 'Africa/Harare', day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-              i++;
-              let dbLine = `*${i}.* 📱 *+${phone}*\n   💳 ${plan}`;
-              if (joined !== '—') dbLine += `\n   📅 Joined: ${joined}`;
-              lines.push(dbLine);
+              allEntries.push({ phone, plan: dbRec.plan || 'FREE', createdAt: dbRec.createdAt || null, uploadCount: dbRec.uploadCount || 0, referralCount: dbRec.referralCount || 0 });
             }
-            const total = lines.length;
-            const display = lines.slice(0, 50).join('\n\n');
-            await send(jid, `👥 *Users (${total}):*\n\n${display}${total > 50 ? `\n\n_...and ${total - 50} more_` : ''}\n\n— _FUNDO AI 🤖🔥_`, msg);
+            // Sort: newest first, then by level
+            const levelOrder = { primary: 1, olevel: 2, alevel: 3, university: 4, parent: 5, teacher: 6 };
+            allEntries.sort((a, b) => {
+              const dateDiff = new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+              if (dateDiff !== 0) return dateDiff;
+              return (levelOrder[a.levelType] || 9) - (levelOrder[b.levelType] || 9);
+            });
+            const total = allEntries.length;
+            const lines = allEntries.map((e, idx) => {
+              const joined = e.createdAt ? new Date(e.createdAt).toLocaleDateString('en-GB', { timeZone: 'Africa/Harare', day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+              let line = `*${idx + 1}.* 📱 *${e.phone ? `+${e.phone}` : '(no number)'}*`;
+              if (e.name)   line += `\n   👤 ${e.name}`;
+              if (e.email)  line += `  📧 ${e.email}`;
+              if (e.school) line += `\n   🏫 ${e.school}`;
+              if (e.levelLabel || e.grade) line += `\n   🎓 ${[e.levelLabel, e.grade].filter(Boolean).join(' — ')}`;
+              line += `\n   💳 ${e.plan}`;
+              if (e.uploadCount > 0) line += ` | ⬆️ ${e.uploadCount} uploads`;
+              if (e.referralCount > 0) line += ` | 🔗 ${e.referralCount} referrals`;
+              if (joined !== '—') line += `\n   📅 Joined: ${joined}`;
+              return line;
+            });
+            // Send in chunks of 25 to avoid oversized messages
+            const chunkSize = 25;
+            for (let c = 0; c < lines.length; c += chunkSize) {
+              const chunk = lines.slice(c, c + chunkSize);
+              const header = c === 0 ? `👥 *All Users (${total} total) — newest first:*\n\n` : `👥 *Users (${c + 1}–${Math.min(c + chunkSize, total)} of ${total}):*\n\n`;
+              await send(jid, `${header}${chunk.join('\n\n')}\n\n— _FUNDO AI 🤖🔥_`, msg);
+              if (c + chunkSize < lines.length) await new Promise(r => setTimeout(r, 600));
+            }
             continue;
           }
 
@@ -3672,6 +3688,67 @@ Just type your description and hit send! 🚀`, msg);
             continue;
           }
 
+          // ── invite / referral ──────────────────────────────────────────────
+          if (/^(invite|referral|ref|myref|mylink|share)$/.test(stripped)) {
+            const refCode = await generateReferralCode(senderNum).catch(() => null);
+            const botN    = settings.BOT_NUMBER || '263776046121';
+            if (refCode) {
+              const refCount = dbUser?.referralCount || 0;
+              await send(jid,
+`🔗 *Your Fundo AI Referral Link*
+━━━━━━━━━━━━━━━━━━━━
+
+👇 *Share this link with friends:*
+wa.me/${botN}?text=${refCode}
+
+🎁 *Rewards — per successful referral:*
+• +5 bonus AI chats
+• +2 bonus image generations
+• +1 bonus school project PDF
+
+📊 *Your stats:* ${refCount} friend${refCount === 1 ? '' : 's'} invited so far!
+
+📋 *How it works:*
+1. Share your link with a friend
+2. They message the bot using your link
+3. They complete onboarding
+4. Rewards are added to YOUR account instantly! 🎉
+
+_— FUNDO AI 🤖🔥_`, msg);
+            } else {
+              await send(jid, `⚠️ Could not generate referral link. Please try again later.\n\n_— FUNDO AI 🤖🔥_`, msg);
+            }
+            continue;
+          }
+
+          // ── leaderboard ────────────────────────────────────────────────────
+          if (/^(leaderboard|top|topusers|rankings|ranking)$/.test(stripped)) {
+            const topUploaders = await getTopUploaders(10).catch(() => []);
+            if (!topUploaders.length) {
+              await send(jid, `🏆 *Leaderboard*\n\nNo contributors yet! Be the first to upload study materials and earn rewards!\n\nType *upload* to contribute 📚\n\n_— FUNDO AI 🤖🔥_`, msg);
+            } else {
+              const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+              const lines = topUploaders.map((u, i) => {
+                const name = u.name || `+${u.phone}` || 'Anonymous';
+                const refStr = u.referralCount > 0 ? ` · 🔗 ${u.referralCount} referrals` : '';
+                return `${medals[i] || `${i + 1}.`} *${name}*\n   ⬆️ ${u.uploadCount} upload${u.uploadCount === 1 ? '' : 's'}${refStr}`;
+              });
+              await send(jid,
+`🏆 *Fundo AI Leaderboard — Top Contributors*
+━━━━━━━━━━━━━━━━━━━━
+
+${lines.join('\n\n')}
+
+━━━━━━━━━━━━━━━━━━━━
+📚 *Want to be on this list?*
+Type *upload* to contribute study materials!
+Every 3 uploads → 🎁 bonus chats, images & PDF
+
+_— FUNDO AI 🤖🔥_`, msg);
+            }
+            continue;
+          }
+
           // ── !plan / !account / !usage ──────────────────────────────────────
           if (/^(plan|myplan|account|usage|subscription|mystats|my stats|my plan)$/.test(stripped)) {
             const p = dbUser ? (PLANS[dbUser.plan] || PLANS.FREE) : PLANS.FREE;
@@ -3681,19 +3758,25 @@ Just type your description and hit send! 🚀`, msg);
             const extraMsgsLine = (dbUser?.extraMessages || 0) > 0 ? `\n🎁 *Bonus Messages:* ${dbUser.extraMessages}` : '';
             const extraImgsLine = (dbUser?.extraImages || 0) > 0 ? `\n🎁 *Bonus Images:* ${dbUser.extraImages}` : '';
             const uploadsLine = uploadStats.uploadCount > 0 ? `\n⬆️ *Contributions:* ${uploadStats.uploadCount} (${3 - (uploadStats.uploadCount % 3)} more → 🎁 bonus!)` : '';
-            const downloadLine = p.price === 0 ? `\n📥 *Downloads today:* ${u.mediaDownloads || 0}/10` : `\n📥 *Downloads:* Unlimited`;
+            const downloadLine = p.price === 0 ? `\n📥 *Downloads today:* ${u.mediaDownloads || 0}/5` : `\n📥 *Downloads:* Unlimited`;
+            const refCode = await generateReferralCode(senderNum).catch(() => null);
+            const botNum = settings.BOT_NUMBER || '263776046121';
+            const refLink = refCode ? `\n\n🔗 *Your Referral Link:*\nwa.me/${botNum}?text=${refCode}\n_Share & earn: +5 chats, +2 images, +1 PDF per referral!_` : '';
+            const referralCount = dbUser?.referralCount || 0;
+            const refStats = referralCount > 0 ? `\n👥 *Referrals:* ${referralCount} friends invited` : '';
             await send(jid,
 `👤 *Your Fundo AI Account*
 ━━━━━━━━━━━━━━━━━━━━
 📦 *Plan:* ${planName} ($${p.price}/month)
 💬 *Chats today:* ${u.chatToday || 0}/${p.chat === Infinity ? '∞' : p.chat}${extraMsgsLine}
 🖼️ *Images today:* ${u.imagesToday || 0}/${p.images === Infinity ? '∞' : p.images}${extraImgsLine}
-📄 *PDFs (${p.pdfPeriod}):* ${p.pdfPeriod === 'day' ? (u.pdfToday || 0) : (u.pdfMonth || 0)}/${p.pdf === Infinity ? '∞' : p.pdf}${downloadLine}${uploadsLine}
+📄 *PDFs (${p.pdfPeriod}):* ${p.pdfPeriod === 'day' ? (u.pdfToday || 0) : (u.pdfMonth || 0)}/${p.pdf === Infinity ? '∞' : p.pdf}${downloadLine}${uploadsLine}${refStats}
 
-⏰ *Daily reset in:* ${getDailyResetCountdown()}
+⏰ *Resets in:* ${get24hCountdown(dbUser?.exhaustedChatAt)}
 
 Type *upgrade* to change your plan 🚀
-_— FUNDO AI 🤖🔥_`, msg);
+💡 Type *invite* to get your referral link & earn free credits!
+_— FUNDO AI 🤖🔥_${refLink}`, msg);
             continue;
           }
 
@@ -3708,7 +3791,7 @@ _— FUNDO AI 🤖🔥_`, msg);
 • 💬 25 AI chats per day
 • 🖼️ 3 image generations per day
 • 📄 1 school project PDF per day
-• 📥 10 material downloads per day
+• 📥 5 material downloads per day
 • 📚 Access to the study materials library
 • 🧠 AI tutoring & homework help
 
@@ -4424,9 +4507,9 @@ _Type the number or *cancel* to go back._`, msg);
             // Check download limit for free users
             if (checkDownloadLimit(dbUser)) {
               await send(jid,
-`⚠️ *Daily download limit reached!* (10/day on Free plan)
+`⚠️ *Daily download limit reached!* (5/day on Free plan)
 
-⏰ *Resets in:* ${getDailyResetCountdown()}
+⏰ *Resets in:* ${get24hCountdown(dbUser?.exhaustedChatAt)}
 
 💳 *Upgrade for unlimited downloads:*
 
@@ -4456,7 +4539,7 @@ Type *upgrade* to unlock unlimited downloads! 🚀`, msg);
               sent = true;
               await incrementDownload(dbUser);
               const planName = dbUser?.plan || 'FREE';
-              const upgradeNote = planName === 'FREE' ? `\n\n📊 _Downloads today: ${(dbUser?.usage?.mediaDownloads || 0) + 1}/10 (Free plan)_\n💡 _Type *upgrade* for unlimited downloads!_` : '';
+              const upgradeNote = planName === 'FREE' ? `\n\n📊 _Downloads today: ${(dbUser?.usage?.mediaDownloads || 0) + 1}/5 (Free plan)_\n💡 _Type *upgrade* for unlimited downloads!_` : '';
               await send(jid, `✅ *File sent!* (${sizeMB} MB) Enjoy studying 📖🔥${upgradeNote}\n\n_Type *back* to browse more or *menu* to go home._`, msg);
             } catch (e) {
               console.error(`   └─ ❌ Material send: ${e.message?.substring(0, 80)}`);
@@ -4566,7 +4649,7 @@ Or type *cancel* to go back. 😊`, msg);
 • 💬 25 AI chats per day
 • 🖼️ 3 image generations per day
 • 📄 1 school project PDF per day
-• 📥 10 material downloads per day
+• 📥 5 material downloads per day
 • 📚 Access to the study materials library
 • 🧠 AI tutoring & homework help
 
@@ -4648,18 +4731,50 @@ Type *upgrade* to change your plan 🚀
         if (!welcomedUsers.has(userKey)) {
           const ob = onboardingFlow.get(userKey);
 
-          // Not yet started — show welcome + start onboarding
+          // Not yet started — show welcome + channel join step
           if (!ob) {
-            onboardingFlow.set(userKey, { step: 'email' });
+            // Detect referral code in first message (e.g. REF-ABC123 from wa.me link)
+            const refMatch = (textMsg || '').trim().match(/^(REF-[A-Z0-9]{6,8})$/i);
+            const pendingReferral = refMatch ? refMatch[1].toUpperCase() : null;
+            onboardingFlow.set(userKey, { step: 'join_channel', pendingReferral });
+            const botNum = settings.BOT_NUMBER || '263776046121';
             await send(jid,
 `👋 Welcome to *FUNDO AI* 🤖🔥
 
-I'm your personal AI assistant — powered by advanced AI and built by *Darrell Mucheri* 🇿🇼
+I'm your personal AI assistant built by *Darrell Mucheri* 🇿🇼 — your ZIMSEC/Cambridge study buddy!
+
+━━━━━━━━━━━━━━━━━━━━
+📢 *Step 1 — Join Our Channel First!*
+━━━━━━━━━━━━━━━━━━━━
+
+Get free study tips, updates & exclusive giveaways:
+
+👉 *https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X*
+
+Tap the link above to join, then type *1* or *done* to continue ✅`, msg);
+            continue;
+          }
+
+          // Channel join confirmation step
+          if (ob.step === 'join_channel') {
+            const t = (textMsg || '').trim().toLowerCase();
+            if (!['1', 'done', 'joined', 'ok', 'yes', 'next', 'continue'].includes(t)) {
+              await send(jid,
+`👆 Please join our channel first, then type *done* to continue!
+
+👉 *https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X*
+
+_Type *done* or *1* once you've joined._`, msg);
+              continue;
+            }
+            onboardingFlow.set(userKey, { ...ob, step: 'email' });
+            await send(jid,
+`✅ *Welcome aboard!* 🎉
 
 Let's set up your account in 5 quick steps! 🚀
 
 ━━━━━━━━━━━━━━━━━━━━
-📧 *Step 1 of 5 — Email Address*
+📧 *Step 2 of 6 — Email Address*
 ━━━━━━━━━━━━━━━━━━━━
 
 Please enter your email address:
@@ -4788,9 +4903,18 @@ What best describes you? Type the number:
               onboardingFlow.delete(userKey);
               welcomedUsers.add(userKey);
               saveWelcomed(welcomedUsers);
+              // Process referral if any
+              if (ob.pendingReferral) {
+                const refResult = await processReferral(senderNum, ob.pendingReferral).catch(() => null);
+                if (refResult?.ok) {
+                  try { await sock.sendMessage(`${refResult.referrerPhone}@s.whatsapp.net`, { text: `🎉 *${name} joined Fundo AI using your referral link!*\n\n✅ You've earned: +5 chats · +2 images · +1 PDF\n\n🔗 Keep sharing to earn more free credits!\n— _FUNDO AI 🤖🔥_` }); } catch (_) {}
+                }
+              }
               const p = PLANS.FREE;
+              const botNum = settings.BOT_NUMBER || '263776046121';
+              const refCode = await generateReferralCode(senderNum).catch(() => null);
               await send(jid,
-`✅ *You are all set!* 🎉
+`✅ *You are all set, ${name}!* 🎉
 
 ━━━━━━━━━━━━━━━━━━━━
 👤 *Account Created*
@@ -4800,12 +4924,47 @@ What best describes you? Type the number:
 🎂 Age: ${age}
 🏫 Institution: ${school}
 🎓 Level: ${levelLabel}
-📦 Account Type: *Free Plan*
-💬 Usage Limit: ${p.chat} chats/day | ${p.images} images/day | ${p.pdf} PDF/day
+📦 Plan: *Free* (${p.chat} chats/day · ${p.images} images · ${p.pdf} PDF)
 
 ━━━━━━━━━━━━━━━━━━━━`, msg);
               await sendMenuWithLogo(jid, MAIN_MENU, msg);
               setTimeout(async () => {
+                const botN = settings.BOT_NUMBER || '263776046121';
+                const rc   = refCode || await generateReferralCode(senderNum).catch(() => null);
+                const refLine = rc ? `\n\n🔗 *Your referral link:*\nwa.me/${botN}?text=${rc}\n_Earn +5 chats, +2 images, +1 PDF for every friend you invite!_` : '';
+                await send(jid,
+`🤖 *HOW TO USE FUNDO AI — Quick Guide*
+━━━━━━━━━━━━━━━━━━━━
+
+💬 *AI Chat (Menu 2 or 4)*
+Just type any question! Examples:
+• "Explain photosynthesis for Form 3"
+• "Solve: 3x² + 5x − 2 = 0"
+• "Help me write a history essay"
+
+🖼️ *Image Generation (Menu 1)*
+• "Generate image of DNA strand"
+• "Draw a diagram of the water cycle"
+
+📄 *Project PDF (Menu 3)*
+• "Write a project on climate change for Form 4"
+• Gets you a full 50-mark project PDF!
+
+📚 *Study Library (Menu 5–10)*
+Browse syllabuses, past papers & textbooks.
+Files sent straight to your phone — no links!
+
+🏆 *Earn Free Credits*
+• Upload 3 materials → bonus chats, images & PDF
+• Invite friends → earn per referral${refLine}
+
+🎯 *Handy commands:*
+• *menu* — see all options
+• *plan* — check your usage
+• *invite* — get your referral link
+• *leaderboard* — top contributors
+• *cancel* — stop any flow
+━━━━━━━━━━━━━━━━━━━━`, msg);
                 try { const audioBuf = await textToAudio(VOICE_INTRO_TEXT); await sendAudio(jid, audioBuf, null); } catch (e) { console.warn('Voice intro failed:', e.message?.substring(0,50)); }
               }, 1500);
               continue;
@@ -4853,9 +5012,17 @@ _Type the number._`, msg);
             onboardingFlow.delete(userKey);
             welcomedUsers.add(userKey);
             saveWelcomed(welcomedUsers);
+            // Process referral if any
+            if (ob.pendingReferral) {
+              const refResult = await processReferral(senderNum, ob.pendingReferral).catch(() => null);
+              if (refResult?.ok) {
+                try { await sock.sendMessage(`${refResult.referrerPhone}@s.whatsapp.net`, { text: `🎉 *${name} joined Fundo AI using your referral link!*\n\n✅ You've earned: +5 chats · +2 images · +1 PDF\n\n🔗 Keep sharing to earn more free credits!\n— _FUNDO AI 🤖🔥_` }); } catch (_) {}
+              }
+            }
             const p = PLANS.FREE;
+            const refCodeNew = await generateReferralCode(senderNum).catch(() => null);
             await send(jid,
-`✅ *You are all set!* 🎉
+`✅ *You are all set, ${name}!* 🎉
 
 ━━━━━━━━━━━━━━━━━━━━
 👤 *Account Created*
@@ -4865,12 +5032,47 @@ _Type the number._`, msg);
 🎂 Age: ${age}
 🏫 Institution: ${school}
 🎓 Level: ${levelLabel} — *${grade}*
-📦 Account Type: *Free Plan*
-💬 Usage Limit: ${p.chat} chats/day | ${p.images} images/day | ${p.pdf} PDF/day
+📦 Plan: *Free* (${p.chat} chats/day · ${p.images} images · ${p.pdf} PDF)
 
 ━━━━━━━━━━━━━━━━━━━━`, msg);
             await sendMenuWithLogo(jid, MAIN_MENU, msg);
             setTimeout(async () => {
+              const botN = settings.BOT_NUMBER || '263776046121';
+              const rc   = refCodeNew || await generateReferralCode(senderNum).catch(() => null);
+              const refLine = rc ? `\n\n🔗 *Your referral link:*\nwa.me/${botN}?text=${rc}\n_Earn +5 chats, +2 images, +1 PDF for every friend you invite!_` : '';
+              await send(jid,
+`🤖 *HOW TO USE FUNDO AI — Quick Guide*
+━━━━━━━━━━━━━━━━━━━━
+
+💬 *AI Chat (Menu 2 or 4)*
+Just type any question! Examples:
+• "Explain photosynthesis for Form 3"
+• "Solve: 3x² + 5x − 2 = 0"
+• "Help me write a history essay on colonialism"
+
+🖼️ *Image Generation (Menu 1)*
+• "Generate image of a DNA strand diagram"
+• "Draw me a diagram of the water cycle"
+
+📄 *Project PDF (Menu 3)*
+• "Write a project on climate change for Form 4"
+• Gets you a full 50-mark project PDF instantly!
+
+📚 *Study Library (Menu 5–10)*
+Browse syllabuses, past papers & textbooks by level and subject.
+Files sent straight to your phone — no links!
+
+🏆 *Earn Free Credits*
+• Upload 3 approved materials → bonus chats, images & PDF
+• Invite friends using your link → earn per referral${refLine}
+
+🎯 *Handy commands:*
+• *menu* — see all options
+• *plan* — check your usage & limits
+• *invite* — get your referral link
+• *leaderboard* — top contributors
+• *cancel* / *stop* — stop any flow
+━━━━━━━━━━━━━━━━━━━━`, msg);
               try { const audioBuf = await textToAudio(VOICE_INTRO_TEXT); await sendAudio(jid, audioBuf, null); } catch (e) { console.warn('Voice intro failed:', e.message?.substring(0,50)); }
             }, 1500);
             continue;
@@ -5020,21 +5222,25 @@ Type your level to begin! 📚`, msg);
                 ? `\n⬆️ *Materials contributed:* ${uploadStats.uploadCount} approved (${3 - (uploadStats.uploadCount % 3)} more → 🎁 bonus bundle!)`
                 : '';
               const downloadLine = p.price === 0
-                ? `\n📥 *Downloads today:* ${u.mediaDownloads || 0}/10`
+                ? `\n📥 *Downloads today:* ${u.mediaDownloads || 0}/5`
                 : `\n📥 *Downloads:* Unlimited`;
+              const refCode2 = await generateReferralCode(senderNum).catch(() => null);
+              const botNum2  = settings.BOT_NUMBER || '263776046121';
+              const refLink2 = refCode2 ? `\n\n🔗 *Referral Link:*\nwa.me/${botNum2}?text=${refCode2}\n_+5 chats, +2 images, +1 PDF per friend you invite!_` : '';
+              const refStats2 = (dbUser?.referralCount || 0) > 0 ? `\n👥 *Referrals:* ${dbUser.referralCount} friends invited` : '';
               await send(jid,
 `👤 *Your Fundo AI Account*
 
 📦 *Plan:* ${planName} ($${p.price}/month)
 💬 *Chats today:* ${u.chatToday || 0}/${p.chat === Infinity ? '∞' : p.chat}${extraMsgsLine}
 🖼️ *Images today:* ${u.imagesToday || 0}/${p.images === Infinity ? '∞' : p.images}${extraImgsLine}
-📄 *PDFs (${p.pdfPeriod}):* ${p.pdfPeriod === 'day' ? (u.pdfToday || 0) : (u.pdfMonth || 0)}/${p.pdf === Infinity ? '∞' : p.pdf}${extraProjectLine}${downloadLine}${uploadsLine}
+📄 *PDFs (${p.pdfPeriod}):* ${p.pdfPeriod === 'day' ? (u.pdfToday || 0) : (u.pdfMonth || 0)}/${p.pdf === Infinity ? '∞' : p.pdf}${extraProjectLine}${downloadLine}${uploadsLine}${refStats2}
 
-⏰ *Daily reset in:* ${getDailyResetCountdown()}
+⏰ *Resets in:* ${get24hCountdown(dbUser?.exhaustedChatAt)}
 
 Type *upgrade* to change your plan 🚀
-💡 Type *upload* to contribute materials & earn bonus rewards!
-— _FUNDO AI 🤖🔥_`, msg);
+💡 Type *invite* to earn free credits by sharing Fundo!
+— _FUNDO AI 🤖🔥_${refLink2}`, msg);
               break;
             }
             case 12:
@@ -5047,7 +5253,7 @@ Type *upgrade* to change your plan 🚀
 • 💬 25 AI chats per day
 • 🖼️ 3 image generations per day
 • 📄 1 school project PDF per day
-• 📥 10 material downloads per day
+• 📥 5 material downloads per day
 • 📚 Access to the study materials library
 • 🧠 AI tutoring & homework help
 
@@ -5479,7 +5685,8 @@ Type your level to begin! 📚`, msg);
             const imgLimitHit = checkLimitOrUnlimited(dbUser, 'image');
             if (imgLimitHit) {
               upgradeFlow.set(userKey, { step: 'pick_plan' });
-              replyText = `⚠️ *You've reached your daily image limit* (${PLANS[imgLimitHit]?.label || imgLimitHit} plan).\n\n⏰ *Next reset in:*\n${getDailyResetCountdown()}\n\n💳 *Upgrade your plan for more images:*\n\n⚡ *STARTER* — 8 images/day ($1)\n🔵 *BASIC* — 20 images/day ($3)\n🟣 *PRO* — 50 images/day ($10)\n⭐ *PREMIUM* — Unlimited ($20)\n\nReply *STARTER*, *BASIC*, *PRO*, or *PREMIUM* to upgrade! 🚀`;
+              await recordLimitExhaustion(senderNum, 'image');
+              replyText = `⚠️ *You've reached your daily image limit* (${PLANS[imgLimitHit]?.label || imgLimitHit} plan).\n\n⏰ *Resets in:* ${get24hCountdown(dbUser?.exhaustedImageAt)}\n\n💳 *Upgrade your plan for more images:*\n\n⚡ *STARTER* — 8 images/day ($1)\n🔵 *BASIC* — 20 images/day ($3)\n🟣 *PRO* — 50 images/day ($10)\n⭐ *PREMIUM* — Unlimited ($20)\n\nReply *STARTER*, *BASIC*, *PRO*, or *PREMIUM* to upgrade! 🚀`;
             } else {
               const prompt = extractImagePrompt(textMsg);
               await send(jid, '🎨 Generating your image... ✨', msg);
@@ -5502,7 +5709,7 @@ Type your level to begin! 📚`, msg);
             const pdfLimitHit = checkLimitOrUnlimited(dbUser, 'pdf');
             if (pdfLimitHit) {
               upgradeFlow.set(userKey, { step: 'pick_plan' });
-              replyText = `⚠️ *You've reached your PDF limit* (${PLANS[pdfLimitHit]?.label || pdfLimitHit} plan).\n\n⏰ *Next reset in:*\n${getDailyResetCountdown()}\n\n💳 *Upgrade for more PDFs:*\n\n⚡ *STARTER* — 3 PDFs/month ($1)\n🔵 *BASIC* — 10 PDFs/month ($3)\n🟣 *PRO* — 50 PDFs/month ($10)\n⭐ *PREMIUM* — Unlimited ($20)\n\nReply *STARTER*, *BASIC*, *PRO*, or *PREMIUM* to upgrade! 🚀`;
+              replyText = `⚠️ *You've reached your PDF limit* (${PLANS[pdfLimitHit]?.label || pdfLimitHit} plan).\n\n⏰ *Resets in:* ${get24hCountdown(dbUser?.exhaustedChatAt)}\n\n💳 *Upgrade for more PDFs:*\n\n⚡ *STARTER* — 3 PDFs/month ($1)\n🔵 *BASIC* — 10 PDFs/month ($3)\n🟣 *PRO* — 50 PDFs/month ($10)\n⭐ *PREMIUM* — Unlimited ($20)\n\nReply *STARTER*, *BASIC*, *PRO*, or *PREMIUM* to upgrade! 🚀`;
             } else {
               const { subject, level, isForm, topic } = parseProjectRequest(textMsg);
               if (subject && level) {
@@ -5525,7 +5732,8 @@ Type your level to begin! 📚`, msg);
             const chatLimitHit = checkLimitOrUnlimited(dbUser, 'chat');
             if (chatLimitHit) {
               upgradeFlow.set(userKey, { step: 'pick_plan' });
-              replyText = `⚠️ *You've reached your daily chat limit* (${PLANS[chatLimitHit]?.label || chatLimitHit} plan).\n\n⏰ *Next reset in:*\n${getDailyResetCountdown()}\n\nUpgrade your plan for more access 🚀\n\n💳 *Plans:*\n\n⚡ *STARTER* — 75 chats/day ($1) 🔥\n🔵 *BASIC* — 300 chats/day ($3)\n🟣 *PRO* — 1,000 chats/day ($10)\n⭐ *PREMIUM* — Unlimited ($20)\n\nReply *STARTER*, *BASIC*, *PRO*, or *PREMIUM* to upgrade! 🚀`;
+              await recordLimitExhaustion(senderNum, 'chat');
+              replyText = `⚠️ *You've reached your daily chat limit* (${PLANS[chatLimitHit]?.label || chatLimitHit} plan).\n\n⏰ *Resets in:* ${get24hCountdown(dbUser?.exhaustedChatAt)}\n\nUpgrade your plan for more access 🚀\n\n💳 *Plans:*\n\n⚡ *STARTER* — 75 chats/day ($1) 🔥\n🔵 *BASIC* — 300 chats/day ($3)\n🟣 *PRO* — 1,000 chats/day ($10)\n⭐ *PREMIUM* — Unlimited ($20)\n\nReply *STARTER*, *BASIC*, *PRO*, or *PREMIUM* to upgrade! 🚀`;
             } else {
               try {
                 const isQuickMode  = /^quick:\s*/i.test(textMsg);
