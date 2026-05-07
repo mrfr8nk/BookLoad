@@ -1,48 +1,48 @@
 {
   "users": {
     "194068181201013": {
-      "messages": 26,
-      "lastSeen": 1778141661462,
+      "messages": 38,
+      "lastSeen": 1778142462805,
       "recentMsgs": [
         {
-          "text": "lvl_f6",
-          "ts": 1776173236041
-        },
-        {
-          "text": "subj_phy",
-          "ts": 1776173247323
-        },
-        {
-          "text": "I want a project",
-          "ts": 1776173331254
-        },
-        {
-          "text": "11",
-          "ts": 1778141562587
-        },
-        {
-          "text": "Menu",
-          "ts": 1778141630384
-        },
-        {
-          "text": "11",
-          "ts": 1778141635380
-        },
-        {
-          "text": "Reset",
-          "ts": 1778141640060
-        },
-        {
-          "text": "Menu",
-          "ts": 1778141646369
-        },
-        {
-          "text": "11",
-          "ts": 1778141651874
-        },
-        {
           "text": "!logout",
-          "ts": 1778141661462
+          "ts": 1778142143679
+        },
+        {
+          "text": "!users",
+          "ts": 1778142344874
+        },
+        {
+          "text": "Users",
+          "ts": 1778142354856
+        },
+        {
+          "text": "Menu",
+          "ts": 1778142362671
+        },
+        {
+          "text": "11",
+          "ts": 1778142385250
+        },
+        {
+          "text": "REF-6258NF",
+          "ts": 1778142393001
+        },
+        {
+          "text": "!admin",
+          "ts": 1778142446137
+        },
+        {
+          "text": "mrfrankofc",
+          "ts": 1778142454618
+        },
+        {
+          "text": "darex@123",
+          "ts": 1778142458706
+        },
+        {
+          "text": "!users",
+          "ts": 1778142462805
         }
       ]
     },
@@ -93,29 +93,9 @@
       ]
     },
     "116651882242066": {
-      "messages": 15,
-      "lastSeen": 1778141854263,
+      "messages": 20,
+      "lastSeen": 1778142256099,
       "recentMsgs": [
-        {
-          "text": "Peter",
-          "ts": 1778141767854
-        },
-        {
-          "text": "1",
-          "ts": 1778141772061
-        },
-        {
-          "text": "dex@gmail.com",
-          "ts": 1778141788814
-        },
-        {
-          "text": "Darrwll M",
-          "ts": 1778141802137
-        },
-        {
-          "text": "12",
-          "ts": 1778141806265
-        },
         {
           "text": "N/A",
           "ts": 1778141816013
@@ -135,18 +115,54 @@
         {
           "text": "11",
           "ts": 1778141854263
+        },
+        {
+          "text": "Hi",
+          "ts": 1778142199176
+        },
+        {
+          "text": "Menu",
+          "ts": 1778142206297
+        },
+        {
+          "text": "11",
+          "ts": 1778142215614
+        },
+        {
+          "text": "REF-WRTNJT",
+          "ts": 1778142232691
+        },
+        {
+          "text": "!plan",
+          "ts": 1778142256099
+        }
+      ]
+    },
+    "86050156347458": {
+      "messages": 2,
+      "lastSeen": 1778142285710,
+      "recentMsgs": [
+        {
+          "text": "REF-WRTNJT",
+          "ts": 1778142278654
+        },
+        {
+          "text": "💳 *Choose Your Plan — Study Without Limits!* 🚀\n\n⚡ *STARTER — $1/month* 🔥 ← MO",
+          "ts": 1778142285710
         }
       ]
     }
   },
   "groups": {},
-  "totalMessages": 58,
+  "totalMessages": 77,
   "cmdCounts": {
     "reset": 3,
-    "menu": 4,
+    "menu": 7,
     "!menu": 1,
     "!help": 1,
-    "!users": 1,
-    "!logout": 1
+    "!users": 4,
+    "!logout": 2,
+    "!plan": 1,
+    "!admin": 1
   }
 }

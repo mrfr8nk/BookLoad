@@ -40,6 +40,7 @@ import {
   listAllMaterials, countAllMaterials, deleteMaterialById, renameMaterialById, getAllUserPhones, getAllUsersInfo,
   getConfig, setConfig, approveAllMaterials, recordManualPayment,
   generateReferralCode, processReferral, getTopUploaders, recordLimitExhaustion,
+  updateUserProfile, getUserProfile,
 } from './db.js';
 const { sendButtons, sendInteractiveMessage } = giftedBtns;
 
@@ -489,6 +490,7 @@ function saveProfile(jid, data) {
   const updated = { ...loadProfile(jid), ...data };
   profileCache.set(jid, updated);
   try { fs.writeFileSync(profileFile(jid), JSON.stringify(updated), 'utf8'); } catch (_) {}
+  if (updated.phone) updateUserProfile(updated.phone, updated).catch(() => {});
   return updated;
 }
 function clearProfile(jid) { profileCache.delete(jid); try { fs.unlinkSync(profileFile(jid)); } catch (_) {} }
@@ -550,13 +552,14 @@ const MAIN_MENU = `🤖 *FUNDO AI MENU*
 1️⃣1️⃣  View Current Usage Plan
 1️⃣2️⃣  Upgrade Plan
 1️⃣3️⃣  About FUNDO AI
+1️⃣4️⃣  🎓 AI Mock Exam Generator
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 📢 _Join our WhatsApp Channel for updates & tips!_
 👉 _https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X_
 💡 _Type *upload* to contribute materials & earn credits_
-_Reply with a number (1–13) or type *cancel* for help._
+_Reply with a number (1–14) or type *cancel* for help._
 _— FUNDO AI 🤖🔥_`;
 
 function extractProfileFromMessage(jid, text) {
@@ -725,10 +728,12 @@ let botMuted = false;
 
 // ─── In-memory state per user ─────────────────────────────────────────────────
 const lastReply      = new Map(); // jid → last AI text response (for "audio" command)
-const projectFlow    = new Map(); // jid → { step:1|2|3, level, isForm, subject, topic, ideasMap }
-const upgradeFlow    = new Map(); // jid → { step:'pick_plan'|'pick_ecocash'|'polling', plan?, ecocash?, pollUrl? }
-const onboardingFlow = new Map(); // jid → { step:'email'|'name'|'age'|'school'|'level_type'|'level_grade', email?, name?, age?, school?, levelType? }
-const quizFlow       = new Map(); // jid → { step:'pick_level'|'pick_subject'|'answering', level?, subject?, questions?, currentQ, score }
+const projectFlow       = new Map(); // jid → { step:1|2|3, level, isForm, subject, topic, ideasMap }
+const upgradeFlow       = new Map(); // jid → { step:'pick_plan'|'pick_ecocash'|'polling', plan?, ecocash?, pollUrl? }
+const onboardingFlow    = new Map(); // jid → { step:'email'|'name'|'age'|'school'|'level_type'|'level_grade', email?, name?, age?, school?, levelType? }
+const quizFlow          = new Map(); // jid → { step:'pick_level'|'pick_subject'|'answering', level?, subject?, questions?, currentQ, score }
+const profileUpdateFlow = new Map(); // jid → { step:'pick_field'|'enter_value', field? }
+const mockExamFlow      = new Map(); // jid → { step, subject?, level?, paperType?, numQuestions?, topic? }
 const adminSessions  = new Set(); // jids currently logged in as admin
 const adminLoginFlow = new Map(); // jid → { step:'username'|'password', username? }
 const supportFlow    = new Map(); // jid → { step:'awaiting_message' }
@@ -2115,6 +2120,220 @@ async function generateProjectPDF(jid, subject, level, isForm, topic) {
     doc.moveDown(0.4);
     doc.fontSize(8).fillColor('#64748b').font('Helvetica')
        .text('WhatsApp: +263719064805  |  Human Support (payments & queries): +263719647303', { align: 'center', width: BODY });
+    doc.end();
+    stream.on('finish', resolve);
+    stream.on('error', reject);
+  });
+
+  return { filePath, fileName };
+}
+
+// ─── Mock Exam PDF Generator ──────────────────────────────────────────────────
+async function generateMockExamPDF(jid, subject, level, paperType, numQuestions, topic) {
+  const prof       = loadProfile(jid);
+  const pupilName  = prof.name   || '[Your Name]';
+  const schoolName = prof.school || '[Your School]';
+  const dateStr    = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const isMCQ      = paperType === 'Paper 1';
+  const isEssay    = paperType === 'Paper 3';
+  const topicStr   = topic ? `Focus ONLY on the topic: "${topic}". ` : 'Cover a broad range of topics from the full syllabus. ';
+  const totalMarks = isMCQ ? numQuestions : isEssay ? numQuestions * 6 : numQuestions * 4;
+
+  let questionsPrompt, schemePrompt;
+  if (isMCQ) {
+    questionsPrompt = `You are a professional ZIMSEC/Cambridge examiner. Generate a ${subject} ${level} Paper 1 (Multiple Choice) examination with EXACTLY ${numQuestions} questions. ${topicStr}
+FORMAT EACH QUESTION EXACTLY AS:
+Q[n]. [Question text]
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+
+Rules: use proper exam language, varied difficulty (40% easy, 40% medium, 20% hard), plausible distractors, no ambiguous correct answers. DO NOT include answers.`;
+    schemePrompt = `You are a ZIMSEC/Cambridge examiner. For the ${subject} ${level} Paper 1 (Multiple Choice) exam with ${numQuestions} questions on ${topic || 'full syllabus'}, provide the marking scheme in this EXACT format:
+Q[n]. [Correct letter] — [Brief 1-sentence justification]
+List all ${numQuestions} answers.`;
+  } else if (isEssay) {
+    questionsPrompt = `You are a professional ZIMSEC/Cambridge examiner. Generate a ${subject} ${level} Paper 3 (Essay) examination with EXACTLY ${numQuestions} essay questions. ${topicStr}
+FORMAT:
+SECTION A — Answer ALL questions (${Math.ceil(numQuestions/2)} questions × 6 marks each)
+Q[n]. [Clear, specific essay question with command word] (6 marks)
+
+SECTION B — Answer ALL questions (${Math.floor(numQuestions/2)} questions × 6 marks each)
+Q[n]. [Clear, specific essay question with command word] (6 marks)
+
+Rules: use command words (Discuss, Evaluate, Analyse, Compare, Justify), specific and curriculum-appropriate questions, proper examiner language. DO NOT include answers.`;
+    schemePrompt = `You are a ZIMSEC/Cambridge examiner. Provide a detailed marking scheme for the ${subject} ${level} Paper 3 (Essay) exam with ${numQuestions} questions on ${topic || 'full syllabus'}. For each question provide:
+Q[n]. [4-6 key marking points, each worth 1 mark. Include level descriptors where appropriate.]`;
+  } else {
+    questionsPrompt = `You are a professional ZIMSEC/Cambridge examiner. Generate a ${subject} ${level} Paper 2 (Theory/Structured) examination. ${topicStr}
+FORMAT:
+SECTION A — Short Answer (${Math.ceil(numQuestions * 0.4)} questions × 2 marks = ${Math.ceil(numQuestions * 0.4) * 2} marks)
+Q[n]. [Short answer question] (2 marks)
+   Answer: __________________________
+
+SECTION B — Structured (${Math.ceil(numQuestions * 0.4)} questions × 4 marks = ${Math.ceil(numQuestions * 0.4) * 4} marks)
+Q[n]. [Structured question with sub-parts] (4 marks)
+   (a) [Sub-question] (2 marks)
+   (b) [Sub-question] (2 marks)
+
+SECTION C — Extended (${Math.floor(numQuestions * 0.2)} questions × 6 marks = ${Math.floor(numQuestions * 0.2) * 6} marks)
+Q[n]. [Extended response question] (6 marks)
+
+Rules: include mark allocations in brackets, space for answers, proper examiner language, do NOT include answers.`;
+    schemePrompt = `You are a ZIMSEC/Cambridge examiner. Provide a complete marking scheme for the ${subject} ${level} Paper 2 (Theory) exam with ${numQuestions} question-equivalents on ${topic || 'full syllabus'}. Format:
+Q[n]. [Model answer with specific mark points. Include 'allow', 'accept', or 'reject' notes where appropriate.]`;
+  }
+
+  console.log(`   └─ 📄 Mock Exam: ${subject} ${level} ${paperType} (${numQuestions}Q)`);
+  const [questionsRaw, schemeRaw] = await Promise.all([
+    askAI(jid, questionsPrompt, { skipHistory: true }),
+    askAI(jid, schemePrompt,   { skipHistory: true }),
+  ]);
+
+  const safeSubj   = subject.replace(/[^a-zA-Z0-9]/g, '_');
+  const fileName   = `FundoAI_MockExam_${safeSubj}_${level.replace(/\s/g,'')}_${paperType.replace(/\s/g,'')}_${Date.now()}.pdf`;
+  const filePath   = path.join(TEMP_DIR, fileName);
+  const timeAllowed = isMCQ ? `${Math.ceil(numQuestions * 1.2)} minutes` : isEssay ? `${numQuestions * 15} minutes` : `${numQuestions * 8} minutes`;
+
+  await new Promise((resolve, reject) => {
+    const doc    = new PDFDoc({ margin: 55, size: 'A4' });
+    const stream = fs.createWriteStream(filePath);
+    doc.pipe(stream);
+    const W = doc.page.width, L = 55, BODY = W - 110;
+
+    // ── COVER PAGE ────────────────────────────────────────────────────────
+    doc.rect(0, 0, W, 110).fill('#1a1a2e');
+    doc.fillColor('#fff').fontSize(22).font('Helvetica-Bold')
+       .text('FUNDO AI', L, 22, { align: 'center', width: BODY });
+    doc.fontSize(11).font('Helvetica').fillColor('#a0b4e8')
+       .text('AI-Generated Mock Examination Paper', L, 56, { align: 'center', width: BODY });
+    doc.fontSize(9).fillColor('#6a7db5')
+       .text('Prepared for Academic Practice | fundoai.gleeze.com', L, 78, { align: 'center', width: BODY });
+
+    const infoY = 126;
+    doc.rect(L - 10, infoY, BODY + 20, 130).fillAndStroke('#f0f4ff', '#c7d2fe');
+    const rows2 = [
+      ['CANDIDATE NAME:',    pupilName],
+      ['SCHOOL/INSTITUTION:', schoolName],
+      ['SUBJECT:',           subject.toUpperCase()],
+      ['LEVEL / GRADE:',     level.toUpperCase()],
+      ['PAPER:',             paperType],
+      ['TOTAL MARKS:',       String(totalMarks)],
+    ];
+    rows2.forEach(([label, value], idx) => {
+      const ry = infoY + 8 + idx * 20;
+      doc.fillColor('#4b5563').fontSize(8.5).font('Helvetica-Bold').text(label, L + 4, ry);
+      doc.fillColor('#111827').fontSize(8.5).font('Helvetica').text(value, L + 145, ry);
+    });
+
+    const ruleY2 = infoY + 140;
+    doc.rect(L - 10, ruleY2, BODY + 20, 3).fill('#1a1a2e');
+
+    doc.fontSize(13).font('Helvetica-Bold').fillColor('#1a1a2e')
+       .text(`${subject} — ${paperType} Mock Examination`, L, ruleY2 + 14, { align: 'center', width: BODY });
+    if (topic) {
+      doc.fontSize(10).font('Helvetica').fillColor('#4b5563')
+         .text(`Topic: ${topic}`, L, doc.y + 4, { align: 'center', width: BODY });
+    }
+
+    const bY = doc.page.height - 100;
+    doc.rect(0, bY, W, 60).fill('#1a1a2e');
+    doc.fillColor('#fff').fontSize(9).font('Helvetica')
+       .text(`Date: ${dateStr}`, L, bY + 10, { width: BODY / 2 });
+    doc.fillColor('#a0b4e8').fontSize(9).font('Helvetica-Bold')
+       .text(`Time Allowed: ${timeAllowed}  |  Questions: ${numQuestions}`, L + BODY / 2, bY + 10, { align: 'right', width: BODY / 2 });
+    doc.fillColor('#6a7db5').fontSize(7.5).font('Helvetica')
+       .text('Generated by FUNDO AI  |  fundoai.gleeze.com  |  Darrell Mucheri © 2026  |  For practice use only', L, bY + 30, { align: 'center', width: BODY });
+
+    doc.addPage();
+
+    // ── INSTRUCTIONS PAGE ─────────────────────────────────────────────────
+    doc.fontSize(13).font('Helvetica-Bold').fillColor('#1a1a2e')
+       .text('INSTRUCTIONS TO CANDIDATES', L, doc.y, { align: 'center', width: BODY });
+    doc.moveDown(0.5);
+    doc.rect(L - 10, doc.y, BODY + 20, 1).fill('#c7d2fe');
+    doc.moveDown(0.5);
+    const instructions = isMCQ
+      ? ['1. Write your name and school in the spaces provided on the front page.','2. There are ' + numQuestions + ' questions in this paper.','3. Each question carries ONE mark. Total: ' + totalMarks + ' marks.','4. Read each question carefully before answering.','5. For each question, choose ONE answer: A, B, C or D.','6. Circle or write the letter of your chosen answer clearly.','7. Do NOT spend too much time on any one question.','8. If you change your answer, cross it out clearly and circle your new answer.']
+      : isEssay
+      ? ['1. Write your name and school in the spaces provided on the front page.','2. This paper contains ' + numQuestions + ' essay questions worth ' + totalMarks + ' marks total.','3. Answer ALL questions unless otherwise instructed.','4. Plan your answers before writing — use notes/outlines where helpful.','5. Write in clear, organised paragraphs using correct English.','6. Include relevant facts, examples and explanations in your answers.','7. Manage your time: approximately ' + Math.ceil(totalMarks / numQuestions * 3) + ' minutes per question.']
+      : ['1. Write your name and school in the spaces provided on the front page.','2. This paper has THREE sections. Answer ALL questions in each section.','3. Total marks: ' + totalMarks + '.','4. Show ALL workings for full marks in calculation questions.','5. Write clearly and legibly.','6. If a question has sub-parts (a), (b), etc., answer ALL sub-parts.','7. Use correct units and significant figures where required.'];
+    instructions.forEach(inst => {
+      doc.fontSize(10).font('Helvetica').fillColor('#374151').text(inst, { lineGap: 3 });
+      doc.moveDown(0.3);
+    });
+    doc.moveDown(1);
+
+    // ── QUESTION PAPER ────────────────────────────────────────────────────
+    doc.rect(L - 10, doc.y, BODY + 20, 24).fill('#1a1a2e');
+    doc.fillColor('#fff').fontSize(12).font('Helvetica-Bold')
+       .text('QUESTION PAPER', L, doc.y - 18, { align: 'center', width: BODY });
+    doc.moveDown(1.2);
+
+    const renderExamLines = (text) => {
+      const lines = text.split('\n');
+      for (const raw of lines) {
+        const t = raw.trim();
+        if (!t) { doc.moveDown(0.3); continue; }
+        if (/^Q\d+\./.test(t) || /^SECTION/.test(t)) {
+          doc.moveDown(0.4);
+          doc.fontSize(10.5).font('Helvetica-Bold').fillColor('#1a1a2e').text(t, { lineGap: 2 });
+          doc.moveDown(0.2);
+        } else if (/^[ABCD]\)/.test(t)) {
+          doc.fontSize(10).font('Helvetica').fillColor('#374151').text(`   ${t}`, { lineGap: 2 });
+        } else if (/^\(a\)|\(b\)|\(c\)|\(d\)/i.test(t)) {
+          doc.fontSize(10).font('Helvetica').fillColor('#374151').text(`   ${t}`, { lineGap: 2 });
+          doc.moveDown(0.5);
+          doc.moveTo(L + 20, doc.y).lineTo(W - L, doc.y).lineWidth(0.3).strokeColor('#d1d5db').stroke();
+          doc.moveDown(0.5);
+        } else if (/^Answer:/i.test(t)) {
+          doc.moveDown(0.3);
+          doc.moveTo(L + 20, doc.y).lineTo(W - L, doc.y).lineWidth(0.3).strokeColor('#d1d5db').stroke();
+          doc.moveDown(0.8);
+        } else {
+          doc.fontSize(10).font('Helvetica').fillColor('#1f2937').text(t, { lineGap: 2 });
+          doc.moveDown(0.2);
+          if (!isMCQ) {
+            for (let i = 0; i < 3; i++) {
+              doc.moveTo(L, doc.y).lineTo(W - L, doc.y).lineWidth(0.3).strokeColor('#e5e7eb').stroke();
+              doc.moveDown(0.8);
+            }
+          }
+        }
+      }
+    };
+    renderExamLines(questionsRaw);
+
+    // ── MARKING SCHEME ────────────────────────────────────────────────────
+    doc.addPage();
+    doc.rect(0, 0, W, 40).fill('#14532d');
+    doc.fillColor('#fff').fontSize(14).font('Helvetica-Bold')
+       .text('MARKING SCHEME', L, 12, { align: 'center', width: BODY });
+    doc.moveDown(1.5);
+    doc.fontSize(9).font('Helvetica-Oblique').fillColor('#6b7280')
+       .text('This marking scheme is intended to assist teachers and students in self-assessment. Answers may vary — credit any valid equivalent response.', L, doc.y, { lineGap: 3 });
+    doc.moveDown(1);
+
+    const schemeLines = schemeRaw.split('\n');
+    for (const raw of schemeLines) {
+      const t = raw.trim();
+      if (!t) { doc.moveDown(0.3); continue; }
+      if (/^Q\d+\./.test(t)) {
+        doc.moveDown(0.3);
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#14532d').text(t, { lineGap: 2 });
+      } else {
+        doc.fontSize(9.5).font('Helvetica').fillColor('#1f2937').text(t, { lineGap: 2 });
+      }
+      doc.moveDown(0.2);
+    }
+
+    doc.moveDown(2);
+    doc.moveTo(L, doc.y).lineTo(W - L, doc.y).lineWidth(0.5).strokeColor('#d1d5db').stroke();
+    doc.moveDown(0.5);
+    doc.fontSize(8.5).fillColor('#9ca3af').font('Helvetica')
+       .text('Generated by FUNDO AI  |  fundoai.gleeze.com  |  For practice use only  |  © 2026 Darrell Mucheri', { align: 'center', width: BODY });
+
     doc.end();
     stream.on('finish', resolve);
     stream.on('error', reject);
@@ -3683,35 +3902,81 @@ Just type your description and hit send! 🚀`, msg);
           }
 
           // ── invite / referral ──────────────────────────────────────────────
-          if (/^(invite|referral|ref|myref|mylink|share)$/.test(stripped)) {
+          if (/^(invite|referral|ref|myref|mylink|share|refer)$/.test(stripped)) {
             const refCode = await generateReferralCode(senderNum).catch(() => null);
             const botN    = SETTINGS.BOT_NUMBER || '263776046121';
-            if (refCode) {
-              const refCount = dbUser?.referralCount || 0;
-              await send(jid,
-`🔗 *Your Fundo AI Referral Link*
+            const refCount = dbUser?.referralCount || 0;
+            const refLink = refCode ? `wa.me/${botN}?text=${refCode}` : `wa.me/${botN}`;
+            await send(jid,
+`*Fundo AI — Your Smart Academic Companion* 🤖🔥
+
+Contact: ${refLink}
+
+Get help with:
+
+• 📚 School projects & research
+• 📝 Assignments & homework
+• 📄 Past exam papers
+• ✅ Marking schemes & answer guides
+• 📘 Green Books & Blue Books
+• 📖 Textbooks & study notes
+• 🧠 AI-powered explanations for difficult topics
+• 🖼️ Image analysis & question solving
+• 🎧 Audio explanations & voice learning
+• 📑 PDF analysis & document summarization
+• ❓ Interactive quizzes & test prep
+• 👨‍🏫 Mentorship & study guidance
+• 📊 Revision plans & exam strategies
+• 🔬 Science practical guidance
+• 💻 Coding & programming help
+• 📐 Mathematics step-by-step solving
+• 🌍 O Level & A Level support
+• 🤖 AI tutoring available 24/7
+• 🧪 Instant answer checking
+• 📈 Progress tracking & smart recommendations
+• 🎓 Career guidance & university preparation
+• 🗂️ Notes organisation & study resources
+• 👥 Group study support
+• ⚡ Fast, accurate academic assistance anytime
+
+_Learn smarter. Study faster. Achieve more with Fundo AI._ 🇿🇼
+
+━━━━━━━━━━━━━━━━━━━━
+🎁 *Share & Earn Rewards:*
+Every friend you invite gives you:
+• +5 bonus AI chats
+• +2 bonus images
+• +1 bonus project PDF
+
+📊 *You have referred ${refCount} friend${refCount === 1 ? '' : 's'} so far!*
+_— FUNDO AI 🤖🔥_`, msg);
+            continue;
+          }
+
+          // ── profile update / edit profile ─────────────────────────────────
+          if (/^(update profile|edit profile|update my profile|edit my profile|change profile|my profile|profile)$/.test(stripped)) {
+            const prof = loadProfile(userKey);
+            profileUpdateFlow.set(userKey, { step: 'pick_field' });
+            await send(jid,
+`👤 *Update Your Profile*
 ━━━━━━━━━━━━━━━━━━━━
 
-👇 *Share this link with friends:*
-wa.me/${botN}?text=${refCode}
+*Current info:*
+📧 Email: ${prof.email || '—'}
+👤 Name: ${prof.name || '—'}
+🎂 Age: ${prof.age || '—'}
+🏫 School/Institution: ${prof.school || '—'}
+🎓 Level: ${[prof.levelLabel, prof.grade].filter(Boolean).join(' — ') || '—'}
 
-🎁 *Rewards — per successful referral:*
-• +5 bonus AI chats
-• +2 bonus image generations
-• +1 bonus school project PDF
+━━━━━━━━━━━━━━━━━━━━
+*What would you like to update?*
 
-📊 *Your stats:* ${refCount} friend${refCount === 1 ? '' : 's'} invited so far!
+1. Email address
+2. Name
+3. Age
+4. School / Institution
 
-📋 *How it works:*
-1. Share your link with a friend
-2. They message the bot using your link
-3. They complete onboarding
-4. Rewards are added to YOUR account instantly! 🎉
-
-_— FUNDO AI 🤖🔥_`, msg);
-            } else {
-              await send(jid, `⚠️ Could not generate referral link. Please try again later.\n\n_— FUNDO AI 🤖🔥_`, msg);
-            }
+_Type the number or *cancel* to go back._`, msg);
             continue;
           }
 
@@ -3740,6 +4005,32 @@ Every 3 uploads → 🎁 bonus chats, images & PDF
 
 _— FUNDO AI 🤖🔥_`, msg);
             }
+            continue;
+          }
+
+          // ── mock exam command ─────────────────────────────────────────────
+          if (/^(mock exam|mock|exam|mock test|practice exam|generate exam|ai exam|ai mock)$/.test(stripped)) {
+            mockExamFlow.set(userKey, { step: 'subject' });
+            await send(jid,
+`🎓 *AI Mock Exam Generator*
+━━━━━━━━━━━━━━━━━━━━
+
+I'll create a professional exam paper for you — complete with questions and a marking scheme! 📄
+
+*What subject is the exam for?*
+
+_Examples:_
+• Mathematics
+• Biology
+• English Language
+• History
+• Geography
+• Chemistry
+• Physics
+• Commerce
+• Accounts
+
+_Type the subject name or *cancel* to exit._`, msg);
             continue;
           }
 
@@ -4031,13 +4322,16 @@ _— FUNDO AI_`, msg);
         if (!isOwner && textMsg && /^(cancel|stop|exit|back|menu|\/menu)$/i.test(textMsg.trim())) {
           const hadFlow = upgradeFlow.has(userKey) || projectFlow.has(userKey) || quizFlow.has(userKey)
             || onboardingFlow.has(userKey) || supportFlow.has(userKey)
-            || materialsFlow.has(userKey) || uploadMatFlow.has(userKey);
+            || materialsFlow.has(userKey) || uploadMatFlow.has(userKey)
+            || profileUpdateFlow.has(userKey) || mockExamFlow.has(userKey);
           upgradeFlow.delete(userKey);
           projectFlow.delete(userKey);
           quizFlow.delete(userKey);
           supportFlow.delete(userKey);
           materialsFlow.delete(userKey);
           uploadMatFlow.delete(userKey);
+          profileUpdateFlow.delete(userKey);
+          mockExamFlow.delete(userKey);
           // Don't clear onboarding if user hasn't finished it yet
           if (welcomedUsers.has(userKey)) onboardingFlow.delete(userKey);
           if (hadFlow) {
@@ -5076,7 +5370,7 @@ Files sent straight to your phone — no links!
         }
 
         // ── Menu number handler ──────────────────────────────────────────────
-        if (!isOwner && textMsg && /^(1[0-3]|[1-9])$/.test(textMsg.trim())) {
+        if (!isOwner && textMsg && /^(1[0-4]|[1-9])$/.test(textMsg.trim())) {
           const choice = parseInt(textMsg.trim(), 10);
           switch (choice) {
             case 1:
@@ -5337,8 +5631,177 @@ FUNDO AI is Zimbabwe's most powerful WhatsApp educational assistant — built sp
 💬 Type *menu* anytime to return here!
 — _FUNDO AI 🤖🔥_`, msg);
               break;
+            case 14:
+              mockExamFlow.set(userKey, { step: 'subject' });
+              await send(jid,
+`🎓 *AI Mock Exam Generator*
+━━━━━━━━━━━━━━━━━━━━
+
+I'll create a professional exam paper — complete with questions and a marking scheme! 📄
+
+*What subject is the exam for?*
+
+_Examples:_ Mathematics · Biology · English Language · History · Geography · Chemistry · Physics · Commerce · Accounts
+
+_Type the subject name or *cancel* to exit._`, msg);
+              break;
             default:
               await sendMenuWithLogo(jid, MAIN_MENU, msg);
+          }
+          continue;
+        }
+
+        // ── Profile Update Flow ──────────────────────────────────────────────
+        if (!isOwner && profileUpdateFlow.has(userKey)) {
+          const puf   = profileUpdateFlow.get(userKey);
+          const input = (textMsg || '').trim();
+          if (puf.step === 'pick_field') {
+            const fieldMap = { '1': 'email', '2': 'name', '3': 'age', '4': 'school' };
+            const fieldLabels = { email: 'Email address', name: 'Name', age: 'Age', school: 'School / Institution' };
+            const field = fieldMap[input];
+            if (!field) {
+              await send(jid, '❌ Please type *1*, *2*, *3*, or *4* to choose what to update.\n\n_Or type *cancel* to go back._', msg);
+              continue;
+            }
+            profileUpdateFlow.set(userKey, { step: 'enter_value', field });
+            await send(jid, `✏️ *Updating ${fieldLabels[field]}*\n\nPlease type your new ${fieldLabels[field].toLowerCase()}:`, msg);
+            continue;
+          }
+          if (puf.step === 'enter_value') {
+            const field = puf.field;
+            if (!field || !input) {
+              await send(jid, '⚠️ Please enter a valid value, or type *cancel* to go back.', msg);
+              continue;
+            }
+            if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) {
+              await send(jid, '❌ That doesn\'t look like a valid email. Please try again:\n_Example: name@gmail.com_', msg);
+              continue;
+            }
+            saveProfile(userKey, { [field]: input });
+            profileUpdateFlow.delete(userKey);
+            await send(jid,
+`✅ *Profile updated!*
+
+${field === 'email' ? '📧 Email' : field === 'name' ? '👤 Name' : field === 'age' ? '🎂 Age' : '🏫 School'} updated to: *${input}*
+
+Type *profile* to see your full profile, or *menu* to go home.
+_— FUNDO AI 🤖🔥_`, msg);
+            continue;
+          }
+          continue;
+        }
+
+        // ── Mock Exam Flow ───────────────────────────────────────────────────
+        if (!isOwner && mockExamFlow.has(userKey)) {
+          const mef   = mockExamFlow.get(userKey);
+          const input = (textMsg || '').trim();
+
+          if (mef.step === 'subject') {
+            mockExamFlow.set(userKey, { ...mef, step: 'level', subject: input });
+            await send(jid,
+`✅ Subject: *${input}*
+
+🏫 *What is your level / grade?*
+
+_Examples:_
+• Grade 7
+• Form 1 / Form 2 / Form 3 / Form 4
+• Form 5 / Form 6 (A-Level)
+• O-Level / A-Level
+• University Year 1
+
+_Type your level:_`, msg);
+            continue;
+          }
+
+          if (mef.step === 'level') {
+            mockExamFlow.set(userKey, { ...mef, step: 'paper_type', level: input });
+            await send(jid,
+`✅ Level: *${input}*
+
+📄 *Which paper type?*
+
+1️⃣ *Paper 1* — Multiple Choice (MCQ)
+2️⃣ *Paper 2* — Theory / Structured Questions
+3️⃣ *Paper 3* — Essay / Extended Response
+
+_Type 1, 2, or 3:_`, msg);
+            continue;
+          }
+
+          if (mef.step === 'paper_type') {
+            const ptMap = { '1': 'Paper 1', '2': 'Paper 2', '3': 'Paper 3' };
+            const paperType = ptMap[input] || (input.includes('1') ? 'Paper 1' : input.includes('3') ? 'Paper 3' : 'Paper 2');
+            mockExamFlow.set(userKey, { ...mef, step: 'num_questions', paperType });
+            await send(jid,
+`✅ Paper: *${paperType}*
+
+🔢 *How many questions?*
+
+1️⃣ 10 questions
+2️⃣ 20 questions
+3️⃣ 30 questions
+4️⃣ 40 questions
+5️⃣ 50 questions
+
+_Type the number of questions (10, 20, 30, 40, or 50):_`, msg);
+            continue;
+          }
+
+          if (mef.step === 'num_questions') {
+            const validNums = [10, 20, 30, 40, 50];
+            const numQMap   = { '1': 10, '2': 20, '3': 30, '4': 40, '5': 50 };
+            let numQ = parseInt(input, 10);
+            if (numQMap[input]) numQ = numQMap[input];
+            if (!validNums.includes(numQ)) {
+              await send(jid, '❌ Please choose 10, 20, 30, 40, or 50 questions.\n\n_Type the number or type 1–5 for the options above._', msg);
+              continue;
+            }
+            mockExamFlow.set(userKey, { ...mef, step: 'topic', numQuestions: numQ });
+            await send(jid,
+`✅ Questions: *${numQ}*
+
+📌 *Specific topic or full paper?*
+
+Type a topic name for a focused exam:
+_Example: "Photosynthesis", "Quadratic Equations", "World War II", "Newton's Laws"_
+
+Or type *full* for a random full-syllabus paper.`, msg);
+            continue;
+          }
+
+          if (mef.step === 'topic') {
+            const topic = /^full$/i.test(input) ? null : input;
+            mockExamFlow.delete(userKey);
+            const { subject, level, paperType, numQuestions } = mef;
+            const topicDisplay = topic || 'Full Syllabus';
+            await send(jid,
+`✅ *Generating your mock exam...*
+
+📚 Subject: *${subject}*
+🏫 Level: *${level}*
+📄 Paper: *${paperType}*
+🔢 Questions: *${numQuestions}*
+📌 Topic: *${topicDisplay}*
+
+⏳ _Please wait — this takes 30–60 seconds to generate a high quality paper..._`, msg);
+
+            try {
+              const { filePath, fileName } = await generateMockExamPDF(jid, subject, level, paperType, numQuestions, topic);
+              const fileBuf = fs.readFileSync(filePath);
+              await sock.sendMessage(jid, {
+                document: fileBuf,
+                fileName,
+                mimetype: 'application/pdf',
+                caption: `🎓 *${subject} ${level} ${paperType} Mock Exam*\n📌 Topic: ${topicDisplay}\n🔢 ${numQuestions} questions\n\n_Generated by FUNDO AI — fundoai.gleeze.com_ 🤖🔥`,
+              }, { quoted: msg });
+              fs.unlink(filePath, () => {});
+              await send(jid, `✅ *Mock exam sent!* 📄🔥\n\nTip: Type *mock exam* anytime to generate another paper!\n\n_— FUNDO AI 🤖🔥_`, msg);
+            } catch (e) {
+              console.error('Mock exam PDF error:', e.message);
+              await send(jid, `😅 Couldn't generate the exam right now — please try again in a moment!\n\n_— FUNDO AI 🤖🔥_`, msg);
+            }
+            continue;
           }
           continue;
         }

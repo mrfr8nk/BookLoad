@@ -41,15 +41,23 @@ const userSchema = new mongoose.Schema({
   phone:         { type: String, required: true, unique: true, index: true },
   plan:          { type: String, default: 'FREE', enum: ['FREE', 'STARTER', 'BASIC', 'PRO', 'PREMIUM'] },
   credits:       { type: Number, default: 0 },
-  uploadCount:   { type: Number, default: 0 },   // total approved material uploads
-  extraProjects: { type: Number, default: 0 },   // bonus project PDFs earned (3 uploads = 1)
-  extraMessages: { type: Number, default: 0 },   // bonus chat messages earned from uploads
-  extraImages:   { type: Number, default: 0 },   // bonus image generations earned from uploads
+  uploadCount:   { type: Number, default: 0 },
+  extraProjects: { type: Number, default: 0 },
+  extraMessages: { type: Number, default: 0 },
+  extraImages:   { type: Number, default: 0 },
+  // ── Profile fields ───────────────────────────────────────────────────────────
+  name:          { type: String, default: '' },
+  email:         { type: String, default: '' },
+  age:           { type: String, default: '' },
+  school:        { type: String, default: '' },
+  levelType:     { type: String, default: '' },
+  levelLabel:    { type: String, default: '' },
+  grade:         { type: String, default: '' },
   // ── Referral system ──────────────────────────────────────────────────────────
   referralCode:  { type: String, default: '', index: true },
-  referredBy:    { type: String, default: '' },  // phone of referrer
-  referralCount: { type: Number, default: 0 },   // how many people this user referred
-  referredUsers: { type: [String], default: [] }, // phones referred (duplicate guard)
+  referredBy:    { type: String, default: '' },
+  referralCount: { type: Number, default: 0 },
+  referredUsers: { type: [String], default: [] },
   // ── Limit exhaustion timestamps (ms since epoch, 0 = not hit today) ─────────
   exhaustedChatAt:  { type: Number, default: 0 },
   exhaustedImageAt: { type: Number, default: 0 },
@@ -455,6 +463,25 @@ export async function pollPaynow(pollUrl) {
     const st = await pn.pollTransaction(pollUrl);
     return (st.status || 'unknown').toLowerCase();
   } catch (_) { return 'unknown'; }
+}
+
+// ─── Profile DB helpers ────────────────────────────────────────────────────────
+export async function updateUserProfile(phone, data) {
+  if (!dbReady || !phone) return;
+  const allowed = ['name', 'email', 'age', 'school', 'levelType', 'levelLabel', 'grade'];
+  const update  = {};
+  for (const k of allowed) if (data[k] !== undefined && data[k] !== null) update[k] = String(data[k]);
+  if (!Object.keys(update).length) return;
+  await UserModel.findOneAndUpdate({ phone }, { $set: update }, { upsert: true }).catch(() => {});
+}
+
+export async function getUserProfile(phone) {
+  if (!dbReady || !phone) return null;
+  try {
+    return await UserModel.findOne({ phone })
+      .select('name email age school levelType levelLabel grade plan referralCode referralCount uploadCount createdAt')
+      .lean();
+  } catch (_) { return null; }
 }
 
 // ─── Referral system ───────────────────────────────────────────────────────────
