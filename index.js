@@ -1119,8 +1119,12 @@ async function analyzeDocumentNvidia(text, fileName = 'document') {
   return await nvidiaChat(messages, { model: NVIDIA_DOC_MODEL, maxTokens: 1500, temperature: 0.3 });
 }
 
-// ─── Image generation — 5-API chain (MagicStudio first) ──────────────────────
-const IMAGE_APIS = [
+// ─── Image generation ─────────────────────────────────────────────────────────
+const NVIDIA_IMAGE_URL = 'https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-dev';
+const NVIDIA_IMAGE_KEY = process.env.NVIDIA_API_KEY || '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';
+
+// BK9 + other fallback APIs (GET-based, return raw image bytes)
+const FALLBACK_IMAGE_APIS = [
   p => `https://api.bk9.dev/ai/magicstudio?prompt=${encodeURIComponent(p)}`,
   p => `https://stable.stacktoy.workers.dev/?apikey=Suhail&prompt=${encodeURIComponent(p)}`,
   p => `https://dalle.stacktoy.workers.dev/?apikey=Suhail&prompt=${encodeURIComponent(p)}`,
@@ -1133,13 +1137,49 @@ function enhancePrompt(p) {
   return `${p}, ${e.sort(() => Math.random() - 0.5).slice(0, 3).join(', ')}`;
 }
 
+async function generateImageNvidiaFlux(prompt) {
+  const payload = {
+    prompt,
+    mode: 'base',
+    cfg_scale: 3.5,
+    width: 1024,
+    height: 1024,
+    seed: Math.floor(Math.random() * 2147483647),
+    steps: 30,
+  };
+  const res = await axios.post(NVIDIA_IMAGE_URL, payload, {
+    headers: {
+      Authorization: `Bearer ${NVIDIA_IMAGE_KEY}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    timeout: 90000,
+  });
+  // Response: { created, data: [{ b64_json: '...' }] }
+  const b64 = res.data?.data?.[0]?.b64_json;
+  if (!b64) throw new Error('NVIDIA FLUX: no image in response');
+  const buf = Buffer.from(b64, 'base64');
+  if (buf.length < 1000) throw new Error('NVIDIA FLUX: image too small');
+  console.log(`   └─ 🎨 NVIDIA FLUX ${buf.length} bytes`);
+  return buf;
+}
+
 async function generateImage(prompt) {
   const enhanced = enhancePrompt(prompt);
-  for (const api of IMAGE_APIS) {
+
+  // Primary: NVIDIA FLUX.1-dev
+  try {
+    return await generateImageNvidiaFlux(enhanced);
+  } catch (nvErr) {
+    console.warn(`   └─ NVIDIA FLUX fallback: ${nvErr.message?.substring(0, 60)}`);
+  }
+
+  // Fallback chain: BK9 → Stable → DALL-E worker → Flux worker → Pollinations
+  for (const api of FALLBACK_IMAGE_APIS) {
     try {
       const { data } = await axios.get(api(enhanced), { responseType: 'arraybuffer', timeout: 35000 });
       const buf = Buffer.from(data);
-      if (buf[0] === 0x89 || buf[0] === 0xFF) { console.log(`   └─ 🎨 ${buf.length} bytes`); return buf; }
+      if (buf[0] === 0x89 || buf[0] === 0xFF) { console.log(`   └─ 🎨 fallback ${buf.length} bytes`); return buf; }
     } catch (_) { continue; }
   }
   throw new Error('All image APIs failed');
@@ -2666,15 +2706,41 @@ function detectCommand(text) {
 
   // Image generation
   if (
-    /^(generate|create|draw|make|show|render|design|produce|paint|sketch|visualize|visualise|depict|illustrate|build|craft)\s+(me\s+)?(a\s+|an\s+)?(image|picture|photo|drawing|illustration|art|painting|sketch|diagram|poster|portrait|photo|photograph|render|visual|graphic|wallpaper|thumbnail|logo|banner|scene|scene|landscape|portrait)\s*(of\s+)?/i.test(t) ||
+    // ── Direct command patterns ──
+    /^(generate|create|draw|make|show|render|design|produce|paint|sketch|visualize|visualise|depict|illustrate|build|craft)\s+(me\s+)?(a\s+|an\s+)?(image|picture|photo|drawing|illustration|art|painting|sketch|diagram|poster|portrait|photograph|render|visual|graphic|wallpaper|thumbnail|logo|banner|scene|landscape)\s*(of\s+)?/i.test(t) ||
     /^(draw\s+me|picture\s+of|image\s+of|photo\s+of|pic\s+of|poster\s+of|portrait\s+of|painting\s+of|sketch\s+of|diagram\s+of|render\s+of|art\s+of|illustration\s+of|graphic\s+of|logo\s+of|scene\s+of)\s+/i.test(t) ||
-    /^(show\s+me\s+a\s+(picture|image|photo|drawing|illustration|painting|sketch|poster|portrait|render|diagram)\s*(of\s+)?)/i.test(t) ||
+    /^(show\s+me\s+a\s+(picture|image|photo|drawing|illustration|painting|sketch|poster|portrait|render|diagram|visual)\s*(of\s+)?)/i.test(t) ||
     /^(snap|capture|shoot|photograph)\s+(me\s+)?(a\s+|an\s+)?.+/i.test(t) ||
-    /\b(realistic|cartoon|anime|3d|watercolor|pencil|digital|pixel|low.poly|hyper.realistic|cinematic|minimalist|abstract|surreal|fantasy|cyberpunk|vintage|neon)\s+(image|picture|photo|art|drawing|illustration|poster|portrait|render|painting|sketch)\b/i.test(t) ||
-    /\b(image|picture|photo|poster|portrait|painting|sketch|render|art|logo|diagram|graphic|wallpaper|thumbnail|banner)\s+(of|showing|with|featuring|depicting)\s+/i.test(t) ||
+    // ── "Can you / could you / please" patterns ──
+    /^(can\s+you|could\s+you|please|pls|plz)\s+(draw|make|create|generate|show|paint|sketch|render|design|give\s+me|send\s+me)\s+(me\s+)?(a\s+|an\s+)?(image|picture|photo|pic|drawing|illustration|art|painting|sketch|poster|render|visual|diagram|wallpaper)\s*(of\s+)?/i.test(t) ||
+    /^(can\s+you|could\s+you)\s+(draw|paint|sketch|show|visualize|visualise|render)\s+/i.test(t) ||
+    // ── "I want / I need a picture" ──
+    /^(i\s+want|i\s+need|i\s+would\s+like|gimme|give\s+me|send\s+me|show\s+me)\s+(a\s+|an\s+)?(image|picture|photo|pic|drawing|illustration|art|painting|sketch|poster|render|visual|diagram|wallpaper|banner|logo)\s*(of\s+)?/i.test(t) ||
+    /^(i\s+want|i\s+need)\s+.*(image|picture|photo|drawing|illustration|painting|sketch|poster)\b/i.test(t) ||
+    // ── "What does X look like" → generate image ──
+    /^what\s+does\s+.+\s+look\s+like\??$/i.test(t) ||
+    /^(show|display|visualize|visualise)\s+what\s+.+\s+looks?\s+like/i.test(t) ||
+    // ── "Imagine / Picture this" ──
+    /^(imagine|picture\s+this|envision|visualize)\s*:?\s+.{5,}/i.test(t) ||
+    // ── Style-first patterns ──
+    /\b(realistic|cartoon|anime|3d|watercolor|watercolour|pencil|digital|pixel|low.poly|hyper.realistic|cinematic|minimalist|abstract|surreal|fantasy|cyberpunk|vintage|neon|oil\s+painting|impressionist|photorealistic|vaporwave|flat\s+design|isometric|comic\s+style|manga|studio\s+ghibli|pixar)\s+(image|picture|photo|art|drawing|illustration|poster|portrait|render|painting|sketch|style)\b/i.test(t) ||
+    /^(a\s+|an\s+)?(realistic|cartoon|anime|3d|watercolor|watercolour|pencil|digital|pixel|hyper.realistic|cinematic|minimalist|abstract|surreal|fantasy|cyberpunk|vintage|neon|photorealistic)\s+(image|picture|photo|art|drawing|illustration|poster|portrait|render|painting|sketch)\s+(of\s+)?/i.test(t) ||
+    // ── "of/showing/with/featuring" combos ──
+    /\b(image|picture|photo|poster|portrait|painting|sketch|render|art|logo|diagram|graphic|wallpaper|thumbnail|banner)\s+(of|showing|with|featuring|depicting|about)\s+/i.test(t) ||
     /\b(generate|create|make|draw|produce|design|render|paint|sketch|illustrate)\b.*\b(image|picture|photo|poster|portrait|painting|sketch|render|art|logo|diagram|graphic)\b/i.test(t) ||
+    // ── Quality/resolution prefix ──
     /\b(8k|4k|hd|ultra.?hd|high.?res|high.?resolution|photorealistic|photo.?real)\b.*\b(image|picture|photo|render|art)\b/i.test(t) ||
-    /\b(dog|cat|lion|tiger|animal|person|landscape|city|nature|space|galaxy|flower|mountain|sunset|dragon|robot|superhero|wizard|warrior|princess|castle)\b.*\b(image|picture|photo|poster|art|drawing|painting|render)\b/i.test(t)
+    // ── Implicit "make me X that looks like Y" ──
+    /^(make|create|build|design)\s+me\s+.{3,}/i.test(t) && /\b(image|picture|photo|art|drawing|illustration|poster|render|painting)\b/i.test(t) ||
+    // ── Casual / slang ──
+    /^(bro\s+)?(draw|paint|sketch|create|generate|make)\s+(me\s+)?a\s+/i.test(t) ||
+    /^(ai\s+)?(generate|create|make|draw)\s+/i.test(t) && /\b(image|picture|photo|art|drawing)\b/i.test(t) ||
+    // ── Educational diagram requests ──
+    /\b(diagram|flowchart|infographic|chart|graph|map|illustration)\s+(of|showing|for|about|explaining)\s+/i.test(t) ||
+    /\b(draw|show|visualize|illustrate)\s+(the\s+)?(process|cycle|structure|system|anatomy|mechanism|diagram|chart|map)\s+(of\s+)?/i.test(t) ||
+    // ── Common student image requests ──
+    /^(show\s+me\s+|give\s+me\s+)?(a\s+)?(biology|science|chemistry|physics|geography|history|maths?|mathematics)\s+(diagram|chart|illustration|visual|image|picture)\s*(of\s+)?/i.test(t) ||
+    /\b(label(l?ed)?|annotated?)\s+(diagram|drawing|sketch|image|picture)\s*(of\s+)?/i.test(t)
   ) return 'IMAGE_GEN';
 
   // PDF project — comprehensive trigger set (100+ ways)
@@ -2731,13 +2797,33 @@ function detectCommand(text) {
 }
 
 function extractImagePrompt(text) {
-  const m =
-    text.match(/(?:generate|create|draw|make|show|render|design|produce|paint|sketch|visualize|visualise|depict|illustrate|build|craft)\s+(?:me\s+)?(?:a\s+|an\s+)?(?:image|picture|photo|drawing|illustration|art|painting|sketch|diagram|poster|portrait|photograph|render|visual|graphic|wallpaper|thumbnail|logo|banner|scene|landscape)?\s*(?:of\s+)?(.+)/i) ||
-    text.match(/(?:draw\s+me|picture\s+of|image\s+of|photo\s+of|pic\s+of|poster\s+of|portrait\s+of|painting\s+of|sketch\s+of|diagram\s+of|render\s+of|art\s+of|illustration\s+of|graphic\s+of|logo\s+of|scene\s+of)\s+(.+)/i) ||
-    text.match(/(?:show\s+me\s+a\s+(?:picture|image|photo|drawing|illustration|painting|sketch|poster|portrait|render|diagram)\s*(?:of\s+)?)(.+)/i) ||
-    text.match(/(.+?)\s+(?:image|picture|photo|poster|portrait|painting|sketch|render|art|logo|diagram|graphic|wallpaper|thumbnail|banner)\s+(?:of|showing|with|featuring|depicting)\s+(.+)/i);
+  const t = text.trim();
+  let m =
+    // Direct generate/create/draw/make + optional image noun
+    t.match(/(?:generate|create|draw|make|show|render|design|produce|paint|sketch|visualize|visualise|depict|illustrate|build|craft)\s+(?:me\s+)?(?:a\s+|an\s+)?(?:image|picture|photo|drawing|illustration|art|painting|sketch|diagram|poster|portrait|photograph|render|visual|graphic|wallpaper|thumbnail|logo|banner|scene|landscape)?\s*(?:of\s+)?(.+)/i) ||
+    // "draw me / picture of / image of ..."
+    t.match(/(?:draw\s+me|picture\s+of|image\s+of|photo\s+of|pic\s+of|poster\s+of|portrait\s+of|painting\s+of|sketch\s+of|diagram\s+of|render\s+of|art\s+of|illustration\s+of|graphic\s+of|logo\s+of|scene\s+of)\s+(.+)/i) ||
+    // "show me a picture of ..."
+    t.match(/(?:show\s+me\s+a\s+(?:picture|image|photo|drawing|illustration|painting|sketch|poster|portrait|render|diagram|visual)\s*(?:of\s+)?)(.+)/i) ||
+    // "can you draw / create / make me a ..."
+    t.match(/(?:can\s+you|could\s+you|please|pls|plz)\s+(?:draw|make|create|generate|show|paint|sketch|render|design)\s+(?:me\s+)?(?:a\s+|an\s+)?(?:image|picture|photo|pic|drawing|illustration|art|painting|sketch|poster|render|visual|diagram|wallpaper)?\s*(?:of\s+)?(.+)/i) ||
+    // "I want / I need / give me / send me a picture of ..."
+    t.match(/(?:i\s+want|i\s+need|i\s+would\s+like|gimme|give\s+me|send\s+me|show\s+me)\s+(?:a\s+|an\s+)?(?:image|picture|photo|pic|drawing|illustration|art|painting|sketch|poster|render|visual|diagram|wallpaper|banner|logo)?\s*(?:of\s+)?(.+)/i) ||
+    // "what does X look like"
+    t.match(/^what\s+does\s+(.+?)\s+look\s+like\??$/i) ||
+    // "imagine / envision ..."
+    t.match(/^(?:imagine|picture\s+this|envision|visualize)\s*:?\s+(.+)/i) ||
+    // "a realistic/cartoon/anime ... of X"
+    t.match(/^(?:a\s+|an\s+)?(?:realistic|cartoon|anime|3d|watercolor|watercolour|pencil|digital|pixel|hyper.realistic|cinematic|minimalist|abstract|surreal|fantasy|cyberpunk|vintage|neon|photorealistic)\s+(?:image|picture|photo|art|drawing|illustration|poster|portrait|render|painting|sketch)\s+(?:of\s+)?(.+)/i) ||
+    // "diagram / flowchart of ..."
+    t.match(/(?:diagram|flowchart|infographic|chart|illustration|labelled?\s+diagram)\s+(?:of|showing|for|about|explaining)\s+(.+)/i) ||
+    // "[noun] of/showing X" e.g. "a painting of a sunset"
+    t.match(/(?:image|picture|photo|poster|portrait|painting|sketch|render|art|logo|diagram|graphic|wallpaper|thumbnail|banner)\s+(?:of|showing|with|featuring|depicting|about)\s+(.+)/i);
+
   if (m?.[2] && m?.[1]) return `${m[1]} ${m[2]}`.trim();
-  return (m?.[1] || text).trim();
+  if (m?.[1]) return m[1].trim();
+  // Last resort: return full text as prompt
+  return t;
 }
 
 function extractVoiceQuery(text) {

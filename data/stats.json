@@ -1,41 +1,9 @@
 {
   "users": {
     "194068181201013": {
-      "messages": 46,
-      "lastSeen": 1778163493880,
+      "messages": 54,
+      "lastSeen": 1778164390548,
       "recentMsgs": [
-        {
-          "text": "darex@123",
-          "ts": 1778142458706
-        },
-        {
-          "text": "!users",
-          "ts": 1778142462805
-        },
-        {
-          "text": "Menu",
-          "ts": 1778148188880
-        },
-        {
-          "text": "14",
-          "ts": 1778148196216
-        },
-        {
-          "text": "1",
-          "ts": 1778148204771
-        },
-        {
-          "text": "2",
-          "ts": 1778148212471
-        },
-        {
-          "text": "3",
-          "ts": 1778148230702
-        },
-        {
-          "text": "3",
-          "ts": 1778148251946
-        },
         {
           "text": "full",
           "ts": 1778148264559
@@ -43,6 +11,38 @@
         {
           "text": "Sup everyone so i have removed  the github auth and google auth and added only o",
           "ts": 1778163493880
+        },
+        {
+          "text": "Menu",
+          "ts": 1778164330673
+        },
+        {
+          "text": "14",
+          "ts": 1778164341230
+        },
+        {
+          "text": "1",
+          "ts": 1778164348783
+        },
+        {
+          "text": "2",
+          "ts": 1778164354698
+        },
+        {
+          "text": "3",
+          "ts": 1778164367697
+        },
+        {
+          "text": "3",
+          "ts": 1778164376920
+        },
+        {
+          "text": "5",
+          "ts": 1778164384382
+        },
+        {
+          "text": "Full",
+          "ts": 1778164390548
         }
       ]
     },
@@ -153,12 +153,20 @@
       ]
     },
     "228664713199782": {
-      "messages": 1,
-      "lastSeen": 1778163493645,
+      "messages": 3,
+      "lastSeen": 1778165673108,
       "recentMsgs": [
         {
           "text": "Thanks for 10k followers team🔥 ",
           "ts": 1778163493645
+        },
+        {
+          "text": "Hey there! I'm here to help. What can I assist you with today?",
+          "ts": 1778165637920
+        },
+        {
+          "text": "That's an interesting question! I'll connect you with a member of our team who c",
+          "ts": 1778165673108
         }
       ]
     },
@@ -183,6 +191,38 @@
           "ts": 1778164105012
         }
       ]
+    },
+    "120363419521878542": {
+      "messages": 1,
+      "lastSeen": 1778164760541,
+      "recentMsgs": [
+        {
+          "text": "OFFERS TAMU TAMU ,🥳🥳 BUY DATA, MINUTES OR SMS WITH OR WITHOUT OKOA RELIABLE TI",
+          "ts": 1778164760541
+        }
+      ]
+    },
+    "120363323957656025": {
+      "messages": 4,
+      "lastSeen": 1778165310214,
+      "recentMsgs": [
+        {
+          "text": "Electrician\nEngineering\nJob Description\nWe are seeking a skilled and detail-orie",
+          "ts": 1778165079818
+        },
+        {
+          "text": "Accounts Clerk\nAccounting & Finance\nJob Description\nWe are looking for a reliabl",
+          "ts": 1778165138103
+        },
+        {
+          "text": "Loans Officer\nBanking\nJob Description\nJob Vacancy: Loans Officer\nLocation:…..Har",
+          "ts": 1778165225055
+        },
+        {
+          "text": "Computer Science Teacher - To teach Up to “A” Level (full time)\nEducation & Teac",
+          "ts": 1778165310214
+        }
+      ]
     }
   },
   "groups": {
@@ -195,10 +235,10 @@
       "lastSeen": 1778163493880
     }
   },
-  "totalMessages": 100,
+  "totalMessages": 115,
   "cmdCounts": {
     "reset": 3,
-    "menu": 11,
+    "menu": 12,
     "!menu": 1,
     "!help": 1,
     "!users": 4,
