@@ -1155,9 +1155,18 @@ async function generateImageNvidiaFlux(prompt) {
     },
     timeout: 90000,
   });
-  // Response: { created, data: [{ b64_json: '...' }] }
-  const b64 = res.data?.data?.[0]?.b64_json;
-  if (!b64) throw new Error('NVIDIA FLUX: no image in response');
+  // NVIDIA genai endpoint returns: { artifacts: [{ base64: '...', finishReason: 'SUCCESS' }] }
+  // Log top-level keys to diagnose any format mismatch
+  console.log(`   └─ NVIDIA raw keys: ${Object.keys(res.data || {}).join(', ')}`);
+  const b64 =
+    res.data?.artifacts?.[0]?.base64 ||      // NVIDIA genai format
+    res.data?.data?.[0]?.b64_json ||          // OpenAI-compat format
+    res.data?.image ||                        // simple field
+    res.data?.b64_json;                       // top-level fallback
+  if (!b64) {
+    console.error(`   └─ NVIDIA FLUX bad response: ${JSON.stringify(res.data).substring(0, 200)}`);
+    throw new Error('NVIDIA FLUX: no image in response');
+  }
   const buf = Buffer.from(b64, 'base64');
   if (buf.length < 1000) throw new Error('NVIDIA FLUX: image too small');
   console.log(`   └─ 🎨 NVIDIA FLUX ${buf.length} bytes`);

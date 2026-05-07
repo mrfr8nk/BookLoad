@@ -1,17 +1,9 @@
 {
   "users": {
     "194068181201013": {
-      "messages": 54,
-      "lastSeen": 1778164390548,
+      "messages": 56,
+      "lastSeen": 1778167165305,
       "recentMsgs": [
-        {
-          "text": "full",
-          "ts": 1778148264559
-        },
-        {
-          "text": "Sup everyone so i have removed  the github auth and google auth and added only o",
-          "ts": 1778163493880
-        },
         {
           "text": "Menu",
           "ts": 1778164330673
@@ -43,6 +35,14 @@
         {
           "text": "Full",
           "ts": 1778164390548
+        },
+        {
+          "text": "Image of cats",
+          "ts": 1778167130380
+        },
+        {
+          "text": "Create a vibrant infographic that explains photosynthesis as if it were a recipe",
+          "ts": 1778167165305
         }
       ]
     },
@@ -235,7 +235,7 @@
       "lastSeen": 1778163493880
     }
   },
-  "totalMessages": 115,
+  "totalMessages": 117,
   "cmdCounts": {
     "reset": 3,
     "menu": 12,
@@ -244,6 +244,7 @@
     "!users": 4,
     "!logout": 2,
     "!plan": 1,
-    "!admin": 1
+    "!admin": 1,
+    "image": 1
   }
 }
