@@ -540,20 +540,20 @@ function get24hCountdown(exhaustedAt) {
 const MAIN_MENU = `🤖 *FUNDO AI MENU*
 ━━━━━━━━━━━━━━━━━━━━━━
 
-1.  Generate Images
-2.  Chat with AI
-3.  Generate Full Project PDF
-4.  Chat with AI (Quick Mode)
-5.  Study Materials Library
-6.  Syllabuses
-7.  Flash Quiz / Practice Exams
-8.  Past Exam Papers
-9.  Textbooks
-10. Marking Schemes
-11. View Current Usage Plan
-12. Upgrade Plan
-13. About FUNDO AI
-14. AI Mock Exam Generator
+1️⃣  Generate Images
+2️⃣  Chat with AI
+3️⃣  Generate Full Project PDF
+4️⃣  Chat with AI (Quick Mode)
+5️⃣  Study Materials Library
+6️⃣  Syllabuses
+7️⃣  Flash Quiz / Practice Exams
+8️⃣  Past Exam Papers
+9️⃣  Textbooks
+🔟  Marking Schemes
+1️⃣1️⃣  View Current Usage Plan
+1️⃣2️⃣  Upgrade Plan
+1️⃣3️⃣  About FUNDO AI
+1️⃣4️⃣  AI Mock Exam Generator
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -3075,6 +3075,13 @@ Return ONLY a numbered list 1-10, one title per line. No extra text, no explanat
         if (!msg.message || msg.key.fromMe) continue;
         const jid = msg.key.remoteJid;
         if (!jid || jid === 'status@broadcast' || isJidBroadcast(jid)) continue;
+        // Extra self-reply guard: skip if the sender is the bot's own number
+        // (catches multi-device echo where fromMe can be false)
+        const _ownId = sock.authState?.creds?.me?.id || '';
+        const _ownNum = _ownId.split('@')[0].split(':')[0].replace(/\D/g, '');
+        const _partRaw = msg.key.participant || msg.participant || '';
+        const _senderRaw = (_partRaw || jid).split('@')[0].split(':')[0].replace(/\D/g, '');
+        if (_ownNum && _senderRaw === _ownNum) continue;
 
         let content = msg.message;
         if (Object.keys(content)[0] === 'ephemeralMessage') content = content.ephemeralMessage.message;
@@ -5570,7 +5577,11 @@ Files sent straight to your phone — no links!
         }
 
         // ── Menu number handler ──────────────────────────────────────────────
-        if (!isOwner && textMsg && /^(1[0-4]|[1-9])$/.test(textMsg.trim())) {
+        if (!isOwner && textMsg && /^(1[0-4]|[1-9])$/.test(textMsg.trim())
+          && !mockExamFlow.has(userKey) && !quizFlow.has(userKey)
+          && !projectFlow.has(userKey) && !upgradeFlow.has(userKey)
+          && !materialsFlow.has(userKey) && !uploadMatFlow.has(userKey)
+          && !profileUpdateFlow.has(userKey) && !supportFlow.has(userKey)) {
           const choice = parseInt(textMsg.trim(), 10);
           switch (choice) {
             case 1:
