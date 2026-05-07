@@ -2834,23 +2834,34 @@ async function startBot() {
     if (/type \*?menu\*?/i.test(text)) return false;
     return true;
   };
+  // Track IDs of messages the bot itself sends, so they can be skipped if
+  // Baileys echoes them back as incoming notifications (multi-device quirk)
+  const _sentIds = new Set();
+  const _trackSent = (sentMsg) => {
+    const id = sentMsg?.key?.id;
+    if (id) { _sentIds.add(id); setTimeout(() => _sentIds.delete(id), 8000); }
+  };
+
   const send = async (jid, text, quoted) => {
     const finalText = shouldAppendMenuFooter(jid, text) ? `${text}${MENU_FOOTER}` : text;
     if (!isOwnerJid(jid)) {
       try { await sock.sendPresenceUpdate('composing', jid); } catch (_) {}
       const ms = Math.floor(Math.random() * 2000) + 1200;
       await delay(ms);
-      try { await sock.sendPresenceUpdate('paused', jid); } catch (_) {}
     }
-    return sock.sendMessage(jid, { text: finalText }, { quoted });
+    const sent = await sock.sendMessage(jid, { text: finalText }, { quoted });
+    _trackSent(sent);
+    try { sock.sendPresenceUpdate('paused', jid).catch(() => {}); } catch (_) {}
+    return sent;
   };
 
   const sendMenuWithLogo = async (jid, menuText, quoted) => {
     try {
-      await sock.sendMessage(jid, {
+      const sent = await sock.sendMessage(jid, {
         image: { url: SETTINGS.LOGO_URL },
         caption: menuText,
       }, { quoted });
+      _trackSent(sent);
     } catch (_) {
       await send(jid, menuText, quoted);
     }
@@ -3075,13 +3086,16 @@ Return ONLY a numbered list 1-10, one title per line. No extra text, no explanat
         if (!msg.message || msg.key.fromMe) continue;
         const jid = msg.key.remoteJid;
         if (!jid || jid === 'status@broadcast' || isJidBroadcast(jid)) continue;
-        // Extra self-reply guard: skip if the sender is the bot's own number
-        // (catches multi-device echo where fromMe can be false)
+        // Skip messages the bot itself sent (echoed back by Baileys multi-device)
+        if (_sentIds.has(msg.key.id)) continue;
+        // Secondary self-reply guard using the socket's own JID (group chats)
         const _ownId = sock.authState?.creds?.me?.id || '';
         const _ownNum = _ownId.split('@')[0].split(':')[0].replace(/\D/g, '');
         const _partRaw = msg.key.participant || msg.participant || '';
-        const _senderRaw = (_partRaw || jid).split('@')[0].split(':')[0].replace(/\D/g, '');
-        if (_ownNum && _senderRaw === _ownNum) continue;
+        if (_ownNum && _partRaw) {
+          const _senderRaw = _partRaw.split('@')[0].split(':')[0].replace(/\D/g, '');
+          if (_senderRaw === _ownNum) continue;
+        }
 
         let content = msg.message;
         if (Object.keys(content)[0] === 'ephemeralMessage') content = content.ephemeralMessage.message;
