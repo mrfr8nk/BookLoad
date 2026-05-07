@@ -1,13 +1,9 @@
 {
   "users": {
     "194068181201013": {
-      "messages": 45,
-      "lastSeen": 1778148264559,
+      "messages": 46,
+      "lastSeen": 1778163493880,
       "recentMsgs": [
-        {
-          "text": "mrfrankofc",
-          "ts": 1778142454618
-        },
         {
           "text": "darex@123",
           "ts": 1778142458706
@@ -43,6 +39,10 @@
         {
           "text": "full",
           "ts": 1778148264559
+        },
+        {
+          "text": "Sup everyone so i have removed  the github auth and google auth and added only o",
+          "ts": 1778163493880
         }
       ]
     },
@@ -93,13 +93,9 @@
       ]
     },
     "116651882242066": {
-      "messages": 29,
-      "lastSeen": 1778148157850,
+      "messages": 30,
+      "lastSeen": 1778163497086,
       "recentMsgs": [
-        {
-          "text": "!plan",
-          "ts": 1778142256099
-        },
         {
           "text": "Hi",
           "ts": 1778147635824
@@ -135,6 +131,10 @@
         {
           "text": "14",
           "ts": 1778148157850
+        },
+        {
+          "text": "re_fjbZdBRN_5tq74hij44nMq3xe5odxZPS6",
+          "ts": 1778163497086
         }
       ]
     },
@@ -151,10 +151,51 @@
           "ts": 1778142285710
         }
       ]
+    },
+    "228664713199782": {
+      "messages": 1,
+      "lastSeen": 1778163493645,
+      "recentMsgs": [
+        {
+          "text": "Thanks for 10k followers team🔥 ",
+          "ts": 1778163493645
+        }
+      ]
+    },
+    "120363351978443327": {
+      "messages": 4,
+      "lastSeen": 1778164105012,
+      "recentMsgs": [
+        {
+          "text": "73186 2010 4881 6492",
+          "ts": 1778163908523
+        },
+        {
+          "text": "23951 8615 8500 9860",
+          "ts": 1778164030856
+        },
+        {
+          "text": "93773 2162 6118 8834",
+          "ts": 1778164072674
+        },
+        {
+          "text": "03254 0551 0780 8195",
+          "ts": 1778164105012
+        }
+      ]
     }
   },
-  "groups": {},
-  "totalMessages": 93,
+  "groups": {
+    "120363424467941110": {
+      "messages": 1,
+      "lastSeen": 1778163493645
+    },
+    "120363407511506292": {
+      "messages": 1,
+      "lastSeen": 1778163493880
+    }
+  },
+  "totalMessages": 100,
   "cmdCounts": {
     "reset": 3,
     "menu": 11,

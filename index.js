@@ -567,38 +567,78 @@ _— FUNDO AI 🤖🔥_`;
 const PAPER_STRUCTURES = {
   ZIMSEC: {
     'O-Level': {
-      'Mathematics':            [{ name: 'Paper 1', type: 'Non-Calculator (Short Answer & Structured)', duration: '2h 30min', marks: 100 }, { name: 'Paper 2', type: 'Calculator (Structured & Problem Solving)', duration: '2h 30min', marks: 100 }],
-      'English Language':       [{ name: 'Paper 1', type: 'Reading & Comprehension', duration: '1h 30min', marks: 80 }, { name: 'Paper 2', type: 'Composition & Writing', duration: '2h', marks: 80 }],
-      'Physics':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
-      'Chemistry':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
-      'Biology':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
-      'Combined Science':       [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
-      'History':                [{ name: 'Paper 1', type: 'Source-Based & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay', duration: '2h', marks: 80 }],
-      'Geography':              [{ name: 'Paper 1', type: 'Physical Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Human Geography', duration: '1h 30min', marks: 60 }],
-      'Commerce':               [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
-      'Principles of Accounts': [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured & Problem Solving', duration: '2h', marks: 100 }],
-      'Computer Science':       [{ name: 'Paper 1', type: 'Theory & Fundamentals', duration: '1h 30min', marks: 80 }, { name: 'Paper 2', type: 'Structured & Algorithms', duration: '1h 30min', marks: 80 }],
-      'Agriculture':            [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 45min', marks: 60 }],
-      'Food & Nutrition':       [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'Mathematics':              [{ name: 'Paper 1', type: 'Non-Calculator (Short Answer & Structured)', duration: '2h 30min', marks: 100 }, { name: 'Paper 2', type: 'Calculator (Structured & Problem Solving)', duration: '2h 30min', marks: 100 }],
+      'English Language':         [{ name: 'Paper 1', type: 'Reading & Comprehension', duration: '1h 30min', marks: 80 }, { name: 'Paper 2', type: 'Composition & Writing', duration: '2h', marks: 80 }],
+      'Physics':                  [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Chemistry':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Biology':                  [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Combined Science':         [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'History':                  [{ name: 'Paper 1', type: 'Source-Based & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay', duration: '2h', marks: 80 }],
+      'Geography':                [{ name: 'Paper 1', type: 'Physical Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Human Geography', duration: '1h 30min', marks: 60 }],
+      'Commerce':                 [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'Principles of Accounts':   [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured & Problem Solving', duration: '2h', marks: 100 }],
+      'Computer Science':         [{ name: 'Paper 1', type: 'Theory & Fundamentals', duration: '1h 30min', marks: 80 }, { name: 'Paper 2', type: 'Structured & Algorithms', duration: '1h 30min', marks: 80 }],
+      'Agriculture':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 45min', marks: 60 }],
+      'Food & Nutrition':         [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'Shona':                    [{ name: 'Paper 1', type: 'Comprehension & Language Use', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Composition & Literature', duration: '2h', marks: 80 }],
+      'Ndebele':                  [{ name: 'Paper 1', type: 'Comprehension & Language Use', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Composition & Literature', duration: '2h', marks: 80 }],
+      'Economics':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured & Data Response', duration: '2h', marks: 80 }],
+      'Business Studies':         [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'Technical Graphics':       [{ name: 'Paper 1', type: 'Multiple Choice & Short Answer', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Drawing & Structured', duration: '2h 30min', marks: 80 }],
+      'Fashion & Fabrics':        [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'Wood Technology':          [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'Metal Technology':         [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'Religious & Moral Education': [{ name: 'Paper 1', type: 'Source-Based & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay', duration: '1h 30min', marks: 60 }],
+      'Music':                    [{ name: 'Paper 1', type: 'Listening & Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & History', duration: '1h 30min', marks: 60 }],
+      'Physical Education':       [{ name: 'Paper 1', type: 'Theory & Health', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Applied Sport Science', duration: '1h 30min', marks: 60 }],
+      'Home Economics':           [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'French':                   [{ name: 'Paper 1', type: 'Listening & Reading', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Writing & Composition', duration: '1h 30min', marks: 60 }],
+      'Environmental Science':    [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
     },
     'A-Level': {
-      'Mathematics':            [{ name: 'Paper 1', type: 'Pure Mathematics 1 (No MCQ — full structured)', duration: '3h', marks: 120 }, { name: 'Paper 2', type: 'Pure Mathematics 2 / Applied (No MCQ — full structured)', duration: '3h', marks: 120 }],
-      'Further Mathematics':    [{ name: 'Paper 1', type: 'Pure Mathematics (No MCQ — full structured)', duration: '3h', marks: 120 }, { name: 'Paper 2', type: 'Applied Mathematics (No MCQ — full structured)', duration: '3h', marks: 120 }],
-      'Physics':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 3', type: 'A2 Theory & Structured', duration: '1h 30min', marks: 60 }],
-      'Chemistry':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '1h 45min', marks: 80 }, { name: 'Paper 3', type: 'A2 Theory & Structured', duration: '1h 45min', marks: 80 }],
-      'Biology':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '1h 45min', marks: 80 }, { name: 'Paper 3', type: 'A2 Theory & Structured', duration: '1h 45min', marks: 80 }],
-      'Economics':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Data Response & Essays', duration: '2h 30min', marks: 100 }],
-      'Accounting':             [{ name: 'Paper 1', type: 'Structured Financial Accounting', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Management Accounting & Analysis', duration: '2h 30min', marks: 100 }],
-      'History':                [{ name: 'Paper 1', type: 'Source-Based (World History)', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Essay (World History)', duration: '2h', marks: 80 }, { name: 'Paper 3', type: 'Essay (African History)', duration: '1h 30min', marks: 60 }],
-      'Geography':              [{ name: 'Paper 1', type: 'Physical Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Human Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 3', type: 'Applied Geography', duration: '1h', marks: 40 }],
-      'Computer Science':       [{ name: 'Paper 1', type: 'Theory & Fundamentals', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Algorithms & Data Structures', duration: '2h', marks: 80 }, { name: 'Paper 3', type: 'Programming & Problem Solving', duration: '2h', marks: 80 }],
-      'English Literature':     [{ name: 'Paper 1', type: 'Poetry & Prose Analysis', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Drama & Unseen', duration: '2h', marks: 80 }],
+      'Mathematics':              [{ name: 'Paper 1', type: 'Pure Mathematics 1 (No MCQ — full structured)', duration: '3h', marks: 120 }, { name: 'Paper 2', type: 'Pure Mathematics 2 / Applied (No MCQ — full structured)', duration: '3h', marks: 120 }],
+      'Further Mathematics':      [{ name: 'Paper 1', type: 'Pure Mathematics (No MCQ — full structured)', duration: '3h', marks: 120 }, { name: 'Paper 2', type: 'Applied Mathematics (No MCQ — full structured)', duration: '3h', marks: 120 }],
+      'Physics':                  [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 3', type: 'A2 Theory & Structured', duration: '1h 30min', marks: 60 }],
+      'Chemistry':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '1h 45min', marks: 80 }, { name: 'Paper 3', type: 'A2 Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Biology':                  [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '1h 45min', marks: 80 }, { name: 'Paper 3', type: 'A2 Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Economics':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Data Response & Essays', duration: '2h 30min', marks: 100 }],
+      'Accounting':               [{ name: 'Paper 1', type: 'Structured Financial Accounting', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Management Accounting & Analysis', duration: '2h 30min', marks: 100 }],
+      'History':                  [{ name: 'Paper 1', type: 'Source-Based (World History)', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Essay (World History)', duration: '2h', marks: 80 }, { name: 'Paper 3', type: 'Essay (African History)', duration: '1h 30min', marks: 60 }],
+      'Geography':                [{ name: 'Paper 1', type: 'Physical Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Human Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 3', type: 'Applied Geography', duration: '1h', marks: 40 }],
+      'Computer Science':         [{ name: 'Paper 1', type: 'Theory & Fundamentals', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Algorithms & Data Structures', duration: '2h', marks: 80 }, { name: 'Paper 3', type: 'Programming & Problem Solving', duration: '2h', marks: 80 }],
+      'English Literature':       [{ name: 'Paper 1', type: 'Poetry & Prose Analysis', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Drama & Unseen', duration: '2h', marks: 80 }],
+      'Business Studies':         [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Data Response & Essay', duration: '2h 30min', marks: 100 }],
+      'Agriculture':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '2h', marks: 80 }, { name: 'Paper 3', type: 'A2 Applied Agriculture', duration: '2h', marks: 80 }],
+      'Shona':                    [{ name: 'Paper 1', type: 'Language & Comprehension', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Literature & Composition', duration: '2h', marks: 80 }],
+      'Ndebele':                  [{ name: 'Paper 1', type: 'Language & Comprehension', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Literature & Composition', duration: '2h', marks: 80 }],
+      'Sociology':                [{ name: 'Paper 1', type: 'Source-Based & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay', duration: '2h', marks: 80 }],
+      'Law':                      [{ name: 'Paper 1', type: 'Structured (General Principles)', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Essay (Applied Law)', duration: '2h', marks: 80 }],
+      'Psychology':               [{ name: 'Paper 1', type: 'Multiple Choice & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay (Applied Psychology)', duration: '2h 30min', marks: 100 }],
+      'Religious Studies':        [{ name: 'Paper 1', type: 'Source-Based & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay', duration: '2h', marks: 80 }],
+      'Music':                    [{ name: 'Paper 1', type: 'Listening & Analysis', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Theory, History & Composition', duration: '2h', marks: 80 }],
+      'Fine Art':                 [{ name: 'Paper 1', type: 'Art History & Appreciation', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Critical Analysis & Studio Practice', duration: '2h', marks: 80 }],
+      'Fashion & Fabrics':        [{ name: 'Paper 1', type: 'Theory & Design', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Applied Technology & Structured', duration: '2h', marks: 80 }],
+      'Physical Education':       [{ name: 'Paper 1', type: 'Sport Science & Theory', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Applied Sport & Health', duration: '2h', marks: 80 }],
+      'Environmental Science':    [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '2h', marks: 80 }],
+      'French':                   [{ name: 'Paper 1', type: 'Listening, Reading & Directed Writing', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Essay & Translation', duration: '2h', marks: 80 }],
+      'Media Studies':            [{ name: 'Paper 1', type: 'Textual Analysis & Theory', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Essay (Media Industries & Audiences)', duration: '2h', marks: 80 }],
+      'Mass Communication':       [{ name: 'Paper 1', type: 'Theory & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay & Analysis', duration: '2h', marks: 80 }],
+      'Insurance':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured & Case Study', duration: '2h', marks: 80 }],
+      'Travel & Tourism':         [{ name: 'Paper 1', type: 'Multiple Choice & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay & Case Study', duration: '2h', marks: 80 }],
+      'Financial Studies':        [{ name: 'Paper 1', type: 'Multiple Choice & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay & Applied Finance', duration: '2h', marks: 80 }],
+      'Home Management':          [{ name: 'Paper 1', type: 'Theory & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Applied Management & Design', duration: '2h', marks: 80 }],
     },
     'Primary': {
-      'Mathematics':            [{ name: 'Paper 1', type: 'MCQ & Short Answer', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Structured Problems', duration: '1h 30min', marks: 60 }],
-      'English':                [{ name: 'Paper 1', type: 'Comprehension & Grammar', duration: '1h', marks: 50 }, { name: 'Paper 2', type: 'Composition & Writing', duration: '1h', marks: 50 }],
-      'Science & Technology':   [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h', marks: 40 }],
-      'Social Studies':         [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h', marks: 40 }],
+      'Mathematics':              [{ name: 'Paper 1', type: 'MCQ & Short Answer', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Structured Problems', duration: '1h 30min', marks: 60 }],
+      'English':                  [{ name: 'Paper 1', type: 'Comprehension & Grammar', duration: '1h', marks: 50 }, { name: 'Paper 2', type: 'Composition & Writing', duration: '1h', marks: 50 }],
+      'Science & Technology':     [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h', marks: 40 }],
+      'Social Studies':           [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h', marks: 40 }],
+      'Shona':                    [{ name: 'Paper 1', type: 'Comprehension & Language Use', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Composition & Oral Preparation', duration: '1h', marks: 40 }],
+      'Ndebele':                  [{ name: 'Paper 1', type: 'Comprehension & Language Use', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Composition & Oral Preparation', duration: '1h', marks: 40 }],
+      'Heritage Studies':         [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h', marks: 40 }],
+      'Religious & Moral Education': [{ name: 'Paper 1', type: 'Multiple Choice & Short Answer', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h', marks: 40 }],
+      'Environmental Science':    [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h', marks: 40 }],
+      'Creative & Practical Arts':[{ name: 'Paper 1', type: 'Theory & Appreciation', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Applied & Structured', duration: '1h', marks: 40 }],
     },
   },
   Cambridge: {
@@ -613,6 +653,12 @@ const PAPER_STRUCTURES = {
       'Commerce':               [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
       'Computer Science':       [{ name: 'Paper 1', type: 'Theory Fundamentals', duration: '1h 45min', marks: 75 }, { name: 'Paper 2', type: 'Problem Solving & Programming', duration: '1h 45min', marks: 75 }],
       'Economics':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '45min', marks: 30 }, { name: 'Paper 2', type: 'Structured (Data Response)', duration: '2h 15min', marks: 90 }],
+      'Business Studies':       [{ name: 'Paper 1', type: 'Short Answer', duration: '1h 30min', marks: 40 }, { name: 'Paper 2', type: 'Structured & Case Study', duration: '1h 30min', marks: 60 }],
+      'Accounting':             [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 30 }, { name: 'Paper 2', type: 'Structured', duration: '1h 45min', marks: 90 }],
+      'Sociology':              [{ name: 'Paper 1', type: 'Source-Based & Structured', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Essay', duration: '2h', marks: 80 }],
+      'Religious Studies':      [{ name: 'Paper 1', type: 'Source-Based & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay', duration: '1h 30min', marks: 60 }],
+      'French':                 [{ name: 'Paper 1', type: 'Listening & Reading', duration: '1h 30min', marks: 50 }, { name: 'Paper 2', type: 'Writing & Directed Tasks', duration: '1h', marks: 50 }],
+      'Environmental Management': [{ name: 'Paper 1', type: 'Multiple Choice', duration: '45min', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 45min', marks: 80 }],
     },
     'A-Level': {
       'Mathematics':            [{ name: 'Paper 1', type: 'Pure Mathematics 1', duration: '2h', marks: 75 }, { name: 'Paper 2', type: 'Pure Mathematics 2', duration: '2h', marks: 75 }, { name: 'Paper 3', type: 'Mechanics / Probability & Statistics', duration: '2h', marks: 75 }],
@@ -623,6 +669,13 @@ const PAPER_STRUCTURES = {
       'Geography':              [{ name: 'Paper 1', type: 'Core Physical Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Core Human Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 3', type: 'Advanced Physical & Human', duration: '1h 30min', marks: 60 }],
       'Economics':              [{ name: 'Paper 1', type: 'Multiple Choice (AS)', duration: '1h', marks: 30 }, { name: 'Paper 2', type: 'Data Response & Essay (AS)', duration: '2h', marks: 70 }, { name: 'Paper 4', type: 'Data Response & Essay (A2)', duration: '2h', marks: 70 }],
       'Computer Science':       [{ name: 'Paper 1', type: 'Theory (AS)', duration: '1h 30min', marks: 75 }, { name: 'Paper 2', type: 'Problem Solving (AS)', duration: '1h 30min', marks: 75 }, { name: 'Paper 3', type: 'Advanced Theory (A2)', duration: '1h 30min', marks: 75 }],
+      'Business':               [{ name: 'Paper 1', type: 'Short Answer & Essay (AS)', duration: '1h 15min', marks: 40 }, { name: 'Paper 2', type: 'Data Response & Essay (AS)', duration: '1h 15min', marks: 60 }, { name: 'Paper 3', type: 'Case Study (A2)', duration: '3h', marks: 100 }],
+      'Accounting':             [{ name: 'Paper 1', type: 'Multiple Choice (AS)', duration: '1h', marks: 30 }, { name: 'Paper 2', type: 'Structured (AS)', duration: '1h 30min', marks: 90 }, { name: 'Paper 3', type: 'Structured (A2)', duration: '3h', marks: 150 }],
+      'Sociology':              [{ name: 'Paper 1', type: 'AS Theory', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'A2 Essay', duration: '2h', marks: 80 }],
+      'Psychology':             [{ name: 'Paper 1', type: 'Multiple Choice & Structured (AS)', duration: '1h 30min', marks: 50 }, { name: 'Paper 2', type: 'Essay (AS)', duration: '1h 30min', marks: 50 }, { name: 'Paper 3', type: 'Essay & Research Methods (A2)', duration: '2h', marks: 80 }],
+      'Law':                    [{ name: 'Paper 1', type: 'General Principles (AS)', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Applied Law (A2)', duration: '2h', marks: 80 }],
+      'English Literature':     [{ name: 'Paper 1', type: 'Poetry & Prose', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Drama', duration: '2h', marks: 80 }, { name: 'Paper 3', type: 'Unseen Texts', duration: '2h', marks: 80 }],
+      'Further Mathematics':    [{ name: 'Paper 1', type: 'Further Pure 1', duration: '2h', marks: 75 }, { name: 'Paper 2', type: 'Further Pure 2', duration: '2h', marks: 75 }, { name: 'Paper 3', type: 'Further Applied', duration: '2h', marks: 75 }],
     },
   },
 };
@@ -1116,6 +1169,69 @@ async function analyzeImage(buffer, mimeType, question) {
 async function extractPDFText(buffer) {
   const data = await pdfParse(buffer);
   return data.text?.trim() || '';
+}
+
+// ─── Extract embedded JPEG/PNG images from a PDF buffer ──────────────────────
+function extractImagesFromPDFBuffer(buffer) {
+  const images = [];
+  const buf = buffer;
+  let i = 0;
+
+  // Scan for JPEG (FFD8FF ... FFD9)
+  while (i < buf.length - 3) {
+    if (buf[i] === 0xFF && buf[i + 1] === 0xD8 && buf[i + 2] === 0xFF) {
+      const start = i;
+      let j = i + 2;
+      let found = false;
+      while (j < buf.length - 1) {
+        if (buf[j] === 0xFF && buf[j + 1] === 0xD9) {
+          const end = j + 2;
+          const imgBuf = buf.slice(start, end);
+          if (imgBuf.length > 2000) images.push({ buffer: imgBuf, mime: 'image/jpeg' });
+          i = end;
+          found = true;
+          break;
+        }
+        j++;
+      }
+      if (!found) break;
+    } else {
+      i++;
+    }
+  }
+
+  // Scan for PNG (89504E47 0D0A1A0A ... IEND)
+  const PNG_SIG = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+  i = 0;
+  while (i < buf.length - 8) {
+    if (buf.slice(i, i + 8).equals(PNG_SIG)) {
+      let j = i + 8;
+      let found = false;
+      while (j + 12 <= buf.length) {
+        const chunkLen = buf.readUInt32BE(j);
+        const chunkType = buf.slice(j + 4, j + 8).toString('ascii');
+        j += 12 + chunkLen;
+        if (chunkType === 'IEND') {
+          const imgBuf = buf.slice(i, j);
+          if (imgBuf.length > 2000) images.push({ buffer: imgBuf, mime: 'image/png' });
+          i = j;
+          found = true;
+          break;
+        }
+      }
+      if (!found) i++;
+    } else {
+      i++;
+    }
+  }
+
+  // Deduplicate by size, return max 4 images
+  const seen = new Set();
+  return images.filter(img => {
+    if (seen.has(img.buffer.length)) return false;
+    seen.add(img.buffer.length);
+    return true;
+  }).slice(0, 4);
 }
 
 // ─── Material metadata auto-detection (AI + first page) ──────────────────────
@@ -2215,13 +2331,29 @@ async function generateMockExamPDF(jid, board, subject, level, paper, topic, num
     ? 'For ALL mathematical expressions, equations and formulas use the format: `expression here` (backtick-wrapped). Example: `ax^2 + bx + c = 0`, `F = ma`, `v^2 = u^2 + 2as`. For fractions write as `(numerator)/(denominator)`. Never write bare math without backticks.'
     : '';
 
+  // ── Tavily search: find real ZIMSEC/Cambridge question examples for this subject ──
+  let realExamplesContext = '';
+  try {
+    const searchQuery = `${board} ${level} ${subject} ${paperName} past exam questions examples site:zimsec.co.zw OR site:cambridge.org OR filetype:pdf`;
+    const tv = createTavily({ apiKey: process.env.TAVILY_API_KEY || '' });
+    const searchResult = await tv.search(searchQuery, { maxResults: 4, searchDepth: 'basic' });
+    const snippets = (searchResult?.results || [])
+      .map(r => r.content || r.snippet || '')
+      .filter(Boolean)
+      .join('\n\n')
+      .substring(0, 3000);
+    if (snippets.length > 100) {
+      realExamplesContext = `\n\nREAL ${board} EXAM QUESTION STYLE & FORMAT (from online sources — mirror this style exactly):\n${snippets}\n\nIMPORTANT: Use the exact same question style, command words, difficulty level, and format seen in the examples above.`;
+    }
+  } catch (_) {}
+
   let questionsPrompt, schemePrompt;
 
   if (isMCQ) {
     const qCount = numQuestions || Math.round(totalMarks);
     questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
 Total questions: ${qCount} | Time: ${timeAllowed}
-${mathNote}
+${mathNote}${realExamplesContext}
 
 FORMAT EACH QUESTION EXACTLY AS (no deviations — number each question):
 Q[n]. [Question text]
@@ -2231,10 +2363,11 @@ C) [Option]
 D) [Option]
 
 Rules:
-- Authentic ${board} examiner language
+- Authentic ${board} examiner language and command words as seen in real ${board} papers
 - Varied difficulty: 30% easy, 50% medium, 20% hard (A/B/C grade range)
 - All 4 options must be plausible distractors — only ONE correct answer
-- Questions must be specific, unambiguous and curriculum-relevant
+- Questions must be specific, unambiguous and curriculum-relevant — match real ${board} style
+- Cover diverse topics across the full ${subject} syllabus
 - STRICTLY generate exactly ${qCount} questions numbered Q1 through Q${qCount}
 - DO NOT include answers, answer keys or explanations in this section`;
 
@@ -2243,7 +2376,7 @@ Rules:
     const marksEach = Math.round(totalMarks / qCount);
     questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
 Total marks: ${totalMarks} | Time: ${timeAllowed}
-${mathNote}
+${mathNote}${realExamplesContext}
 
 FORMAT:
 SECTION A — Answer ALL questions (${Math.ceil(qCount/2)} questions × ${marksEach} marks)
@@ -2255,13 +2388,13 @@ SECTION B — Answer ALL questions (${Math.floor(qCount/2)} questions × ${marks
 Q[n]. [Question with command word] (${marksEach} marks)
 
 Command words to use: Discuss, Evaluate, Analyse, Compare, Explain, Justify, Assess, To what extent
-Rules: curriculum-specific questions, authentic examiner register, no answers included`;
+Rules: curriculum-specific questions matching real ${board} style, authentic examiner register, no answers included`;
 
   } else if (isPureMaths) {
     const qCount = numQuestions || 17;
     questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
 Total questions: ${qCount} | Total marks: ${totalMarks} | Time: ${timeAllowed}
-${mathNote}
+${mathNote}${realExamplesContext}
 
 FORMAT:
 SECTION A — Short structured questions (${Math.ceil(qCount * 0.59)} questions, 4 marks each)
@@ -2289,7 +2422,7 @@ Q[n]. [Proof or complex application] ([marks] marks)
 Rules:
 - ALL formulae, equations, expressions must be in backticks: \`expression\`
 - No MCQ — all questions require written working
-- Cover the full ${subject} ${level} syllabus topics
+- Cover the full ${subject} ${level} syllabus topics as in real ${board} papers
 - STRICTLY generate exactly ${qCount} questions total
 - DO NOT include answers`;
 
@@ -2301,7 +2434,7 @@ Rules:
     const secAm = 3, secBm = 6, secCm = Math.round((totalMarks - secAq*secAm - secBq*secBm) / secCq);
     questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
 Total marks: ${totalMarks} | Time: ${timeAllowed}
-${mathNote}
+${mathNote}${realExamplesContext}
 
 FORMAT:
 
@@ -2331,7 +2464,8 @@ Q[n]. [Extended question requiring detailed explanation] (${secCm} marks)
 Rules:
 - Mark allocations in brackets for every part
 - Leave adequate answer space (blank lines)
-- Authentic ${board} register
+- Authentic ${board} register — match real ${board} question style
+- Diverse topics from across the full ${subject} syllabus
 - STRICTLY generate exactly ${defaultTotal} questions total
 - DO NOT include answers`;
   }
@@ -4104,47 +4238,40 @@ Just type your description and hit send! 🚀`, msg);
             const refCount = dbUser?.referralCount || 0;
             const refLink = refCode ? `wa.me/${botN}?text=${refCode}` : `wa.me/${botN}`;
             await send(jid,
-`*Fundo AI — Your Smart Academic Companion* 🤖🔥
+`🔗 *Your Fundo AI Referral Code*
+━━━━━━━━━━━━━━━━━━━━
 
-Contact: ${refLink}
+🎟️ *Your unique code:* \`${refCode || 'N/A'}\`
 
-Get help with:
-
-• 📚 School projects & research
-• 📝 Assignments & homework
-• 📄 Past exam papers
-• ✅ Marking schemes & answer guides
-• 📘 Green Books & Blue Books
-• 📖 Textbooks & study notes
-• 🧠 AI-powered explanations for difficult topics
-• 🖼️ Image analysis & question solving
-• 🎧 Audio explanations & voice learning
-• 📑 PDF analysis & document summarization
-• ❓ Interactive quizzes & test prep
-• 👨‍🏫 Mentorship & study guidance
-• 📊 Revision plans & exam strategies
-• 🔬 Science practical guidance
-• 💻 Coding & programming help
-• 📐 Mathematics step-by-step solving
-• 🌍 O Level & A Level support
-• 🤖 AI tutoring available 24/7
-• 🧪 Instant answer checking
-• 📈 Progress tracking & smart recommendations
-• 🎓 Career guidance & university preparation
-• 🗂️ Notes organisation & study resources
-• 👥 Group study support
-• ⚡ Fast, accurate academic assistance anytime
-
-_Learn smarter. Study faster. Achieve more with Fundo AI._ 🇿🇼
+📲 *Your referral link:*
+${refLink}
 
 ━━━━━━━━━━━━━━━━━━━━
-🎁 *Share & Earn Rewards:*
-Every friend you invite gives you:
+*How to share & earn:*
+
+1️⃣ Copy your link above
+2️⃣ Send it to a friend on WhatsApp
+3️⃣ When they open it and message the bot, your code is applied automatically!
+4️⃣ Once they complete sign-up, YOU earn:
+
+🎁 *Rewards per referral:*
 • +5 bonus AI chats
-• +2 bonus images
+• +2 bonus image generations
 • +1 bonus project PDF
 
-📊 *You have referred ${refCount} friend${refCount === 1 ? '' : 's'} so far!*
+📊 *Friends referred so far:* ${refCount}
+
+━━━━━━━━━━━━━━━━━━━━
+*What Fundo AI can do for your friends:*
+📚 School projects & research
+📄 Past exam papers & marking schemes
+🧠 AI explanations for any subject
+🖼️ Image & PDF analysis
+🎧 Voice learning & audio replies
+🎓 AI mock exams (ZIMSEC & Cambridge)
+🌍 O Level, A Level & Primary support
+
+_Learn smarter. Study faster. Achieve more._ 🇿🇼
 _— FUNDO AI 🤖🔥_`, msg);
             continue;
           }
@@ -4247,7 +4374,8 @@ _Type 1 or 2, or *cancel* to exit._`, msg);
 📦 *Plan:* ${planName} ($${p.price}/month)
 💬 *Chats today:* ${u.chatToday || 0}/${p.chat === Infinity ? '∞' : p.chat}${extraMsgsLine}
 🖼️ *Images today:* ${u.imagesToday || 0}/${p.images === Infinity ? '∞' : p.images}${extraImgsLine}
-📄 *PDFs (${p.pdfPeriod}):* ${p.pdfPeriod === 'day' ? (u.pdfToday || 0) : (u.pdfMonth || 0)}/${p.pdf === Infinity ? '∞' : p.pdf}${downloadLine}${uploadsLine}${refStats}
+📄 *PDFs (${p.pdfPeriod}):* ${p.pdfPeriod === 'day' ? (u.pdfToday || 0) : (u.pdfMonth || 0)}/${p.pdf === Infinity ? '∞' : p.pdf}
+🎓 *Mock Exams (month):* ${u.mockMonth || 0}/${p.mock === Infinity ? '∞' : p.mock}${downloadLine}${uploadsLine}${refStats}
 
 ⏰ *Resets in:* ${get24hCountdown(dbUser?.exhaustedChatAt)}
 
@@ -6747,26 +6875,66 @@ Type *done* — finish uploading`, msg);
           const mime     = docMsg.mimetype || '';
           console.log(`📄  [${jid.split('@')[0]}] ${fileName}`);
 
-          // PDF analysis (NVIDIA Llama 3.3 70B)
+          // PDF analysis (text + embedded image extraction)
           if (mime.includes('pdf') || fileName.endsWith('.pdf')) {
-            await send(jid, `📄 Reading your PDF *${fileName}*... 🔍`, msg);
+            await send(jid, `📄 Analysing your PDF *${fileName}*... 🔍`, msg);
             try {
-              const buf      = await downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
-              const pdfText  = await extractPDFText(buf);
-              if (!pdfText || pdfText.length < 20) throw new Error('No readable text in PDF');
+              const buf = await downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
+
+              // Step 1: extract text
+              let pdfText = '';
+              try { pdfText = await extractPDFText(buf); } catch (_) {}
+
+              // Step 2: extract embedded images and send each to the vision API
+              const embeddedImages = extractImagesFromPDFBuffer(buf);
+              const imageAnalyses = [];
+              if (embeddedImages.length > 0) {
+                console.log(`   └─ 🖼️  PDF has ${embeddedImages.length} embedded image(s) — analysing...`);
+                for (let imgIdx = 0; imgIdx < embeddedImages.length; imgIdx++) {
+                  try {
+                    const { buffer: imgBuf, mime: imgMime } = embeddedImages[imgIdx];
+                    const desc = await analyzeImage(imgBuf, imgMime, `Describe what is shown in this image from a PDF document called "${fileName}". Focus on diagrams, charts, text in the image, or any educational content.`);
+                    imageAnalyses.push(`[Image ${imgIdx + 1}]: ${desc}`);
+                  } catch (_) {}
+                }
+              }
+
+              // Step 3: combine text + image results and summarize
+              const hasText = pdfText && pdfText.length >= 20;
+              const hasImages = imageAnalyses.length > 0;
+
+              if (!hasText && !hasImages) throw new Error('No readable content found in PDF');
+
+              let combinedContext = '';
+              if (hasText) combinedContext += `TEXT CONTENT:\n${pdfText.substring(0, 8000)}\n\n`;
+              if (hasImages) combinedContext += `VISUAL CONTENT FROM IMAGES:\n${imageAnalyses.join('\n\n')}`;
+
+              const summaryPrompt = `You are FUNDO AI, a friendly Zimbabwean educational assistant. A student sent you a PDF called "${fileName}".
+
+${combinedContext}
+
+Please provide:
+1) A clear overall summary (4–6 sentences)
+2) Key points as bullet list (use • bullets)
+3) Explanation of any diagrams or images found
+4) One-line takeaway for the student
+
+Use WhatsApp-friendly formatting (*bold* and _italic_ only, no ### or markdown tables).`;
+
               try {
-                replyText = await analyzeDocumentNvidia(pdfText, fileName);
+                replyText = await nvidiaChat([
+                  { role: 'system', content: 'You are FUNDO AI 🤖🔥, a friendly Zimbabwean educational assistant. Be clear, warm, and student-focused. Use *bold* and _italic_ only.' },
+                  { role: 'user', content: summaryPrompt }
+                ], { model: NVIDIA_DOC_MODEL, maxTokens: 2000, temperature: 0.3 });
               } catch (nvErr) {
                 console.warn(`   └─ NVIDIA doc fallback: ${nvErr.message?.substring(0,60)}`);
-                const snippet = pdfText.substring(0, 5000);
-                replyText = await askAI(userKey,
-                  `I'm sending you a PDF called "${fileName}". Please: 1) Give a clear summary 2) Highlight key points 3) Explain anything complex simply:\n\n${snippet}`);
+                replyText = await askAI(userKey, summaryPrompt);
               }
               lastReply.set(userKey, replyText);
               if (offerAudio(replyText)) replyText += '\n\n🔊 _Reply *audio* to hear this!_';
             } catch (e) {
               console.error(`   └─ ❌ PDF: ${e.message?.substring(0,80)}`);
-              replyText = `😅 I couldn't read *${fileName}*. It might be scanned/image-based. Try copying the text and sending it as a message! 📝\n\n💡 _Or reply *reset* and try again._`;
+              replyText = `😅 I couldn't read *${fileName}*. It might be heavily encrypted. Try copying the text and sending it as a message! 📝\n\n💡 _Or reply *reset* and try again._`;
             }
           }
 
