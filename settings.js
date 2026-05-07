@@ -21,7 +21,7 @@
 
 export default {
   SESSION_ID: process.env.SESSION_ID || "",
-  BOT_NUMBER: process.env.BOT_NUMBER || "263776046121",
+  BOT_NUMBER: process.env.BOT_NUMBER || "18195080751",
   OWNER_NUMBER: process.env.OWNER_NUMBER || "263719647303",
   LOGO_URL:
     process.env.LOGO_URL || "https://mrfranko-cdn.hf.space/edu/fundo.png",

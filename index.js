@@ -2848,18 +2848,12 @@ ${topUsers || '  None yet'}
             if (!profileEntries.length && !Object.keys(dbUserMap).length) {
               await send(jid, `👥 *No users found yet.*\n\n— _FUNDO AI 🤖🔥_`, msg); continue;
             }
-            // Build merged list
+            // Build merged list — ONLY users who completed onboarding (have a profile file)
             const allEntries = [];
-            const shown = new Set();
             for (const p of profileEntries) {
               const phone = (p.phone || '').replace(/\D/g, '');
               const dbRec = phone ? (dbUserMap[phone] || {}) : {};
-              if (phone) shown.add(phone);
               allEntries.push({ phone, plan: dbRec.plan || 'FREE', createdAt: dbRec.createdAt || null, uploadCount: dbRec.uploadCount || 0, referralCount: dbRec.referralCount || 0, name: p.name, email: p.email, school: p.school, levelLabel: p.levelLabel, grade: p.grade, levelType: p.levelType });
-            }
-            for (const [phone, dbRec] of Object.entries(dbUserMap)) {
-              if (shown.has(phone)) continue;
-              allEntries.push({ phone, plan: dbRec.plan || 'FREE', createdAt: dbRec.createdAt || null, uploadCount: dbRec.uploadCount || 0, referralCount: dbRec.referralCount || 0 });
             }
             // Sort: newest first, then by level
             const levelOrder = { primary: 1, olevel: 2, alevel: 3, university: 4, parent: 5, teacher: 6 };
@@ -3691,7 +3685,7 @@ Just type your description and hit send! 🚀`, msg);
           // ── invite / referral ──────────────────────────────────────────────
           if (/^(invite|referral|ref|myref|mylink|share)$/.test(stripped)) {
             const refCode = await generateReferralCode(senderNum).catch(() => null);
-            const botN    = settings.BOT_NUMBER || '263776046121';
+            const botN    = SETTINGS.BOT_NUMBER || '263776046121';
             if (refCode) {
               const refCount = dbUser?.referralCount || 0;
               await send(jid,
@@ -3760,7 +3754,7 @@ _— FUNDO AI 🤖🔥_`, msg);
             const uploadsLine = uploadStats.uploadCount > 0 ? `\n⬆️ *Contributions:* ${uploadStats.uploadCount} (${3 - (uploadStats.uploadCount % 3)} more → 🎁 bonus!)` : '';
             const downloadLine = p.price === 0 ? `\n📥 *Downloads today:* ${u.mediaDownloads || 0}/5` : `\n📥 *Downloads:* Unlimited`;
             const refCode = await generateReferralCode(senderNum).catch(() => null);
-            const botNum = settings.BOT_NUMBER || '263776046121';
+            const botNum = SETTINGS.BOT_NUMBER || '263776046121';
             const refLink = refCode ? `\n\n🔗 *Your Referral Link:*\nwa.me/${botNum}?text=${refCode}\n_Share & earn: +5 chats, +2 images, +1 PDF per referral!_` : '';
             const referralCount = dbUser?.referralCount || 0;
             const refStats = referralCount > 0 ? `\n👥 *Referrals:* ${referralCount} friends invited` : '';
@@ -4737,7 +4731,7 @@ Type *upgrade* to change your plan 🚀
             const refMatch = (textMsg || '').trim().match(/^(REF-[A-Z0-9]{6,8})$/i);
             const pendingReferral = refMatch ? refMatch[1].toUpperCase() : null;
             onboardingFlow.set(userKey, { step: 'join_channel', pendingReferral });
-            const botNum = settings.BOT_NUMBER || '263776046121';
+            const botNum = SETTINGS.BOT_NUMBER || '263776046121';
             await send(jid,
 `👋 Welcome to *FUNDO AI* 🤖🔥
 
@@ -4911,7 +4905,7 @@ What best describes you? Type the number:
                 }
               }
               const p = PLANS.FREE;
-              const botNum = settings.BOT_NUMBER || '263776046121';
+              const botNum = SETTINGS.BOT_NUMBER || '263776046121';
               const refCode = await generateReferralCode(senderNum).catch(() => null);
               await send(jid,
 `✅ *You are all set, ${name}!* 🎉
@@ -4929,7 +4923,7 @@ What best describes you? Type the number:
 ━━━━━━━━━━━━━━━━━━━━`, msg);
               await sendMenuWithLogo(jid, MAIN_MENU, msg);
               setTimeout(async () => {
-                const botN = settings.BOT_NUMBER || '263776046121';
+                const botN = SETTINGS.BOT_NUMBER || '263776046121';
                 const rc   = refCode || await generateReferralCode(senderNum).catch(() => null);
                 const refLine = rc ? `\n\n🔗 *Your referral link:*\nwa.me/${botN}?text=${rc}\n_Earn +5 chats, +2 images, +1 PDF for every friend you invite!_` : '';
                 await send(jid,
@@ -5037,7 +5031,7 @@ _Type the number._`, msg);
 ━━━━━━━━━━━━━━━━━━━━`, msg);
             await sendMenuWithLogo(jid, MAIN_MENU, msg);
             setTimeout(async () => {
-              const botN = settings.BOT_NUMBER || '263776046121';
+              const botN = SETTINGS.BOT_NUMBER || '263776046121';
               const rc   = refCodeNew || await generateReferralCode(senderNum).catch(() => null);
               const refLine = rc ? `\n\n🔗 *Your referral link:*\nwa.me/${botN}?text=${rc}\n_Earn +5 chats, +2 images, +1 PDF for every friend you invite!_` : '';
               await send(jid,
@@ -5225,7 +5219,7 @@ Type your level to begin! 📚`, msg);
                 ? `\n📥 *Downloads today:* ${u.mediaDownloads || 0}/5`
                 : `\n📥 *Downloads:* Unlimited`;
               const refCode2 = await generateReferralCode(senderNum).catch(() => null);
-              const botNum2  = settings.BOT_NUMBER || '263776046121';
+              const botNum2  = SETTINGS.BOT_NUMBER || '263776046121';
               const refLink2 = refCode2 ? `\n\n🔗 *Referral Link:*\nwa.me/${botNum2}?text=${refCode2}\n_+5 chats, +2 images, +1 PDF per friend you invite!_` : '';
               const refStats2 = (dbUser?.referralCount || 0) > 0 ? `\n👥 *Referrals:* ${dbUser.referralCount} friends invited` : '';
               await send(jid,
