@@ -1168,7 +1168,12 @@ async function generateImageNvidiaFlux(prompt) {
     throw new Error('NVIDIA FLUX: no image in response');
   }
   const buf = Buffer.from(b64, 'base64');
-  if (buf.length < 1000) throw new Error('NVIDIA FLUX: image too small');
+  // Real 1024x1024 images are 50KB+. NVIDIA returns a ~6KB blank placeholder when
+  // content is filtered or the prompt is rejected — treat anything under 30KB as a failure.
+  if (buf.length < 30000) {
+    console.warn(`   └─ NVIDIA FLUX blank/filtered image (${buf.length} bytes) — falling back`);
+    throw new Error('NVIDIA FLUX: blank or filtered image');
+  }
   console.log(`   └─ 🎨 NVIDIA FLUX ${buf.length} bytes`);
   return buf;
 }
