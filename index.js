@@ -2194,7 +2194,7 @@ async function generateProjectPDF(jid, subject, level, isForm, topic) {
 }
 
 // ─── Mock Exam PDF Generator ──────────────────────────────────────────────────
-async function generateMockExamPDF(jid, board, subject, level, paper, topic) {
+async function generateMockExamPDF(jid, board, subject, level, paper, topic, numQuestions = null) {
   const prof       = loadProfile(jid);
   const pupilName  = prof.name   || '[Your Name]';
   const schoolName = prof.school || '[Your School]';
@@ -2218,12 +2218,12 @@ async function generateMockExamPDF(jid, board, subject, level, paper, topic) {
   let questionsPrompt, schemePrompt;
 
   if (isMCQ) {
-    const qCount = Math.round(totalMarks);
+    const qCount = numQuestions || Math.round(totalMarks);
     questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
-Total questions: ${qCount} | Total marks: ${totalMarks} | Time: ${timeAllowed}
+Total questions: ${qCount} | Time: ${timeAllowed}
 ${mathNote}
 
-FORMAT EACH QUESTION EXACTLY AS (no deviations):
+FORMAT EACH QUESTION EXACTLY AS (no deviations — number each question):
 Q[n]. [Question text]
 A) [Option]
 B) [Option]
@@ -2235,17 +2235,11 @@ Rules:
 - Varied difficulty: 30% easy, 50% medium, 20% hard (A/B/C grade range)
 - All 4 options must be plausible distractors — only ONE correct answer
 - Questions must be specific, unambiguous and curriculum-relevant
+- STRICTLY generate exactly ${qCount} questions numbered Q1 through Q${qCount}
 - DO NOT include answers, answer keys or explanations in this section`;
 
-    schemePrompt = `You are a ${board} examiner. Provide the complete marking scheme for the ${board} ${level} ${subject} ${paperName} (Multiple Choice) paper — ${qCount} questions on ${topic || 'full syllabus'}.
-
-FORMAT EXACTLY:
-Q[n]. [Correct letter]) — [2–3 sentence explanation of why this is correct AND why each wrong option is wrong]
-
-List all ${qCount} questions. Be thorough — each explanation must educate the student.`;
-
   } else if (isEssay || isSource) {
-    const qCount = isSource ? 4 : 5;
+    const qCount = numQuestions || (isSource ? 4 : 5);
     const marksEach = Math.round(totalMarks / qCount);
     questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
 Total marks: ${totalMarks} | Time: ${timeAllowed}
@@ -2263,31 +2257,20 @@ Q[n]. [Question with command word] (${marksEach} marks)
 Command words to use: Discuss, Evaluate, Analyse, Compare, Explain, Justify, Assess, To what extent
 Rules: curriculum-specific questions, authentic examiner register, no answers included`;
 
-    schemePrompt = `You are a ${board} examiner. Provide a DETAILED mark scheme for the ${board} ${level} ${subject} ${paperName} (${paperType}) exam on ${topic || 'full syllabus'}.
-
-For EACH question provide:
-Q[n]. [${marksEach} marks]
-• Mark point 1 (1 mark): [specific content required]
-• Mark point 2 (1 mark): [specific content required]
-[continue for all marks]
-Level descriptors where relevant: L1 (basic) / L2 (developed) / L3 (analytical)
-Accept: [alternative acceptable answers]
-Reject: [common wrong answers]`;
-
   } else if (isPureMaths) {
+    const qCount = numQuestions || 17;
     questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
-Total marks: ${totalMarks} | Time: ${timeAllowed}
+Total questions: ${qCount} | Total marks: ${totalMarks} | Time: ${timeAllowed}
 ${mathNote}
 
 FORMAT:
-SECTION A — Short structured questions (10 questions, 4 marks each = 40 marks)
+SECTION A — Short structured questions (${Math.ceil(qCount * 0.59)} questions, 4 marks each)
 
 Q[n]. [Clear mathematical question] (4 marks)
-
 Working space: ____________
 
 
-SECTION B — Extended structured questions (5 questions, 8 marks each = 40 marks)
+SECTION B — Extended structured questions (${Math.floor(qCount * 0.29)} questions, 8 marks each)
 
 Q[n]. [Multi-part question]
 (a) [Part a] (3 marks)
@@ -2298,7 +2281,7 @@ Working: ____________
 Working: ____________
 
 
-SECTION C — Proof / Extended (2 questions, 10–20 marks each)
+SECTION C — Proof / Extended (${Math.max(1, Math.floor(qCount * 0.12))} questions)
 
 Q[n]. [Proof or complex application] ([marks] marks)
 
@@ -2307,23 +2290,14 @@ Rules:
 - ALL formulae, equations, expressions must be in backticks: \`expression\`
 - No MCQ — all questions require written working
 - Cover the full ${subject} ${level} syllabus topics
-- Include diagrams as [DIAGRAM: description] where needed
+- STRICTLY generate exactly ${qCount} questions total
 - DO NOT include answers`;
 
-    schemePrompt = `You are a ${board} examiner. Provide a complete mark scheme for the ${board} ${level} ${subject} ${paperName} paper on ${topic || 'full syllabus'}.
-
-For EACH question provide:
-Q[n].
-Method marks (M): [what working earns marks]
-Accuracy marks (A): [final answer requirements]
-Answer: \`[exact answer with working]\`
-Special cases / follow-through: [notes]
-Common errors to watch: [typical student mistakes]
-
-Use backticks for ALL mathematical expressions.`;
-
   } else {
-    const secAq = 4, secBq = 3, secCq = 2;
+    const defaultTotal = numQuestions || 9;
+    const secAq = Math.ceil(defaultTotal * 0.45);
+    const secBq = Math.ceil(defaultTotal * 0.33);
+    const secCq = Math.max(1, defaultTotal - secAq - secBq);
     const secAm = 3, secBm = 6, secCm = Math.round((totalMarks - secAq*secAm - secBq*secBm) / secCq);
     questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
 Total marks: ${totalMarks} | Time: ${timeAllowed}
@@ -2358,31 +2332,38 @@ Rules:
 - Mark allocations in brackets for every part
 - Leave adequate answer space (blank lines)
 - Authentic ${board} register
+- STRICTLY generate exactly ${defaultTotal} questions total
 - DO NOT include answers`;
-
-    schemePrompt = `You are a ${board} examiner. Provide a COMPLETE and DETAILED mark scheme for the ${board} ${level} ${subject} ${paperName} (${paperType}) paper on ${topic || 'full syllabus'}.
-
-For EACH question and sub-part:
-Q[n](a). [${secAm} marks]
-• Award 1 mark for: [specific point]
-• Award 1 mark for: [specific point]
-Accept: [valid alternatives]
-Reject: [wrong answers]
-
-Q[n](b). [marks]
-[model answer with mark points]
-
-For Section C extended answers include:
-- Level descriptors (L1–L3)
-- Indicative content bullet points
-- Quality of written communication note where applicable`;
   }
 
-  console.log(`   └─ 📄 Mock Exam: ${board} ${subject} ${level} ${paperName}`);
-  const [questionsRaw, schemeRaw] = await Promise.all([
-    askAI(jid, questionsPrompt, { skipHistory: true }),
-    askAI(jid, schemePrompt,   { skipHistory: true }),
-  ]);
+  // ── Step 1: Generate questions ────────────────────────────────────────────
+  console.log(`   └─ 📄 Mock Exam [1/2]: Generating questions — ${board} ${subject} ${level} ${paperName}`);
+  const questionsRaw = await askAI(jid, questionsPrompt, { skipHistory: true });
+
+  // ── Step 2: Build scheme prompt using ACTUAL generated questions ──────────
+  // By including the real questions in the prompt the AI cannot hallucinate
+  // different questions — it must mark exactly what was generated above.
+  const schemeTypeHint = isMCQ
+    ? `List every question in order:\nQ[n]. [Correct letter]) — [2–3 sentence explanation of why this answer is correct AND why each wrong option is incorrect]`
+    : isPureMaths
+    ? `For EACH question:\nQ[n].\nMethod marks (M): [what working earns the mark]\nAccuracy marks (A): [exact final answer]\nAnswer: \`[full worked solution]\`\nSpecial cases / follow-through: [notes]\nCommon errors: [typical student mistakes]\n\nUse backticks for ALL mathematical expressions.`
+    : (isEssay || isSource)
+    ? `For EACH question:\nQ[n]. [[marks] marks]\n• Mark point 1 (1 mark): [specific required content]\n• Mark point 2 (1 mark): [specific required content]\n[continue for all mark points]\nLevel descriptors: L1 (basic) / L2 (developed) / L3 (analytical)\nAccept: [valid alternatives] | Reject: [common wrong answers]`
+    : `For EACH question and sub-part:\nQ[n](a). [marks]\n• Award 1 mark for: [specific point]\n• Award 1 mark for: [specific point]\nAccept: [valid alternatives] | Reject: [wrong answers]\nFor Section C include level descriptors (L1–L3) and indicative content bullet points.`;
+
+  schemePrompt = `You are a ${board} chief examiner. The examination paper below was just generated. Write a COMPLETE and ACCURATE marking scheme for EVERY question in the paper, in order. Your marking scheme answers MUST directly correspond to the questions — do NOT invent or substitute different questions.
+${mathNote}
+
+━━━ ACTUAL EXAM PAPER (mark THIS — do not change the questions) ━━━
+${questionsRaw}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MARKING SCHEME — provide answers for every question above:
+
+${schemeTypeHint}`;
+
+  console.log(`   └─ 📄 Mock Exam [2/2]: Generating marking scheme — ${board} ${subject} ${level} ${paperName}`);
+  const schemeRaw = await askAI(jid, schemePrompt, { skipHistory: true });
 
   const safeSubj = subject.replace(/[^a-zA-Z0-9]/g, '_');
   const fileName = `FundoAI_${board}_${safeSubj}_${level.replace(/\s/g,'')}_${paperName.replace(/\s/g,'')}_${Date.now()}.pdf`;
@@ -5616,6 +5597,9 @@ Files sent straight to your phone — no links!
               break;
             case 5: {
               // Full Materials Library — pick type first
+              mockExamFlow.delete(userKey);
+              quizFlow.delete(userKey);
+              projectFlow.delete(userKey);
               uploadMatFlow.delete(userKey);
               materialsFlow.set(userKey, { step: 'pick_category', subjectPage: 0 });
               await send(jid,
@@ -5636,6 +5620,9 @@ _Type the number or *cancel* to go back._`, msg);
             }
             case 6: {
               // Quick-access: Syllabuses
+              mockExamFlow.delete(userKey);
+              quizFlow.delete(userKey);
+              projectFlow.delete(userKey);
               uploadMatFlow.delete(userKey);
               materialsFlow.set(userKey, { step: 'pick_level', category: 'syllabus', subjectPage: 0 });
               await send(jid,
@@ -5653,6 +5640,9 @@ _Type the number or *cancel* to go back._`, msg);
             }
             case 8: {
               // Quick-access: Past Exam Papers
+              mockExamFlow.delete(userKey);
+              quizFlow.delete(userKey);
+              projectFlow.delete(userKey);
               uploadMatFlow.delete(userKey);
               materialsFlow.set(userKey, { step: 'pick_level', category: 'paper', subjectPage: 0 });
               await send(jid,
@@ -5670,6 +5660,9 @@ _Type the number or *cancel* to go back._`, msg);
             }
             case 9: {
               // Quick-access: Textbooks
+              mockExamFlow.delete(userKey);
+              quizFlow.delete(userKey);
+              projectFlow.delete(userKey);
               uploadMatFlow.delete(userKey);
               materialsFlow.set(userKey, { step: 'pick_level', category: 'textbook', subjectPage: 0 });
               await send(jid,
@@ -5687,6 +5680,9 @@ _Type the number or *cancel* to go back._`, msg);
             }
             case 10: {
               // Quick-access: Marking Schemes
+              mockExamFlow.delete(userKey);
+              quizFlow.delete(userKey);
+              projectFlow.delete(userKey);
               uploadMatFlow.delete(userKey);
               materialsFlow.set(userKey, { step: 'pick_level', category: 'marking_scheme', subjectPage: 0 });
               await send(jid,
@@ -5859,6 +5855,14 @@ FUNDO AI is Zimbabwe's most powerful WhatsApp educational assistant — built sp
             case 14: {
               const mp = PLANS[dbUser?.plan || 'FREE'];
               const mockUsed14 = dbUser?.usage?.mockMonth || 0;
+              // Clear all other active flows so nothing bleeds into mock exam
+              materialsFlow.delete(userKey);
+              uploadMatFlow.delete(userKey);
+              quizFlow.delete(userKey);
+              projectFlow.delete(userKey);
+              upgradeFlow.delete(userKey);
+              profileUpdateFlow.delete(userKey);
+              supportFlow.delete(userKey);
               mockExamFlow.set(userKey, { step: 'board' });
               await send(jid,
 `🎓 *AI Mock Exam Generator*
@@ -6008,10 +6012,34 @@ _Type a number to choose._`, msg);
               continue;
             }
             const paper = papers[idx];
-            mockExamFlow.set(userKey, { ...mef, step: 'topic', paper });
+            mockExamFlow.set(userKey, { ...mef, step: 'num_questions', paper });
             await send(jid,
 `✅ Paper: *${paper.name}* — ${paper.type}
-⏱ Duration: *${paper.duration}* | *${paper.marks} marks*
+⏱ *${paper.duration}* | *${paper.marks} marks*
+
+🔢 *How many questions?*
+━━━━━━━━━━━━━━━━━━━━
+
+1. 10 questions
+2. 20 questions
+3. 30 questions
+4. 40 questions
+5. 50 questions
+
+_Type a number (1–5) to choose._`, msg);
+            continue;
+          }
+
+          if (mef.step === 'num_questions') {
+            const numMap = { '1': 10, '2': 20, '3': 30, '4': 40, '5': 50 };
+            const numQ = numMap[input] || parseInt(input, 10);
+            if (![10, 20, 30, 40, 50].includes(numQ)) {
+              await send(jid, '❌ Please type *1*, *2*, *3*, *4*, or *5* to choose the number of questions.\n\n_Or type *cancel* to exit._', msg);
+              continue;
+            }
+            mockExamFlow.set(userKey, { ...mef, step: 'topic', numQuestions: numQ });
+            await send(jid,
+`✅ Questions: *${numQ}*
 
 📌 *Specific topic or full syllabus?*
 ━━━━━━━━━━━━━━━━━━━━
@@ -6048,7 +6076,7 @@ _— FUNDO AI 🤖🔥_`, msg);
 
             const topic = /^full$/i.test(input) ? null : input;
             mockExamFlow.delete(userKey);
-            const { board, subject, level, paper } = mef;
+            const { board, subject, level, paper, numQuestions } = mef;
             const topicDisplay = topic || 'Full Syllabus';
 
             await send(jid,
@@ -6058,13 +6086,14 @@ _— FUNDO AI 🤖🔥_`, msg);
 📚 Subject: *${subject}*
 🏫 Level: *${level}* (${board})
 📄 Paper: *${paper.name}* — ${paper.type}
+🔢 Questions: *${numQuestions || 'auto'}*
 ⏱ Time: *${paper.duration}* | *${paper.marks} marks*
 📌 Topic: *${topicDisplay}*
 
-_Please wait 30–60 seconds — building your full paper and marking scheme..._`, msg);
+_Please wait 45–90 seconds — generating questions then building your marking scheme..._`, msg);
 
             try {
-              const { filePath, fileName } = await generateMockExamPDF(jid, board, subject, level, paper, topic);
+              const { filePath, fileName } = await generateMockExamPDF(jid, board, subject, level, paper, topic, numQuestions);
               await incrementMockUsage(dbUser).catch(() => {});
               const fileBuf = fs.readFileSync(filePath);
               const p = PLANS[dbUser?.plan || 'FREE'];
