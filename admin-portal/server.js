@@ -134,11 +134,18 @@ app.post('/api/materials/upload', requireAuth, upload.single('file'), async (req
 
     const cdnUrl = await uploadToCDN(file.buffer, file.originalname, file.mimetype);
 
+    // For A-Level the bot queries grade='A-Level'; ensure we save that exact value
+    // so getMaterials can find portal-uploaded A-Level materials.
+    const resolvedGrade = level === 'alevel' ? 'A-Level' : (grade || '');
+
+    // Strip any " (ZIMSEC)" / " (Cambridge)" curriculum suffix the frontend may append
+    const cleanSubject = (subject || 'General').replace(/\s*\(ZIMSEC\)|\s*\(Cambridge\)/gi, '').trim();
+
     const mat = await MaterialModel.create({
-      category:   category   || 'paper',
-      level:      level      || 'olevel',
-      grade:      grade      || '',
-      subject:    subject    || 'General',
+      category:   category     || 'paper',
+      level:      level        || 'olevel',
+      grade:      resolvedGrade,
+      subject:    cleanSubject,
       title:      displayTitle,
       url:        cdnUrl,
       mimeType:   file.mimetype,

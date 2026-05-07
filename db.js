@@ -120,9 +120,15 @@ export const MaterialModel = mongoose.models.Material || mongoose.model('Materia
 export async function getMaterials(category, level, grade, subject) {
   if (!dbReady) return [];
   try {
-    const query = { approved: true, category, level, subject: new RegExp(subject, 'i') };
-    if (grade) query.grade = grade;
-    return await MaterialModel.find(query).sort({ createdAt: -1 }).limit(20);
+    const query = { approved: true, category, level };
+    // Escape regex special chars so subject names with parens etc. don't break the query
+    const escapedSubject = subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Match subject: "Physics" matches "Physics", "Physics (ZIMSEC)", "Physics (Cambridge)" etc.
+    query.subject = new RegExp(escapedSubject, 'i');
+    // For A-Level the bot stores grade='A-Level' but portal may store '' — skip grade filter
+    // For Primary/O-Level, grade distinguishes Form 1 from Form 4 etc. so keep the filter
+    if (grade && grade !== 'A-Level') query.grade = grade;
+    return await MaterialModel.find(query).sort({ createdAt: -1 }).limit(50);
   } catch (e) { return []; }
 }
 

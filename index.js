@@ -1228,17 +1228,13 @@ const MAT_LEVEL_LABELS = {
   alevel:  '🎓 A-Level (Forms 5–6)',
 };
 
-function matSubjectMenu(level, page = 0) {
+function matSubjectMenu(level) {
   const subjects = MAT_SUBJECTS[level] || [];
-  const pageSize = 10;
-  const start = page * pageSize;
-  const chunk  = subjects.slice(start, start + pageSize);
-  const total  = Math.ceil(subjects.length / pageSize);
-  let menu = `📚 *Choose Subject* (${level === 'alevel' ? 'A-Level' : level === 'olevel' ? 'O-Level' : 'Primary'}):\n\n`;
-  chunk.forEach((s, i) => { menu += `${start + i + 1}. ${s}\n`; });
-  if (total > 1) menu += `\n_Page ${page + 1} of ${total}. Type *more* for next page._`;
-  menu += '\n\n_Type the number of your subject or *back* to go back._';
-  return { menu, subjects, chunk, page, total };
+  const levelLabel = level === 'alevel' ? 'A-Level' : level === 'olevel' ? 'O-Level' : 'Primary';
+  let menu = `📚 *Choose Subject* (${levelLabel}) — ${subjects.length} available:\n\n`;
+  subjects.forEach((s, i) => { menu += `${i + 1}. ${s}\n`; });
+  menu += '\n_Type the number of your subject or *back* to go back._';
+  return { menu, subjects };
 }
 
 function formatBatchItem(item, idx) {
@@ -4190,10 +4186,7 @@ _Type the number or *cancel* to go back._`, msg);
 
           if (low === 'more') {
             if (uf.step === 'pick_subject') {
-              uf.subjectPage = (uf.subjectPage || 0) + 1;
-              const { menu, subjects, page } = matSubjectMenu(uf.level, uf.subjectPage);
-              if (page * 10 >= subjects.length) uf.subjectPage = 0;
-              uploadMatFlow.set(userKey, uf);
+              const { menu } = matSubjectMenu(uf.level);
               await send(jid, menu, msg);
             }
             continue;
@@ -4272,7 +4265,7 @@ _Type the number or *cancel* to go back._`, msg);
             uf.step = 'pick_subject';
             uf.subjectPage = 0;
             uploadMatFlow.set(userKey, uf);
-            const { menu } = matSubjectMenu(uf.level, 0);
+            const { menu } = matSubjectMenu(uf.level);
             await send(jid, `✅ Curriculum: *${curr}*\n\n${menu}`, msg);
             continue;
           }
@@ -4282,7 +4275,7 @@ _Type the number or *cancel* to go back._`, msg);
             const subjects = MAT_SUBJECTS[uf.level] || [];
             const idx = parseInt(txt, 10) - 1;
             if (isNaN(idx) || idx < 0 || idx >= subjects.length) {
-              await send(jid, `❌ Please type a number between 1 and ${subjects.length}.${subjects.length > 10 ? ' Type *more* to see more subjects.' : ''}`, msg);
+              await send(jid, `❌ Please type a number between 1 and ${subjects.length}.`, msg);
               continue;
             }
             uf.subject = subjects[idx];
@@ -4318,10 +4311,7 @@ _Type the number or *cancel* to go back._`, msg);
 
           if (low === 'more') {
             if (mf.step === 'pick_subject') {
-              mf.subjectPage = (mf.subjectPage || 0) + 1;
-              const { menu, subjects, page } = matSubjectMenu(mf.level, mf.subjectPage);
-              if (page * 10 >= subjects.length) mf.subjectPage = 0;
-              materialsFlow.set(userKey, mf);
+              const { menu } = matSubjectMenu(mf.level);
               await send(jid, menu, msg);
             }
             continue;
@@ -4388,7 +4378,7 @@ _Type the number or *cancel* to go back._`, msg);
             mf.step = 'pick_subject';
             mf.subjectPage = 0;
             materialsFlow.set(userKey, mf);
-            const { menu } = matSubjectMenu(mf.level, 0);
+            const { menu } = matSubjectMenu(mf.level);
             await send(jid, `✅ Curriculum: *${curr}*\n\n${menu}`, msg);
             continue;
           }
@@ -4397,7 +4387,7 @@ _Type the number or *cancel* to go back._`, msg);
             const subjects = MAT_SUBJECTS[mf.level] || [];
             const idx = parseInt(txt, 10) - 1;
             if (isNaN(idx) || idx < 0 || idx >= subjects.length) {
-              await send(jid, `❌ Please type a number between 1 and ${subjects.length}.${subjects.length > 10 ? ' Type *more* to see more subjects.' : ''}`, msg);
+              await send(jid, `❌ Please type a number between 1 and ${subjects.length}.`, msg);
               continue;
             }
             mf.subject = subjects[idx];
