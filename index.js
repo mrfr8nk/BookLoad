@@ -41,6 +41,7 @@ import {
   getConfig, setConfig, approveAllMaterials, recordManualPayment,
   generateReferralCode, processReferral, getTopUploaders, recordLimitExhaustion,
   updateUserProfile, getUserProfile,
+  checkMockLimit, incrementMockUsage, validateReferralCode,
 } from './db.js';
 const { sendButtons, sendInteractiveMessage } = giftedBtns;
 
@@ -539,20 +540,20 @@ function get24hCountdown(exhaustedAt) {
 const MAIN_MENU = `🤖 *FUNDO AI MENU*
 ━━━━━━━━━━━━━━━━━━━━━━
 
-1️⃣  Generate Images
-2️⃣  Chat with AI
-3️⃣  Generate Full Project PDF
-4️⃣  Chat with AI (Quick Mode)
-5️⃣  📚 Study Materials Library
-6️⃣  📋 Syllabuses
-7️⃣  Flash Quiz / Practice Exams
-8️⃣  📝 Past Exam Papers
-9️⃣  📖 Textbooks
-🔟  ✅ Marking Schemes
-1️⃣1️⃣  View Current Usage Plan
-1️⃣2️⃣  Upgrade Plan
-1️⃣3️⃣  About FUNDO AI
-1️⃣4️⃣  🎓 AI Mock Exam Generator
+1.  Generate Images
+2.  Chat with AI
+3.  Generate Full Project PDF
+4.  Chat with AI (Quick Mode)
+5.  Study Materials Library
+6.  Syllabuses
+7.  Flash Quiz / Practice Exams
+8.  Past Exam Papers
+9.  Textbooks
+10. Marking Schemes
+11. View Current Usage Plan
+12. Upgrade Plan
+13. About FUNDO AI
+14. AI Mock Exam Generator
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -561,6 +562,70 @@ const MAIN_MENU = `🤖 *FUNDO AI MENU*
 💡 _Type *upload* to contribute materials & earn credits_
 _Reply with a number (1–14) or type *cancel* for help._
 _— FUNDO AI 🤖🔥_`;
+
+// ─── ZIMSEC / Cambridge Paper Structures ──────────────────────────────────────
+const PAPER_STRUCTURES = {
+  ZIMSEC: {
+    'O-Level': {
+      'Mathematics':            [{ name: 'Paper 1', type: 'Non-Calculator (Short Answer & Structured)', duration: '2h 30min', marks: 100 }, { name: 'Paper 2', type: 'Calculator (Structured & Problem Solving)', duration: '2h 30min', marks: 100 }],
+      'English Language':       [{ name: 'Paper 1', type: 'Reading & Comprehension', duration: '1h 30min', marks: 80 }, { name: 'Paper 2', type: 'Composition & Writing', duration: '2h', marks: 80 }],
+      'Physics':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Chemistry':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Biology':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Combined Science':       [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'History':                [{ name: 'Paper 1', type: 'Source-Based & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Essay', duration: '2h', marks: 80 }],
+      'Geography':              [{ name: 'Paper 1', type: 'Physical Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Human Geography', duration: '1h 30min', marks: 60 }],
+      'Commerce':               [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'Principles of Accounts': [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured & Problem Solving', duration: '2h', marks: 100 }],
+      'Computer Science':       [{ name: 'Paper 1', type: 'Theory & Fundamentals', duration: '1h 30min', marks: 80 }, { name: 'Paper 2', type: 'Structured & Algorithms', duration: '1h 30min', marks: 80 }],
+      'Agriculture':            [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 45min', marks: 60 }],
+      'Food & Nutrition':       [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+    },
+    'A-Level': {
+      'Mathematics':            [{ name: 'Paper 1', type: 'Pure Mathematics 1 (No MCQ — full structured)', duration: '3h', marks: 120 }, { name: 'Paper 2', type: 'Pure Mathematics 2 / Applied (No MCQ — full structured)', duration: '3h', marks: 120 }],
+      'Further Mathematics':    [{ name: 'Paper 1', type: 'Pure Mathematics (No MCQ — full structured)', duration: '3h', marks: 120 }, { name: 'Paper 2', type: 'Applied Mathematics (No MCQ — full structured)', duration: '3h', marks: 120 }],
+      'Physics':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '1h 30min', marks: 60 }, { name: 'Paper 3', type: 'A2 Theory & Structured', duration: '1h 30min', marks: 60 }],
+      'Chemistry':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '1h 45min', marks: 80 }, { name: 'Paper 3', type: 'A2 Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Biology':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'AS Theory & Structured', duration: '1h 45min', marks: 80 }, { name: 'Paper 3', type: 'A2 Theory & Structured', duration: '1h 45min', marks: 80 }],
+      'Economics':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Data Response & Essays', duration: '2h 30min', marks: 100 }],
+      'Accounting':             [{ name: 'Paper 1', type: 'Structured Financial Accounting', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Management Accounting & Analysis', duration: '2h 30min', marks: 100 }],
+      'History':                [{ name: 'Paper 1', type: 'Source-Based (World History)', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Essay (World History)', duration: '2h', marks: 80 }, { name: 'Paper 3', type: 'Essay (African History)', duration: '1h 30min', marks: 60 }],
+      'Geography':              [{ name: 'Paper 1', type: 'Physical Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Human Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 3', type: 'Applied Geography', duration: '1h', marks: 40 }],
+      'Computer Science':       [{ name: 'Paper 1', type: 'Theory & Fundamentals', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Algorithms & Data Structures', duration: '2h', marks: 80 }, { name: 'Paper 3', type: 'Programming & Problem Solving', duration: '2h', marks: 80 }],
+      'English Literature':     [{ name: 'Paper 1', type: 'Poetry & Prose Analysis', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Drama & Unseen', duration: '2h', marks: 80 }],
+    },
+    'Primary': {
+      'Mathematics':            [{ name: 'Paper 1', type: 'MCQ & Short Answer', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Structured Problems', duration: '1h 30min', marks: 60 }],
+      'English':                [{ name: 'Paper 1', type: 'Comprehension & Grammar', duration: '1h', marks: 50 }, { name: 'Paper 2', type: 'Composition & Writing', duration: '1h', marks: 50 }],
+      'Science & Technology':   [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h', marks: 40 }],
+      'Social Studies':         [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h', marks: 40 }],
+    },
+  },
+  Cambridge: {
+    'O-Level': {
+      'Mathematics':            [{ name: 'Paper 1', type: 'Non-Calculator (Core & Extended)', duration: '1h', marks: 56 }, { name: 'Paper 2', type: 'Calculator (Extended)', duration: '2h', marks: 104 }],
+      'English Language':       [{ name: 'Paper 1', type: 'Reading', duration: '1h 45min', marks: 50 }, { name: 'Paper 2', type: 'Directed Writing & Composition', duration: '1h 45min', marks: 50 }],
+      'Physics':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '45min', marks: 40 }, { name: 'Paper 2', type: 'Core Theory', duration: '1h 15min', marks: 60 }, { name: 'Paper 4', type: 'Extended Theory', duration: '1h 15min', marks: 60 }],
+      'Chemistry':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '45min', marks: 40 }, { name: 'Paper 2', type: 'Core Theory', duration: '1h 15min', marks: 60 }, { name: 'Paper 4', type: 'Extended Theory', duration: '1h 15min', marks: 60 }],
+      'Biology':                [{ name: 'Paper 1', type: 'Multiple Choice', duration: '45min', marks: 40 }, { name: 'Paper 2', type: 'Core Theory', duration: '1h 15min', marks: 60 }, { name: 'Paper 4', type: 'Extended Theory', duration: '1h 15min', marks: 60 }],
+      'History':                [{ name: 'Paper 1', type: 'Core Structured & Sources', duration: '2h', marks: 80 }, { name: 'Paper 2', type: 'Depth Study', duration: '1h 45min', marks: 50 }],
+      'Geography':              [{ name: 'Paper 1', type: 'Geographical Themes', duration: '1h 45min', marks: 75 }, { name: 'Paper 2', type: 'Geographical Skills & Fieldwork', duration: '1h 30min', marks: 60 }],
+      'Commerce':               [{ name: 'Paper 1', type: 'Multiple Choice', duration: '1h', marks: 40 }, { name: 'Paper 2', type: 'Structured', duration: '1h 30min', marks: 60 }],
+      'Computer Science':       [{ name: 'Paper 1', type: 'Theory Fundamentals', duration: '1h 45min', marks: 75 }, { name: 'Paper 2', type: 'Problem Solving & Programming', duration: '1h 45min', marks: 75 }],
+      'Economics':              [{ name: 'Paper 1', type: 'Multiple Choice', duration: '45min', marks: 30 }, { name: 'Paper 2', type: 'Structured (Data Response)', duration: '2h 15min', marks: 90 }],
+    },
+    'A-Level': {
+      'Mathematics':            [{ name: 'Paper 1', type: 'Pure Mathematics 1', duration: '2h', marks: 75 }, { name: 'Paper 2', type: 'Pure Mathematics 2', duration: '2h', marks: 75 }, { name: 'Paper 3', type: 'Mechanics / Probability & Statistics', duration: '2h', marks: 75 }],
+      'Physics':                [{ name: 'Paper 1', type: 'Multiple Choice (AS)', duration: '1h 15min', marks: 40 }, { name: 'Paper 2', type: 'AS Structured', duration: '1h 15min', marks: 60 }, { name: 'Paper 4', type: 'A2 Structured', duration: '2h', marks: 100 }],
+      'Chemistry':              [{ name: 'Paper 1', type: 'Multiple Choice (AS)', duration: '1h 15min', marks: 40 }, { name: 'Paper 2', type: 'AS Theory', duration: '1h 15min', marks: 60 }, { name: 'Paper 4', type: 'A2 Theory', duration: '2h', marks: 100 }],
+      'Biology':                [{ name: 'Paper 1', type: 'Multiple Choice (AS)', duration: '1h 15min', marks: 40 }, { name: 'Paper 2', type: 'AS Theory', duration: '1h 15min', marks: 60 }, { name: 'Paper 4', type: 'A2 Theory', duration: '2h', marks: 100 }],
+      'History':                [{ name: 'Paper 1', type: 'Structured (Sources)', duration: '1h 15min', marks: 40 }, { name: 'Paper 2', type: 'Essay (Themes in History)', duration: '1h 30min', marks: 60 }, { name: 'Paper 4', type: 'Essay (Depth Study)', duration: '1h 30min', marks: 60 }],
+      'Geography':              [{ name: 'Paper 1', type: 'Core Physical Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 2', type: 'Core Human Geography', duration: '1h 30min', marks: 60 }, { name: 'Paper 3', type: 'Advanced Physical & Human', duration: '1h 30min', marks: 60 }],
+      'Economics':              [{ name: 'Paper 1', type: 'Multiple Choice (AS)', duration: '1h', marks: 30 }, { name: 'Paper 2', type: 'Data Response & Essay (AS)', duration: '2h', marks: 70 }, { name: 'Paper 4', type: 'Data Response & Essay (A2)', duration: '2h', marks: 70 }],
+      'Computer Science':       [{ name: 'Paper 1', type: 'Theory (AS)', duration: '1h 30min', marks: 75 }, { name: 'Paper 2', type: 'Problem Solving (AS)', duration: '1h 30min', marks: 75 }, { name: 'Paper 3', type: 'Advanced Theory (A2)', duration: '1h 30min', marks: 75 }],
+    },
+  },
+};
 
 function extractProfileFromMessage(jid, text) {
   const formM  = text.match(/\bform\s*(\d+|one|two|three|four|five|six)\b/i);
@@ -2129,72 +2194,199 @@ async function generateProjectPDF(jid, subject, level, isForm, topic) {
 }
 
 // ─── Mock Exam PDF Generator ──────────────────────────────────────────────────
-async function generateMockExamPDF(jid, subject, level, paperType, numQuestions, topic) {
+async function generateMockExamPDF(jid, board, subject, level, paper, topic) {
   const prof       = loadProfile(jid);
   const pupilName  = prof.name   || '[Your Name]';
   const schoolName = prof.school || '[Your School]';
   const dateStr    = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  const isMCQ      = paperType === 'Paper 1';
-  const isEssay    = paperType === 'Paper 3';
-  const topicStr   = topic ? `Focus ONLY on the topic: "${topic}". ` : 'Cover a broad range of topics from the full syllabus. ';
-  const totalMarks = isMCQ ? numQuestions : isEssay ? numQuestions * 6 : numQuestions * 4;
+  const paperName  = paper.name;
+  const paperType  = paper.type;
+  const timeAllowed = paper.duration;
+  const totalMarks  = paper.marks;
+  const topicStr   = topic ? `Focus ONLY on the topic: "${topic}". ` : 'Cover a broad and representative range of topics from the full syllabus. ';
+
+  const isMCQ       = /multiple choice/i.test(paperType);
+  const isPureMaths = /no mcq|pure mathematics|full structured/i.test(paperType);
+  const isEssay     = /essay/i.test(paperType);
+  const isSource    = /source.based/i.test(paperType);
+  const isStructured = !isMCQ && !isEssay;
+
+  const mathNote = /mathematics|physics|chemistry|further maths/i.test(subject)
+    ? 'For ALL mathematical expressions, equations and formulas use the format: `expression here` (backtick-wrapped). Example: `ax^2 + bx + c = 0`, `F = ma`, `v^2 = u^2 + 2as`. For fractions write as `(numerator)/(denominator)`. Never write bare math without backticks.'
+    : '';
 
   let questionsPrompt, schemePrompt;
+
   if (isMCQ) {
-    questionsPrompt = `You are a professional ZIMSEC/Cambridge examiner. Generate a ${subject} ${level} Paper 1 (Multiple Choice) examination with EXACTLY ${numQuestions} questions. ${topicStr}
-FORMAT EACH QUESTION EXACTLY AS:
+    const qCount = Math.round(totalMarks);
+    questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
+Total questions: ${qCount} | Total marks: ${totalMarks} | Time: ${timeAllowed}
+${mathNote}
+
+FORMAT EACH QUESTION EXACTLY AS (no deviations):
 Q[n]. [Question text]
-A) [Option A]
-B) [Option B]
-C) [Option C]
-D) [Option D]
+A) [Option]
+B) [Option]
+C) [Option]
+D) [Option]
 
-Rules: use proper exam language, varied difficulty (40% easy, 40% medium, 20% hard), plausible distractors, no ambiguous correct answers. DO NOT include answers.`;
-    schemePrompt = `You are a ZIMSEC/Cambridge examiner. For the ${subject} ${level} Paper 1 (Multiple Choice) exam with ${numQuestions} questions on ${topic || 'full syllabus'}, provide the marking scheme in this EXACT format:
-Q[n]. [Correct letter] — [Brief 1-sentence justification]
-List all ${numQuestions} answers.`;
-  } else if (isEssay) {
-    questionsPrompt = `You are a professional ZIMSEC/Cambridge examiner. Generate a ${subject} ${level} Paper 3 (Essay) examination with EXACTLY ${numQuestions} essay questions. ${topicStr}
+Rules:
+- Authentic ${board} examiner language
+- Varied difficulty: 30% easy, 50% medium, 20% hard (A/B/C grade range)
+- All 4 options must be plausible distractors — only ONE correct answer
+- Questions must be specific, unambiguous and curriculum-relevant
+- DO NOT include answers, answer keys or explanations in this section`;
+
+    schemePrompt = `You are a ${board} examiner. Provide the complete marking scheme for the ${board} ${level} ${subject} ${paperName} (Multiple Choice) paper — ${qCount} questions on ${topic || 'full syllabus'}.
+
+FORMAT EXACTLY:
+Q[n]. [Correct letter]) — [2–3 sentence explanation of why this is correct AND why each wrong option is wrong]
+
+List all ${qCount} questions. Be thorough — each explanation must educate the student.`;
+
+  } else if (isEssay || isSource) {
+    const qCount = isSource ? 4 : 5;
+    const marksEach = Math.round(totalMarks / qCount);
+    questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
+Total marks: ${totalMarks} | Time: ${timeAllowed}
+${mathNote}
+
 FORMAT:
-SECTION A — Answer ALL questions (${Math.ceil(numQuestions/2)} questions × 6 marks each)
-Q[n]. [Clear, specific essay question with command word] (6 marks)
+SECTION A — Answer ALL questions (${Math.ceil(qCount/2)} questions × ${marksEach} marks)
 
-SECTION B — Answer ALL questions (${Math.floor(numQuestions/2)} questions × 6 marks each)
-Q[n]. [Clear, specific essay question with command word] (6 marks)
+Q[n]. [Question with command word] (${marksEach} marks)
 
-Rules: use command words (Discuss, Evaluate, Analyse, Compare, Justify), specific and curriculum-appropriate questions, proper examiner language. DO NOT include answers.`;
-    schemePrompt = `You are a ZIMSEC/Cambridge examiner. Provide a detailed marking scheme for the ${subject} ${level} Paper 3 (Essay) exam with ${numQuestions} questions on ${topic || 'full syllabus'}. For each question provide:
-Q[n]. [4-6 key marking points, each worth 1 mark. Include level descriptors where appropriate.]`;
+SECTION B — Answer ALL questions (${Math.floor(qCount/2)} questions × ${marksEach} marks)
+
+Q[n]. [Question with command word] (${marksEach} marks)
+
+Command words to use: Discuss, Evaluate, Analyse, Compare, Explain, Justify, Assess, To what extent
+Rules: curriculum-specific questions, authentic examiner register, no answers included`;
+
+    schemePrompt = `You are a ${board} examiner. Provide a DETAILED mark scheme for the ${board} ${level} ${subject} ${paperName} (${paperType}) exam on ${topic || 'full syllabus'}.
+
+For EACH question provide:
+Q[n]. [${marksEach} marks]
+• Mark point 1 (1 mark): [specific content required]
+• Mark point 2 (1 mark): [specific content required]
+[continue for all marks]
+Level descriptors where relevant: L1 (basic) / L2 (developed) / L3 (analytical)
+Accept: [alternative acceptable answers]
+Reject: [common wrong answers]`;
+
+  } else if (isPureMaths) {
+    questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
+Total marks: ${totalMarks} | Time: ${timeAllowed}
+${mathNote}
+
+FORMAT:
+SECTION A — Short structured questions (10 questions, 4 marks each = 40 marks)
+
+Q[n]. [Clear mathematical question] (4 marks)
+
+Working space: ____________
+
+
+SECTION B — Extended structured questions (5 questions, 8 marks each = 40 marks)
+
+Q[n]. [Multi-part question]
+(a) [Part a] (3 marks)
+Working: ____________
+(b) [Part b] (3 marks)
+Working: ____________
+(c) [Part c] (2 marks)
+Working: ____________
+
+
+SECTION C — Proof / Extended (2 questions, 10–20 marks each)
+
+Q[n]. [Proof or complex application] ([marks] marks)
+
+
+Rules:
+- ALL formulae, equations, expressions must be in backticks: \`expression\`
+- No MCQ — all questions require written working
+- Cover the full ${subject} ${level} syllabus topics
+- Include diagrams as [DIAGRAM: description] where needed
+- DO NOT include answers`;
+
+    schemePrompt = `You are a ${board} examiner. Provide a complete mark scheme for the ${board} ${level} ${subject} ${paperName} paper on ${topic || 'full syllabus'}.
+
+For EACH question provide:
+Q[n].
+Method marks (M): [what working earns marks]
+Accuracy marks (A): [final answer requirements]
+Answer: \`[exact answer with working]\`
+Special cases / follow-through: [notes]
+Common errors to watch: [typical student mistakes]
+
+Use backticks for ALL mathematical expressions.`;
+
   } else {
-    questionsPrompt = `You are a professional ZIMSEC/Cambridge examiner. Generate a ${subject} ${level} Paper 2 (Theory/Structured) examination. ${topicStr}
+    const secAq = 4, secBq = 3, secCq = 2;
+    const secAm = 3, secBm = 6, secCm = Math.round((totalMarks - secAq*secAm - secBq*secBm) / secCq);
+    questionsPrompt = `You are a professional ${board} examiner. Generate a ${board} ${level} ${subject} ${paperName} (${paperType}) examination. ${topicStr}
+Total marks: ${totalMarks} | Time: ${timeAllowed}
+${mathNote}
+
 FORMAT:
-SECTION A — Short Answer (${Math.ceil(numQuestions * 0.4)} questions × 2 marks = ${Math.ceil(numQuestions * 0.4) * 2} marks)
-Q[n]. [Short answer question] (2 marks)
-   Answer: __________________________
 
-SECTION B — Structured (${Math.ceil(numQuestions * 0.4)} questions × 4 marks = ${Math.ceil(numQuestions * 0.4) * 4} marks)
-Q[n]. [Structured question with sub-parts] (4 marks)
-   (a) [Sub-question] (2 marks)
-   (b) [Sub-question] (2 marks)
+SECTION A — Short Answer [${secAq} questions × ${secAm} marks = ${secAq*secAm} marks]
 
-SECTION C — Extended (${Math.floor(numQuestions * 0.2)} questions × 6 marks = ${Math.floor(numQuestions * 0.2) * 6} marks)
-Q[n]. [Extended response question] (6 marks)
+Q[n]. [Short answer question] (${secAm} marks)
+Answer: ____________________________
 
-Rules: include mark allocations in brackets, space for answers, proper examiner language, do NOT include answers.`;
-    schemePrompt = `You are a ZIMSEC/Cambridge examiner. Provide a complete marking scheme for the ${subject} ${level} Paper 2 (Theory) exam with ${numQuestions} question-equivalents on ${topic || 'full syllabus'}. Format:
-Q[n]. [Model answer with specific mark points. Include 'allow', 'accept', or 'reject' notes where appropriate.]`;
+
+SECTION B — Structured Questions [${secBq} questions × ${secBm} marks = ${secBq*secBm} marks]
+
+Q[n]. [Structured question]
+(a) [Sub-question] (2 marks)
+
+(b) [Sub-question] (2 marks)
+
+(c) [Sub-question] (2 marks)
+
+
+
+SECTION C — Extended Response [${secCq} questions × ${secCm} marks = ${secCq*secCm} marks]
+
+Q[n]. [Extended question requiring detailed explanation] (${secCm} marks)
+
+
+
+Rules:
+- Mark allocations in brackets for every part
+- Leave adequate answer space (blank lines)
+- Authentic ${board} register
+- DO NOT include answers`;
+
+    schemePrompt = `You are a ${board} examiner. Provide a COMPLETE and DETAILED mark scheme for the ${board} ${level} ${subject} ${paperName} (${paperType}) paper on ${topic || 'full syllabus'}.
+
+For EACH question and sub-part:
+Q[n](a). [${secAm} marks]
+• Award 1 mark for: [specific point]
+• Award 1 mark for: [specific point]
+Accept: [valid alternatives]
+Reject: [wrong answers]
+
+Q[n](b). [marks]
+[model answer with mark points]
+
+For Section C extended answers include:
+- Level descriptors (L1–L3)
+- Indicative content bullet points
+- Quality of written communication note where applicable`;
   }
 
-  console.log(`   └─ 📄 Mock Exam: ${subject} ${level} ${paperType} (${numQuestions}Q)`);
+  console.log(`   └─ 📄 Mock Exam: ${board} ${subject} ${level} ${paperName}`);
   const [questionsRaw, schemeRaw] = await Promise.all([
     askAI(jid, questionsPrompt, { skipHistory: true }),
     askAI(jid, schemePrompt,   { skipHistory: true }),
   ]);
 
-  const safeSubj   = subject.replace(/[^a-zA-Z0-9]/g, '_');
-  const fileName   = `FundoAI_MockExam_${safeSubj}_${level.replace(/\s/g,'')}_${paperType.replace(/\s/g,'')}_${Date.now()}.pdf`;
-  const filePath   = path.join(TEMP_DIR, fileName);
-  const timeAllowed = isMCQ ? `${Math.ceil(numQuestions * 1.2)} minutes` : isEssay ? `${numQuestions * 15} minutes` : `${numQuestions * 8} minutes`;
+  const safeSubj = subject.replace(/[^a-zA-Z0-9]/g, '_');
+  const fileName = `FundoAI_${board}_${safeSubj}_${level.replace(/\s/g,'')}_${paperName.replace(/\s/g,'')}_${Date.now()}.pdf`;
+  const filePath = path.join(TEMP_DIR, fileName);
 
   await new Promise((resolve, reject) => {
     const doc    = new PDFDoc({ margin: 55, size: 'A4' });
@@ -2212,26 +2404,28 @@ Q[n]. [Model answer with specific mark points. Include 'allow', 'accept', or 're
        .text('Prepared for Academic Practice | fundoai.gleeze.com', L, 78, { align: 'center', width: BODY });
 
     const infoY = 126;
-    doc.rect(L - 10, infoY, BODY + 20, 130).fillAndStroke('#f0f4ff', '#c7d2fe');
     const rows2 = [
       ['CANDIDATE NAME:',    pupilName],
       ['SCHOOL/INSTITUTION:', schoolName],
+      ['EXAM BOARD:',        board],
       ['SUBJECT:',           subject.toUpperCase()],
       ['LEVEL / GRADE:',     level.toUpperCase()],
-      ['PAPER:',             paperType],
-      ['TOTAL MARKS:',       String(totalMarks)],
+      ['PAPER:',             `${paperName} — ${paperType}`],
+      ['TOTAL MARKS:',       `${totalMarks} marks`],
+      ['TIME ALLOWED:',      timeAllowed],
     ];
+    doc.rect(L - 10, infoY, BODY + 20, rows2.length * 20 + 16).fillAndStroke('#f0f4ff', '#c7d2fe');
     rows2.forEach(([label, value], idx) => {
       const ry = infoY + 8 + idx * 20;
       doc.fillColor('#4b5563').fontSize(8.5).font('Helvetica-Bold').text(label, L + 4, ry);
-      doc.fillColor('#111827').fontSize(8.5).font('Helvetica').text(value, L + 145, ry);
+      doc.fillColor('#111827').fontSize(8.5).font('Helvetica').text(value, L + 155, ry);
     });
 
-    const ruleY2 = infoY + 140;
+    const ruleY2 = infoY + rows2.length * 20 + 22;
     doc.rect(L - 10, ruleY2, BODY + 20, 3).fill('#1a1a2e');
 
-    doc.fontSize(13).font('Helvetica-Bold').fillColor('#1a1a2e')
-       .text(`${subject} — ${paperType} Mock Examination`, L, ruleY2 + 14, { align: 'center', width: BODY });
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#1a1a2e')
+       .text(`${board} ${subject} ${level} — ${paperName} Mock Examination`, L, ruleY2 + 14, { align: 'center', width: BODY });
     if (topic) {
       doc.fontSize(10).font('Helvetica').fillColor('#4b5563')
          .text(`Topic: ${topic}`, L, doc.y + 4, { align: 'center', width: BODY });
@@ -2242,7 +2436,7 @@ Q[n]. [Model answer with specific mark points. Include 'allow', 'accept', or 're
     doc.fillColor('#fff').fontSize(9).font('Helvetica')
        .text(`Date: ${dateStr}`, L, bY + 10, { width: BODY / 2 });
     doc.fillColor('#a0b4e8').fontSize(9).font('Helvetica-Bold')
-       .text(`Time Allowed: ${timeAllowed}  |  Questions: ${numQuestions}`, L + BODY / 2, bY + 10, { align: 'right', width: BODY / 2 });
+       .text(`Time Allowed: ${timeAllowed}  |  Total Marks: ${totalMarks}`, L + BODY / 2, bY + 10, { align: 'right', width: BODY / 2 });
     doc.fillColor('#6a7db5').fontSize(7.5).font('Helvetica')
        .text('Generated by FUNDO AI  |  fundoai.gleeze.com  |  Darrell Mucheri © 2026  |  For practice use only', L, bY + 30, { align: 'center', width: BODY });
 
@@ -2255,10 +2449,10 @@ Q[n]. [Model answer with specific mark points. Include 'allow', 'accept', or 're
     doc.rect(L - 10, doc.y, BODY + 20, 1).fill('#c7d2fe');
     doc.moveDown(0.5);
     const instructions = isMCQ
-      ? ['1. Write your name and school in the spaces provided on the front page.','2. There are ' + numQuestions + ' questions in this paper.','3. Each question carries ONE mark. Total: ' + totalMarks + ' marks.','4. Read each question carefully before answering.','5. For each question, choose ONE answer: A, B, C or D.','6. Circle or write the letter of your chosen answer clearly.','7. Do NOT spend too much time on any one question.','8. If you change your answer, cross it out clearly and circle your new answer.']
-      : isEssay
-      ? ['1. Write your name and school in the spaces provided on the front page.','2. This paper contains ' + numQuestions + ' essay questions worth ' + totalMarks + ' marks total.','3. Answer ALL questions unless otherwise instructed.','4. Plan your answers before writing — use notes/outlines where helpful.','5. Write in clear, organised paragraphs using correct English.','6. Include relevant facts, examples and explanations in your answers.','7. Manage your time: approximately ' + Math.ceil(totalMarks / numQuestions * 3) + ' minutes per question.']
-      : ['1. Write your name and school in the spaces provided on the front page.','2. This paper has THREE sections. Answer ALL questions in each section.','3. Total marks: ' + totalMarks + '.','4. Show ALL workings for full marks in calculation questions.','5. Write clearly and legibly.','6. If a question has sub-parts (a), (b), etc., answer ALL sub-parts.','7. Use correct units and significant figures where required.'];
+      ? ['1. Write your name and school in the spaces provided on the front page.','2. This paper contains ' + totalMarks + ' questions. Each question carries ONE mark.','3. Read each question carefully before answering.','4. For each question, choose ONE answer: A, B, C or D.','5. Circle or clearly write the letter of your chosen answer.','6. Do NOT spend too much time on any single question.','7. If you change your answer, cross it out clearly and write your new answer.']
+      : (isEssay || isSource)
+      ? ['1. Write your name and school in the spaces provided on the front page.','2. This paper is worth ' + totalMarks + ' marks. Time allowed: ' + timeAllowed + '.','3. Answer ALL questions unless otherwise instructed.','4. Plan your answers before you begin writing — brief notes and outlines are encouraged.','5. Write in clear, well-organised paragraphs using correct English.','6. Include relevant facts, examples and analysis to support your answers.','7. Manage your time carefully — check the mark allocation before each answer.']
+      : ['1. Write your name and school in the spaces provided on the front page.','2. This paper has THREE sections. Answer ALL questions in every section.','3. Total marks available: ' + totalMarks + '. Time allowed: ' + timeAllowed + '.','4. Show ALL working for full marks — correct answers without working may not receive full credit.','5. Write clearly and legibly. Crossed-out work will not be marked.','6. If a question has sub-parts (a), (b), (c), answer ALL sub-parts.','7. Use correct units and significant figures where applicable.'];
     instructions.forEach(inst => {
       doc.fontSize(10).font('Helvetica').fillColor('#374151').text(inst, { lineGap: 3 });
       doc.moveDown(0.3);
@@ -4010,27 +4204,23 @@ _— FUNDO AI 🤖🔥_`, msg);
 
           // ── mock exam command ─────────────────────────────────────────────
           if (/^(mock exam|mock|exam|mock test|practice exam|generate exam|ai exam|ai mock)$/.test(stripped)) {
-            mockExamFlow.set(userKey, { step: 'subject' });
+            const p = PLANS[dbUser?.plan || 'FREE'];
+            const mockUsed = dbUser?.usage?.mockMonth || 0;
+            mockExamFlow.set(userKey, { step: 'board' });
             await send(jid,
 `🎓 *AI Mock Exam Generator*
 ━━━━━━━━━━━━━━━━━━━━
 
-I'll create a professional exam paper for you — complete with questions and a marking scheme! 📄
+Professional exam papers with full marking schemes — generated in seconds! 📄
 
-*What subject is the exam for?*
+📊 Mocks used this month: *${mockUsed}/${p.mock === Infinity ? '∞' : p.mock}*
 
-_Examples:_
-• Mathematics
-• Biology
-• English Language
-• History
-• Geography
-• Chemistry
-• Physics
-• Commerce
-• Accounts
+*Choose your exam board:*
 
-_Type the subject name or *cancel* to exit._`, msg);
+1. ZIMSEC
+2. Cambridge
+
+_Type 1 or 2, or *cancel* to exit._`, msg);
             continue;
           }
 
@@ -4077,7 +4267,8 @@ _— FUNDO AI 🤖🔥_${refLink}`, msg);
 • 🖼️ 3 image generations per day
 • 📄 1 school project PDF per day
 • 📥 5 material downloads per day
-• 📚 Access to the study materials library
+• 🎓 3 AI mock exams per month
+• 📚 Study materials library access
 • 🧠 AI tutoring & homework help
 
 ⚡ *STARTER — $1/month* 🔥 ← MOST POPULAR!
@@ -4085,9 +4276,9 @@ _— FUNDO AI 🤖🔥_${refLink}`, msg);
 • 🖼️ 8 image generations per day
 • 📄 3 school project PDFs per month
 • 📥 UNLIMITED material downloads
+• 🎓 10 AI mock exams per month
 • 🎧 Voice note explanations (audio learning)
 • 📑 PDF & image analysis
-• 🧪 Interactive quizzes & test prep
 • 🤖 24/7 AI tutoring
 
 🔵 *BASIC — $3/month* 📈 ← Serious Students!
@@ -4095,9 +4286,9 @@ _— FUNDO AI 🤖🔥_${refLink}`, msg);
 • 🖼️ 20 image generations per day
 • 📄 10 school project PDFs per month
 • 📥 UNLIMITED material downloads
+• 🎓 20 AI mock exams per month
 • 🎧 Voice note explanations
 • 📑 PDF & image analysis
-• 🧪 Quizzes, revision plans & exam strategies
 • 📊 Progress tracking & smart recommendations
 • 🤖 Priority AI tutoring 24/7
 
@@ -4106,9 +4297,9 @@ _— FUNDO AI 🤖🔥_${refLink}`, msg);
 • 🖼️ 50 image generations per day
 • 📄 50 school project PDFs per month
 • 📥 UNLIMITED material downloads
+• 🎓 50 AI mock exams per month
 • 🎧 Voice note explanations
 • 📑 PDF & image analysis
-• 🧪 Quizzes, revision plans & exam strategies
 • 📐 Mathematics step-by-step solving
 • 💻 Coding & programming help
 • 🎓 Career guidance & university preparation
@@ -4119,11 +4310,11 @@ _— FUNDO AI 🤖🔥_${refLink}`, msg);
 • 🖼️ UNLIMITED image generations
 • 📄 UNLIMITED school project PDFs
 • 📥 UNLIMITED material downloads
+• 🎓 UNLIMITED AI mock exams
 • 🎧 Voice note explanations
 • 📑 PDF & image analysis
 • 🔬 Science practical guidance
 • 💻 Coding & programming help
-• 🎓 Career & university preparation
 • 👑 VIP priority support
 • 🤖 ZERO LIMITS — total academic power!
 
@@ -5023,7 +5214,16 @@ Type *upgrade* to change your plan 🚀
           if (!ob) {
             // Detect referral code in first message (e.g. REF-ABC123 from wa.me link)
             const refMatch = (textMsg || '').trim().match(/^(REF-[A-Z0-9]{6,8})$/i);
-            const pendingReferral = refMatch ? refMatch[1].toUpperCase() : null;
+            let pendingReferral = refMatch ? refMatch[1].toUpperCase() : null;
+            if (pendingReferral) {
+              const refOwner = await validateReferralCode(pendingReferral).catch(() => null);
+              if (!refOwner) {
+                await send(jid, `❌ *Invalid referral code:* _${pendingReferral}_\n\nThat code doesn't exist or has expired. Don't worry — you can still sign up for free!\n_— FUNDO AI 🤖🔥_`, msg);
+                pendingReferral = null;
+              } else {
+                await send(jid, `✅ *Referral code verified!* 🎉\n\nYou were invited by a Fundo AI user. Complete your sign up to activate your welcome bonus!\n_— FUNDO AI 🤖🔥_`, msg);
+              }
+            }
             onboardingFlow.set(userKey, { step: 'join_channel', pendingReferral });
             const botNum = SETTINGS.BOT_NUMBER || '263776046121';
             await send(jid,
@@ -5550,9 +5750,9 @@ Type *upgrade* to change your plan 🚀
 • 🖼️ 8 image generations per day
 • 📄 3 school project PDFs per month
 • 📥 UNLIMITED material downloads
+• 🎓 10 AI mock exams per month
 • 🎧 Voice note explanations (audio learning)
 • 📑 PDF & image analysis
-• 🧪 Interactive quizzes & test prep
 • 🤖 24/7 AI tutoring
 
 🔵 *BASIC — $3/month* 📈 ← Serious Students!
@@ -5560,9 +5760,9 @@ Type *upgrade* to change your plan 🚀
 • 🖼️ 20 image generations per day
 • 📄 10 school project PDFs per month
 • 📥 UNLIMITED material downloads
+• 🎓 20 AI mock exams per month
 • 🎧 Voice note explanations
 • 📑 PDF & image analysis
-• 🧪 Quizzes, revision plans & exam strategies
 • 📊 Progress tracking & smart recommendations
 • 🤖 Priority AI tutoring 24/7
 
@@ -5571,9 +5771,9 @@ Type *upgrade* to change your plan 🚀
 • 🖼️ 50 image generations per day
 • 📄 50 school project PDFs per month
 • 📥 UNLIMITED material downloads
+• 🎓 50 AI mock exams per month
 • 🎧 Voice note explanations
 • 📑 PDF & image analysis
-• 🧪 Quizzes, revision plans & exam strategies
 • 📐 Mathematics step-by-step solving
 • 💻 Coding & programming help
 • 🎓 Career guidance & university preparation
@@ -5584,11 +5784,11 @@ Type *upgrade* to change your plan 🚀
 • 🖼️ UNLIMITED image generations
 • 📄 UNLIMITED school project PDFs
 • 📥 UNLIMITED material downloads
+• 🎓 UNLIMITED AI mock exams
 • 🎧 Voice note explanations
 • 📑 PDF & image analysis
 • 🔬 Science practical guidance
 • 💻 Coding & programming help
-• 🎓 Career & university preparation
 • 👑 VIP priority support
 • 🤖 ZERO LIMITS — total academic power!
 
@@ -5631,20 +5831,26 @@ FUNDO AI is Zimbabwe's most powerful WhatsApp educational assistant — built sp
 💬 Type *menu* anytime to return here!
 — _FUNDO AI 🤖🔥_`, msg);
               break;
-            case 14:
-              mockExamFlow.set(userKey, { step: 'subject' });
+            case 14: {
+              const mp = PLANS[dbUser?.plan || 'FREE'];
+              const mockUsed14 = dbUser?.usage?.mockMonth || 0;
+              mockExamFlow.set(userKey, { step: 'board' });
               await send(jid,
 `🎓 *AI Mock Exam Generator*
 ━━━━━━━━━━━━━━━━━━━━
 
-I'll create a professional exam paper — complete with questions and a marking scheme! 📄
+Professional exam papers with full marking schemes — generated in seconds! 📄
 
-*What subject is the exam for?*
+📊 Mocks used this month: *${mockUsed14}/${mp.mock === Infinity ? '∞' : mp.mock}*
 
-_Examples:_ Mathematics · Biology · English Language · History · Geography · Chemistry · Physics · Commerce · Accounts
+*Choose your exam board:*
 
-_Type the subject name or *cancel* to exit._`, msg);
+1. ZIMSEC
+2. Cambridge
+
+_Type 1 or 2, or *cancel* to exit._`, msg);
               break;
+            }
             default:
               await sendMenuWithLogo(jid, MAIN_MENU, msg);
           }
@@ -5696,110 +5902,166 @@ _— FUNDO AI 🤖🔥_`, msg);
           const mef   = mockExamFlow.get(userKey);
           const input = (textMsg || '').trim();
 
-          if (mef.step === 'subject') {
-            mockExamFlow.set(userKey, { ...mef, step: 'level', subject: input });
+          if (mef.step === 'board') {
+            const boardMap = { '1': 'ZIMSEC', '2': 'Cambridge' };
+            const board = boardMap[input];
+            if (!board) {
+              await send(jid, '❌ Please type *1* for ZIMSEC or *2* for Cambridge.\n\n_Or type *cancel* to exit._', msg);
+              continue;
+            }
+            const levels = Object.keys(PAPER_STRUCTURES[board]);
+            const levelList = levels.map((l, i) => `${i + 1}. ${l}`).join('\n');
+            mockExamFlow.set(userKey, { ...mef, step: 'level', board });
             await send(jid,
-`✅ Subject: *${input}*
+`✅ Board: *${board}*
 
-🏫 *What is your level / grade?*
+🏫 *Choose your level:*
+━━━━━━━━━━━━━━━━━━━━
 
-_Examples:_
-• Grade 7
-• Form 1 / Form 2 / Form 3 / Form 4
-• Form 5 / Form 6 (A-Level)
-• O-Level / A-Level
-• University Year 1
+${levelList}
 
-_Type your level:_`, msg);
+_Type a number to choose._`, msg);
             continue;
           }
 
           if (mef.step === 'level') {
-            mockExamFlow.set(userKey, { ...mef, step: 'paper_type', level: input });
-            await send(jid,
-`✅ Level: *${input}*
-
-📄 *Which paper type?*
-
-1️⃣ *Paper 1* — Multiple Choice (MCQ)
-2️⃣ *Paper 2* — Theory / Structured Questions
-3️⃣ *Paper 3* — Essay / Extended Response
-
-_Type 1, 2, or 3:_`, msg);
-            continue;
-          }
-
-          if (mef.step === 'paper_type') {
-            const ptMap = { '1': 'Paper 1', '2': 'Paper 2', '3': 'Paper 3' };
-            const paperType = ptMap[input] || (input.includes('1') ? 'Paper 1' : input.includes('3') ? 'Paper 3' : 'Paper 2');
-            mockExamFlow.set(userKey, { ...mef, step: 'num_questions', paperType });
-            await send(jid,
-`✅ Paper: *${paperType}*
-
-🔢 *How many questions?*
-
-1️⃣ 10 questions
-2️⃣ 20 questions
-3️⃣ 30 questions
-4️⃣ 40 questions
-5️⃣ 50 questions
-
-_Type the number of questions (10, 20, 30, 40, or 50):_`, msg);
-            continue;
-          }
-
-          if (mef.step === 'num_questions') {
-            const validNums = [10, 20, 30, 40, 50];
-            const numQMap   = { '1': 10, '2': 20, '3': 30, '4': 40, '5': 50 };
-            let numQ = parseInt(input, 10);
-            if (numQMap[input]) numQ = numQMap[input];
-            if (!validNums.includes(numQ)) {
-              await send(jid, '❌ Please choose 10, 20, 30, 40, or 50 questions.\n\n_Type the number or type 1–5 for the options above._', msg);
+            const levels = Object.keys(PAPER_STRUCTURES[mef.board]);
+            const idx = parseInt(input, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= levels.length) {
+              const levelList = levels.map((l, i) => `${i + 1}. ${l}`).join('\n');
+              await send(jid, `❌ Please type a number from the list:\n\n${levelList}\n\n_Or type *cancel* to exit._`, msg);
               continue;
             }
-            mockExamFlow.set(userKey, { ...mef, step: 'topic', numQuestions: numQ });
+            const level = levels[idx];
+            const subjects = Object.keys(PAPER_STRUCTURES[mef.board][level]);
+            const subjList = subjects.map((s, i) => `${i + 1}. ${s}`).join('\n');
+            mockExamFlow.set(userKey, { ...mef, step: 'subject', level });
             await send(jid,
-`✅ Questions: *${numQ}*
+`✅ Level: *${level}*
 
-📌 *Specific topic or full paper?*
+📚 *Choose your subject:*
+━━━━━━━━━━━━━━━━━━━━
 
-Type a topic name for a focused exam:
-_Example: "Photosynthesis", "Quadratic Equations", "World War II", "Newton's Laws"_
+${subjList}
 
-Or type *full* for a random full-syllabus paper.`, msg);
+_Type a number to choose._`, msg);
+            continue;
+          }
+
+          if (mef.step === 'subject') {
+            const subjects = Object.keys(PAPER_STRUCTURES[mef.board][mef.level]);
+            const idx = parseInt(input, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= subjects.length) {
+              const subjList = subjects.map((s, i) => `${i + 1}. ${s}`).join('\n');
+              await send(jid, `❌ Please type a number from the list:\n\n${subjList}\n\n_Or type *cancel* to exit._`, msg);
+              continue;
+            }
+            const subject = subjects[idx];
+            const papers = PAPER_STRUCTURES[mef.board][mef.level][subject];
+            const paperList = papers.map((p, i) =>
+              `${i + 1}. *${p.name}* — ${p.type}\n   ⏱ ${p.duration} | ${p.marks} marks`
+            ).join('\n\n');
+            mockExamFlow.set(userKey, { ...mef, step: 'paper', subject });
+            await send(jid,
+`✅ Subject: *${subject}*
+
+📄 *Choose the paper:*
+━━━━━━━━━━━━━━━━━━━━
+
+${paperList}
+
+_Type a number to choose._`, msg);
+            continue;
+          }
+
+          if (mef.step === 'paper') {
+            const papers = PAPER_STRUCTURES[mef.board][mef.level][mef.subject];
+            const idx = parseInt(input, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= papers.length) {
+              const paperList = papers.map((p, i) => `${i + 1}. *${p.name}* — ${p.type}`).join('\n');
+              await send(jid, `❌ Please type a number from the list:\n\n${paperList}\n\n_Or type *cancel* to exit._`, msg);
+              continue;
+            }
+            const paper = papers[idx];
+            mockExamFlow.set(userKey, { ...mef, step: 'topic', paper });
+            await send(jid,
+`✅ Paper: *${paper.name}* — ${paper.type}
+⏱ Duration: *${paper.duration}* | *${paper.marks} marks*
+
+📌 *Specific topic or full syllabus?*
+━━━━━━━━━━━━━━━━━━━━
+
+Type a topic for a focused paper:
+_e.g. "Photosynthesis", "Quadratic Equations", "World War II", "Newton's Laws of Motion"_
+
+Or type *full* for a broad full-syllabus paper.`, msg);
             continue;
           }
 
           if (mef.step === 'topic') {
+            if (checkMockLimit(dbUser)) {
+              const p = PLANS[dbUser?.plan || 'FREE'];
+              mockExamFlow.delete(userKey);
+              await send(jid,
+`⚠️ *Mock Exam Limit Reached*
+━━━━━━━━━━━━━━━━━━━━
+
+You've used all *${p.mock}* mock exam${p.mock === 1 ? '' : 's'} for this month on the *${dbUser?.plan || 'FREE'}* plan.
+
+📅 Your limit resets at the start of next month.
+
+🚀 *Upgrade for more mocks:*
+• STARTER: 10/month
+• BASIC: 20/month
+• PRO: 50/month
+• PREMIUM: Unlimited
+
+Type *upgrade* to change your plan.
+_— FUNDO AI 🤖🔥_`, msg);
+              continue;
+            }
+
             const topic = /^full$/i.test(input) ? null : input;
             mockExamFlow.delete(userKey);
-            const { subject, level, paperType, numQuestions } = mef;
+            const { board, subject, level, paper } = mef;
             const topicDisplay = topic || 'Full Syllabus';
+
             await send(jid,
-`✅ *Generating your mock exam...*
+`⏳ *Generating your mock exam...*
+━━━━━━━━━━━━━━━━━━━━
 
 📚 Subject: *${subject}*
-🏫 Level: *${level}*
-📄 Paper: *${paperType}*
-🔢 Questions: *${numQuestions}*
+🏫 Level: *${level}* (${board})
+📄 Paper: *${paper.name}* — ${paper.type}
+⏱ Time: *${paper.duration}* | *${paper.marks} marks*
 📌 Topic: *${topicDisplay}*
 
-⏳ _Please wait — this takes 30–60 seconds to generate a high quality paper..._`, msg);
+_Please wait 30–60 seconds — building your full paper and marking scheme..._`, msg);
 
             try {
-              const { filePath, fileName } = await generateMockExamPDF(jid, subject, level, paperType, numQuestions, topic);
+              const { filePath, fileName } = await generateMockExamPDF(jid, board, subject, level, paper, topic);
+              await incrementMockUsage(dbUser).catch(() => {});
               const fileBuf = fs.readFileSync(filePath);
+              const p = PLANS[dbUser?.plan || 'FREE'];
+              const mockUsed = (dbUser?.usage?.mockMonth || 0) + 1;
+              const mockLeft = p.mock === Infinity ? '∞' : Math.max(0, p.mock - mockUsed);
               await sock.sendMessage(jid, {
                 document: fileBuf,
                 fileName,
                 mimetype: 'application/pdf',
-                caption: `🎓 *${subject} ${level} ${paperType} Mock Exam*\n📌 Topic: ${topicDisplay}\n🔢 ${numQuestions} questions\n\n_Generated by FUNDO AI — fundoai.gleeze.com_ 🤖🔥`,
+                caption: `🎓 *${board} ${subject} ${level} — ${paper.name}*\n📄 ${paper.type}\n⏱ ${paper.duration} | ${paper.marks} marks\n📌 Topic: ${topicDisplay}\n\n_Generated by FUNDO AI — fundoai.gleeze.com_ 🤖🔥`,
               }, { quoted: msg });
               fs.unlink(filePath, () => {});
-              await send(jid, `✅ *Mock exam sent!* 📄🔥\n\nTip: Type *mock exam* anytime to generate another paper!\n\n_— FUNDO AI 🤖🔥_`, msg);
+              await send(jid,
+`✅ *Your mock exam is ready!* 📄🔥
+
+📊 Mocks used this month: *${mockUsed}/${p.mock === Infinity ? '∞' : p.mock}* (${mockLeft} remaining)
+
+Type *14* or *mock exam* to generate another paper!
+_— FUNDO AI 🤖🔥_`, msg);
             } catch (e) {
               console.error('Mock exam PDF error:', e.message);
-              await send(jid, `😅 Couldn't generate the exam right now — please try again in a moment!\n\n_— FUNDO AI 🤖🔥_`, msg);
+              await send(jid, `😅 Couldn't generate the exam right now — please try again in a moment!\n_— FUNDO AI 🤖🔥_`, msg);
             }
             continue;
           }

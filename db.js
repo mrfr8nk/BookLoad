@@ -24,11 +24,11 @@ export const isDbReady = () => dbReady;
 
 // ─── Plan definitions ──────────────────────────────────────────────────────────
 export const PLANS = {
-  FREE:    { label: 'Free',    chat: 25,       images: 3,        pdf: 1,        pdfPeriod: 'day',   price: 0  },
-  STARTER: { label: 'Starter', chat: 75,       images: 8,        pdf: 3,        pdfPeriod: 'month', price: 1  },
-  BASIC:   { label: 'Basic',   chat: 300,      images: 20,       pdf: 10,       pdfPeriod: 'month', price: 3  },
-  PRO:     { label: 'Pro',     chat: 1000,     images: 50,       pdf: 50,       pdfPeriod: 'month', price: 10 },
-  PREMIUM: { label: 'Premium', chat: Infinity, images: Infinity, pdf: Infinity, pdfPeriod: 'month', price: 20 },
+  FREE:    { label: 'Free',    chat: 25,       images: 3,        pdf: 1,        pdfPeriod: 'day',   price: 0,  mock: 3        },
+  STARTER: { label: 'Starter', chat: 75,       images: 8,        pdf: 3,        pdfPeriod: 'month', price: 1,  mock: 10       },
+  BASIC:   { label: 'Basic',   chat: 300,      images: 20,       pdf: 10,       pdfPeriod: 'month', price: 3,  mock: 20       },
+  PRO:     { label: 'Pro',     chat: 1000,     images: 50,       pdf: 50,       pdfPeriod: 'month', price: 10, mock: 50       },
+  PREMIUM: { label: 'Premium', chat: Infinity, images: Infinity, pdf: Infinity, pdfPeriod: 'month', price: 20, mock: Infinity },
 };
 export const PLAN_CREDITS = { FREE: 0, STARTER: 200, BASIC: 1000, PRO: 5000, PREMIUM: 20000 };
 
@@ -66,10 +66,11 @@ const userSchema = new mongoose.Schema({
     imagesToday:      { type: Number, default: 0 },
     pdfToday:         { type: Number, default: 0 },
     pdfMonth:         { type: Number, default: 0 },
-    mediaDownloads:   { type: Number, default: 0 },
-    lastDayReset:     { type: String, default: '' },
-    lastMonthReset:   { type: String, default: '' },
-    lastDownloadReset:{ type: String, default: '' },
+    mediaDownloads:    { type: Number, default: 0 },
+    mockMonth:         { type: Number, default: 0 },
+    lastDayReset:      { type: String, default: '' },
+    lastMonthReset:    { type: String, default: '' },
+    lastDownloadReset: { type: String, default: '' },
   },
 }, { timestamps: true });
 
@@ -338,9 +339,11 @@ export async function resetUsageIfNeeded(user) {
   }
   if (user.usage.lastMonthReset !== month) {
     user.usage.pdfMonth        = 0;
+    user.usage.mockMonth       = 0;
     if (user.plan !== 'FREE') user.usage.pdfToday = 0;
     user.usage.lastMonthReset  = month;
     set['usage.pdfMonth']      = 0;
+    set['usage.mockMonth']     = 0;
     set['usage.lastMonthReset']= month;
     if (user.plan !== 'FREE') set['usage.pdfToday'] = 0;
   }
@@ -531,6 +534,28 @@ export async function processReferral(newPhone, referralCode) {
     );
     return { ok: true, referrerPhone: referrer.phone };
   } catch (e) { return { ok: false, reason: 'error' }; }
+}
+
+export function checkMockLimit(user) {
+  if (!user) return false;
+  const p = PLANS[user.plan] || PLANS.FREE;
+  if (p.mock === Infinity) return false;
+  return (user.usage.mockMonth || 0) >= p.mock;
+}
+
+export async function incrementMockUsage(user) {
+  if (!user) return;
+  user.usage.mockMonth = (user.usage.mockMonth || 0) + 1;
+  try { await UserModel.updateOne({ phone: user.phone }, { $inc: { 'usage.mockMonth': 1 } }); }
+  catch (_) { try { user.markModified('usage'); await user.save(); } catch (_) {} }
+}
+
+export async function validateReferralCode(code) {
+  if (!dbReady || !code) return null;
+  try {
+    const referrer = await UserModel.findOne({ referralCode: code.trim().toUpperCase() });
+    return referrer ? referrer.phone : null;
+  } catch (_) { return null; }
 }
 
 export async function getTopUploaders(limit = 10) {
