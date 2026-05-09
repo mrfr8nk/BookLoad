@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fundo AI — Share Study Materials</title>
+<style>
+:root {
+  --bg:#0a0a0a; --surface:rgba(255,255,255,0.05); --border:rgba(255,255,255,0.10);
+  --border-bright:rgba(255,255,255,0.22); --text:#f0f0f0; --muted:rgba(255,255,255,0.5);
+  --radius:18px; --radius-sm:12px;
+  --green:#50dc78; --green-bg:rgba(80,220,120,0.12);
+  --amber:#ffd047; --amber-bg:rgba(255,208,71,0.12);
+  --blue:#7eb8ff; --blue-bg:rgba(126,184,255,0.12);
+  --purple:#c890ff; --purple-bg:rgba(200,144,255,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;width:800px;height:800px;border-radius:50%;background:radial-gradient(circle,rgba(80,220,120,0.08) 0%,transparent 70%);top:-300px;left:-300px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(126,184,255,0.07) 0%,transparent 70%);bottom:-200px;right:-200px;pointer-events:none;z-index:0;}
+
+/* ── Nav ── */
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;background:rgba(10,10,10,0.85);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);}
+.nav-brand{display:flex;align-items:center;gap:12px;}
+.nav-brand img{width:36px;height:36px;border-radius:10px;object-fit:cover;}
+.nav-brand-name{font-size:17px;font-weight:700;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:13px;margin-left:20px;transition:color .2s;}
+.nav-links a:hover{color:var(--text);}
+.nav-wa-btn{display:inline-flex;align-items:center;gap:7px;background:#25d366;color:#fff;padding:8px 18px;border-radius:99px;font-size:13px;font-weight:700;text-decoration:none;transition:opacity .2s;}
+.nav-wa-btn:hover{opacity:0.88;}
+
+/* ── Hero ── */
+.hero{position:relative;z-index:1;text-align:center;padding:80px 24px 60px;}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;background:var(--green-bg);border:1px solid rgba(80,220,120,0.25);border-radius:99px;padding:6px 16px;font-size:12px;font-weight:700;color:var(--green);margin-bottom:24px;letter-spacing:.5px;}
+.hero h1{font-size:clamp(2rem,5vw,3.4rem);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:18px;}
+.hero h1 span{background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero p{font-size:17px;color:var(--muted);max-width:560px;margin:0 auto 36px;line-height:1.6;}
+.hero-stats{display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap;}
+.hero-stat{text-align:center;}
+.hero-stat-val{font-size:28px;font-weight:800;letter-spacing:-1px;}
+.hero-stat-label{font-size:12px;color:var(--muted);margin-top:2px;}
+
+/* ── Rewards section ── */
+.rewards{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:20px 24px 60px;}
+.section-label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:16px;}
+.section-title{font-size:clamp(1.5rem,3vw,2rem);font-weight:800;letter-spacing:-.5px;margin-bottom:10px;}
+.section-sub{font-size:15px;color:var(--muted);max-width:480px;line-height:1.6;margin-bottom:36px;}
+.rewards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;}
+.reward-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color .2s,transform .2s;}
+.reward-card:hover{border-color:var(--border-bright);transform:translateY(-2px);}
+.reward-card-icon{font-size:32px;margin-bottom:14px;}
+.reward-card-title{font-size:15px;font-weight:700;margin-bottom:6px;}
+.reward-card-text{font-size:13px;color:var(--muted);line-height:1.5;}
+.reward-card.green{border-color:rgba(80,220,120,0.2);}
+.reward-card.blue{border-color:rgba(126,184,255,0.2);}
+.reward-card.amber{border-color:rgba(255,208,71,0.2);}
+.reward-card.purple{border-color:rgba(200,144,255,0.2);}
+
+/* ── How it works ── */
+.how{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 60px;}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+.step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;}
+.step-num{width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--border-bright);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;}
+.step-title{font-size:14px;font-weight:700;}
+.step-text{font-size:12px;color:var(--muted);line-height:1.5;}
+.step-arrow{color:rgba(255,255,255,0.2);font-size:22px;align-self:center;margin-top:-28px;}
+
+/* ── Upload form ── */
+.upload-section{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:0 24px 80px;}
+.upload-card{background:rgba(255,255,255,0.04);border:1px solid var(--border-bright);border-radius:24px;padding:40px;backdrop-filter:blur(20px);}
+.upload-card-header{text-align:center;margin-bottom:32px;}
+.upload-card-header h2{font-size:1.6rem;font-weight:800;margin-bottom:8px;}
+.upload-card-header p{font-size:14px;color:var(--muted);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.form-label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);}
+input,select,textarea{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;padding:12px 16px;width:100%;transition:border-color .2s,background .2s;outline:none;font-family:inherit;appearance:none;-webkit-appearance:none;}
+input::placeholder{color:var(--muted);}
+input:focus,select:focus{border-color:var(--border-bright);background:rgba(255,255,255,0.09);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
+select option{background:#1a1a1a;}
+
+/* ── Drop zone ── */
+.drop-zone{border:2px dashed rgba(255,255,255,0.15);border-radius:var(--radius);padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,0.02);margin-bottom:16px;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:rgba(80,220,120,0.5);background:rgba(80,220,120,0.04);}
+.drop-zone-icon{font-size:40px;margin-bottom:12px;}
+.drop-zone-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+.drop-zone-sub{font-size:12px;color:var(--muted);}
+#pub-file-input{display:none;}
+.file-selected{display:none;align-items:center;gap:12px;background:var(--green-bg);border:1px solid rgba(80,220,120,0.25);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;}
+.file-selected-icon{font-size:24px;}
+.file-selected-name{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-selected-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0;}
+.file-selected-remove:hover{color:#ff8080;}
+
+/* ── Submit btn ── */
+.submit-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--green),#3ab86a);color:#0a0a0a;font-size:16px;font-weight:800;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;letter-spacing:.2px;margin-top:8px;}
+.submit-btn:hover{opacity:0.9;transform:translateY(-1px);}
+.submit-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.form-note{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5;}
+
+/* ── Success state ── */
+.success-state{display:none;text-align:center;padding:20px 0;}
+.success-icon{font-size:56px;margin-bottom:16px;}
+.success-title{font-size:1.4rem;font-weight:800;margin-bottom:8px;color:var(--green);}
+.success-text{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px;}
+.submit-again-btn{background:var(--surface);border:1px solid var(--border-bright);color:var(--text);padding:11px 24px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;}
+.submit-again-btn:hover{background:rgba(255,255,255,0.08);}
+
+/* ── Recent uploads ── */
+.recent{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 80px;}
+.recent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.recent-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;transition:border-color .2s;}
+.recent-card:hover{border-color:var(--border-bright);}
+.recent-card-icon{font-size:22px;margin-bottom:10px;}
+.recent-card-title{font-size:13px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.recent-card-meta{font-size:11px;color:var(--muted);}
+
+/* ── Footer ── */
+footer{position:relative;z-index:1;text-align:center;padding:32px 24px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;}
+footer a{color:var(--muted);text-decoration:none;}
+footer a:hover{color:var(--text);}
+.footer-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;}
+.footer-logo img{width:30px;height:30px;border-radius:8px;}
+.footer-logo-name{font-size:15px;font-weight:700;color:var(--text);}
+
+/* ── Spinner ── */
+.spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,0.15);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:640px){
+  .hero{padding:60px 20px 40px;}
+  .hero-stats{gap:20px;}
+  .upload-card{padding:24px 20px;}
+  .form-row{grid-template-columns:1fr;}
+  nav{padding:0 20px;}
+  .nav-links{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo AI" onerror="this.style.display='none'"/>
+    <div class="nav-brand-name">Fundo AI</div>
+  </div>
+  <div class="nav-links">
+    <a href="#upload">Upload</a>
+    <a href="#rewards">Rewards</a>
+    <a href="#how">How It Works</a>
+  </div>
+  <a class="nav-wa-btn" href="https://wa.me/263000000000" target="_blank">📲 Open on WhatsApp</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🌍 Community Learning Initiative</div>
+  <h1>Share Your Notes.<br><span>Help Every Student Win.</span></h1>
+  <p>Upload ZIMSEC & Cambridge past papers, textbooks, syllabuses, or notes. Get rewarded every time your contribution is approved.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="hero-stat-val" style="color:var(--green)" id="stat-resources">—</div><div class="hero-stat-label">Resources Available</div></div>
+    <div class="hero-stat"><div class="hero-stat-val" style="color:var(--blue)" id="stat-users">—</div><div class="hero-stat-label">Students Using Fundo AI</div></div>
+    <div class="hero-stat"><div class="hero-stat-val" style="color:var(--amber)">🎁</div><div class="hero-stat-label">Rewards Per 3 Uploads</div></div>
+  </div>
+</section>
+
+<!-- REWARDS -->
+<section class="rewards" id="rewards">
+  <div class="section-label">Why Upload?</div>
+  <div class="section-title">You Give. You Get.</div>
+  <div class="section-sub">Every 3 approved uploads unlocks a reward bundle — automatically sent to your WhatsApp account.</div>
+  <div class="rewards-grid">
+    <div class="reward-card green">
+      <div class="reward-card-icon">📄</div>
+      <div class="reward-card-title">+1 Bonus Project PDF</div>
+      <div class="reward-card-text">Generate a full ZIMSEC or Cambridge school project worth 50 marks — for free.</div>
+    </div>
+    <div class="reward-card blue">
+      <div class="reward-card-icon">💬</div>
+      <div class="reward-card-title">+10 Bonus Chats</div>
+      <div class="reward-card-text">Ask Fundo AI 10 extra questions beyond your daily limit. No upgrade needed.</div>
+    </div>
+    <div class="reward-card amber">
+      <div class="reward-card-icon">🎨</div>
+      <div class="reward-card-title">+2 Image Generations</div>
+      <div class="reward-card-text">Generate AI images for your projects, presentations, or just for fun.</div>
+    </div>
+    <div class="reward-card purple">
+      <div class="reward-card-icon">🏆</div>
+      <div class="reward-card-title">Community Recognition</div>
+      <div class="reward-card-text">Top uploaders appear on the leaderboard — be the student who helps everyone pass.</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="section-label">Process</div>
+  <div class="section-title">How It Works</div>
+  <div class="section-sub" style="margin-bottom:36px">Simple, fast, and rewarding.</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-title">Pick Your File</div>
+      <div class="step-text">Choose a past paper, textbook, syllabus, or marking scheme from your device.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-title">Fill the Details</div>
+      <div class="step-text">Select the subject, level, and your WhatsApp number so we can send your reward.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-title">Submit for Review</div>
+      <div class="step-text">Our team checks the material within 24 hours and approves it for all students.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-title">Collect Your Reward</div>
+      <div class="step-text">After every 3 approvals, your bonus credits are automatically added to your account.</div>
+    </div>
+  </div>
+</section>
+
+<!-- UPLOAD FORM -->
+<section class="upload-section" id="upload">
+  <div class="upload-card">
+    <div class="upload-card-header">
+      <h2>📤 Upload a Resource</h2>
+      <p>Fill in the details below — your upload will be reviewed and made available to all Fundo AI users.</p>
+    </div>
+
+    <!-- Success state -->
+    <div class="success-state" id="success-state">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Upload Submitted!</div>
+      <div class="success-text">Your material is in for review. Once approved, your rewards will be automatically added to your Fundo AI account on WhatsApp.<br><br>Every 3 approvals = 1 PDF + 10 chats + 2 images. Keep going!</div>
+      <button class="submit-again-btn" onclick="resetForm()">Upload Another</button>
+    </div>
+
+    <!-- Form -->
+    <div id="upload-form">
+      <!-- Drop zone -->
+      <div class="drop-zone" id="pub-drop-zone" onclick="document.getElementById('pub-file-input').click()" ondragover="pubDragOver(event)" ondragleave="pubDragLeave(event)" ondrop="pubDrop(event)">
+        <div class="drop-zone-icon">📂</div>
+        <div class="drop-zone-title">Drop your file here or click to browse</div>
+        <div class="drop-zone-sub">PDF, DOC, DOCX, JPG, PNG · Max 80 MB</div>
+      </div>
+      <input type="file" id="pub-file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.pptx" onchange="pubFilePick(event)"/>
+      <div class="file-selected" id="pub-file-selected">
+        <span class="file-selected-icon" id="pub-file-icon">📄</span>
+        <span class="file-selected-name" id="pub-file-name"></span>
+        <button class="file-selected-remove" onclick="removeSelectedFile()">✕</button>
+      </div>
+
+      <!-- File title -->
+      <div class="form-group">
+        <label class="form-label">Resource Title</label>
+        <input type="text" id="pub-title" placeholder="e.g. ZIMSEC Biology Paper 1 2023"/>
+      </div>
+
+      <!-- Category + Level -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select id="pub-category">
+            <option value="paper">Past Paper</option>
+            <option value="textbook">Textbook</option>
+            <option value="syllabus">Syllabus</option>
+            <option value="marking_scheme">Marking Scheme</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Level</label>
+          <select id="pub-level" onchange="pubLevelChange()">
+            <option value="primary">Primary</option>
+            <option value="olevel" selected>O-Level</option>
+            <option value="alevel">A-Level</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Grade + Subject -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Grade / Form</label>
+          <select id="pub-grade"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <select id="pub-subject"><option value="">— Select subject —</option></select>
+        </div>
+      </div>
+
+      <!-- Curriculum -->
+      <div class="form-group">
+        <label class="form-label">Curriculum</label>
+        <select id="pub-curriculum">
+          <option value="ZIMSEC">ZIMSEC</option>
+          <option value="Cambridge">Cambridge</option>
+          <option value="">Both / General</option>
+        </select>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0 20px;"/>
+
+      <!-- Uploader info -->
+      <div class="form-group">
+        <label class="form-label">Your Name (optional)</label>
+        <input type="text" id="pub-name" placeholder="e.g. Tatenda M."/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Your WhatsApp Number <span style="color:var(--green)">★ Required for rewards</span></label>
+        <input type="tel" id="pub-phone" placeholder="e.g. 263712345678" inputmode="numeric"/>
+      </div>
+
+      <!-- Error -->
+      <div id="pub-error" style="display:none;color:#ff9090;font-size:13px;margin-bottom:12px;padding:10px 14px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.2);border-radius:10px;"></div>
+
+      <button class="submit-btn" id="pub-submit-btn" onclick="doPublicUpload()">
+        🚀 Submit for Review
+      </button>
+      <p class="form-note">By submitting, you confirm this is your own material or freely shareable content.<br>Rewards are credited after admin approval (usually within 24 hours).</p>
+    </div>
+  </div>
+</section>
+
+<!-- RECENT UPLOADS -->
+<section class="recent">
+  <div class="section-label">Community</div>
+  <div class="section-title">Recently Added Resources</div>
+  <div class="section-sub" style="margin-bottom:24px">The latest materials approved and available for all students.</div>
+  <div class="recent-grid" id="recent-grid">
+    <div style="color:var(--muted);font-size:13px">Loading…</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo AI" onerror="this.style.display='none'"/>
+    <span class="footer-logo-name">Fundo AI</span>
+  </div>
+  <p>WhatsApp Educational Chatbot for Zimbabwean Students · ZIMSEC &amp; Cambridge</p>
+  <p style="margin-top:8px"><a href="mailto:support.fundo.ai@gmail.com">support.fundo.ai@gmail.com</a> · Created by Darrell Mucheri</p>
+</footer>
+
+<script>
+const SUBJECTS = {
+  primary:['Mathematics','English','Science','Social Studies','Shona','Ndebele','Environmental Science','Agriculture','Art','Physical Education'],
+  olevel:['Mathematics','English Language','Combined Science','Biology','Physics','Chemistry','History','Geography','Shona','Ndebele','Commerce','Economics','Accounts','ICT','Agriculture','Food & Nutrition','Building Studies','Art & Design','Music','Physical Education','Religious Education','Fashion & Fabrics','Woodwork','Metal Work','Technical Graphics','Home Economics'],
+  alevel:['Mathematics','Further Mathematics','Biology','Physics','Chemistry','History','Geography','English Literature','Business Studies','Accounting','Economics','Computer Science','Agriculture','Divinity','Sociology','Psychology','French','German','Art','Music','Physical Education','Law','Political Studies','Environmental Management','Travel & Tourism','Fashion & Fabrics','Food Technology','Building Technology','Civil & Water Engineering'],
+};
+const GRADES = {
+  primary:['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7'],
+  olevel:['Form 1','Form 2','Form 3','Form 4'],
+  alevel:['Lower 6','Upper 6'],
+};
+
+let selectedFile = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+  pubLevelChange();
+  loadCommunityStats();
+  loadRecentUploads();
+});
+
+function pubLevelChange() {
+  const level = document.getElementById('pub-level').value;
+  const grades = GRADES[level]||[];
+  document.getElementById('pub-grade').innerHTML = grades.map(g=>`<option value="${g}">${g}</option>`).join('');
+  const subs = SUBJECTS[level]||[];
+  document.getElementById('pub-subject').innerHTML = ['<option value="">— Select subject —</option>',
+    ...subs.map(s=>`<option value="${s}">${s}</option>`)].join('');
+}
+
+function pubDragOver(e) { e.preventDefault(); document.getElementById('pub-drop-zone').classList.add('drag-over'); }
+function pubDragLeave() { document.getElementById('pub-drop-zone').classList.remove('drag-over'); }
+function pubDrop(e) { e.preventDefault(); pubDragLeave(); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }
+function pubFilePick(e) { if (e.target.files[0]) setFile(e.target.files[0]); e.target.value=''; }
+
+function setFile(file) {
+  selectedFile = file;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const icons = {pdf:'📄',doc:'📝',docx:'📝',pptx:'📊',jpg:'🖼',jpeg:'🖼',png:'🖼'};
+  document.getElementById('pub-file-icon').textContent = icons[ext]||'📁';
+  document.getElementById('pub-file-name').textContent = file.name;
+  document.getElementById('pub-file-selected').style.display = 'flex';
+  document.getElementById('pub-drop-zone').style.display = 'none';
+  // Auto-fill title if empty
+  const titleInput = document.getElementById('pub-title');
+  if (!titleInput.value.trim()) titleInput.value = file.name.replace(/\.[^.]+$/,'');
+}
+function removeSelectedFile() {
+  selectedFile = null;
+  document.getElementById('pub-file-selected').style.display = 'none';
+  document.getElementById('pub-drop-zone').style.display = '';
+}
+
+function showError(msg) {
+  const el = document.getElementById('pub-error');
+  el.textContent = msg; el.style.display = '';
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function clearError() { document.getElementById('pub-error').style.display = 'none'; }
+
+async function doPublicUpload() {
+  clearError();
+  if (!selectedFile) { showError('Please select a file to upload.'); return; }
+  const subject = document.getElementById('pub-subject').value;
+  if (!subject) { showError('Please select a subject.'); return; }
+
+  const category   = document.getElementById('pub-category').value;
+  const level      = document.getElementById('pub-level').value;
+  const grade      = document.getElementById('pub-grade').value;
+  const curriculum = document.getElementById('pub-curriculum').value;
+  const title      = document.getElementById('pub-title').value.trim() || selectedFile.name.replace(/\.[^.]+$/,'');
+  const name       = document.getElementById('pub-name').value.trim();
+  const phone      = document.getElementById('pub-phone').value.trim().replace(/\s+/g,'');
+  const subjectFull= curriculum ? `${subject} (${curriculum})` : subject;
+
+  const btn = document.getElementById('pub-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="display:inline-block;border-top-color:#0a0a0a;width:18px;height:18px;border:2px solid rgba(0,0,0,0.2);border-top-color:#0a0a0a;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px"></div> Uploading…';
+
+  const fd = new FormData();
+  fd.append('file', selectedFile, selectedFile.name);
+  fd.append('title', title);
+  fd.append('category', category);
+  fd.append('level', level);
+  fd.append('grade', grade);
+  fd.append('subject', subjectFull);
+  fd.append('uploaderName', name);
+  fd.append('uploaderPhone', phone);
+
+  try {
+    const res = await fetch('/api/public/upload', { method:'POST', body: fd });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    document.getElementById('upload-form').style.display = 'none';
+    document.getElementById('success-state').style.display = '';
+    loadCommunityStats();
+    loadRecentUploads();
+  } catch(e) {
+    showError(e.message || 'Upload failed. Please try again.');
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Submit for Review';
+  }
+}
+
+function resetForm() {
+  selectedFile = null;
+  document.getElementById('pub-file-selected').style.display = 'none';
+  document.getElementById('pub-drop-zone').style.display = '';
+  document.getElementById('pub-title').value = '';
+  document.getElementById('pub-name').value = '';
+  document.getElementById('pub-phone').value = '';
+  document.getElementById('pub-submit-btn').disabled = false;
+  document.getElementById('pub-submit-btn').innerHTML = '🚀 Submit for Review';
+  clearError();
+  document.getElementById('success-state').style.display = 'none';
+  document.getElementById('upload-form').style.display = '';
+}
+
+async function loadCommunityStats() {
+  try {
+    const res = await fetch('/api/community/stats');
+    const d = await res.json();
+    const rEl = document.getElementById('stat-resources');
+    const uEl = document.getElementById('stat-users');
+    if (rEl) rEl.textContent = d.totalResources || '—';
+    if (uEl) uEl.textContent = d.totalUsers     || '—';
+  } catch(_) {}
+}
+
+async function loadRecentUploads() {
+  try {
+    const res = await fetch('/api/community/stats');
+    const d = await res.json();
+    const grid = document.getElementById('recent-grid');
+    if (!d.recentApproved?.length) { grid.innerHTML = '<div style="color:var(--muted);font-size:13px">No resources yet — be the first to upload!</div>'; return; }
+    const catIcon = c => ({paper:'📝',textbook:'📖',syllabus:'📋',marking_scheme:'✅'}[c]||'📁');
+    const catLabel = c => ({paper:'Past Paper',textbook:'Textbook',syllabus:'Syllabus',marking_scheme:'Marking Scheme'}[c]||c);
+    const levelLabel = l => ({primary:'Primary',olevel:'O-Level',alevel:'A-Level'}[l]||l);
+    grid.innerHTML = d.recentApproved.map(m => `
+      <div class="recent-card">
+        <div class="recent-card-icon">${catIcon(m.category)}</div>
+        <div class="recent-card-title" title="${esc(m.title)}">${esc(m.title)}</div>
+        <div class="recent-card-meta">${catLabel(m.category)} · ${levelLabel(m.level)}<br>${esc(m.subject)}</div>
+      </div>`).join('');
+  } catch(_) {}
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

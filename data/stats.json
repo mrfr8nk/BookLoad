@@ -1,21 +1,9 @@
 {
   "users": {
     "194068181201013": {
-      "messages": 62,
-      "lastSeen": 1778167517892,
+      "messages": 65,
+      "lastSeen": 1778167659453,
       "recentMsgs": [
-        {
-          "text": "5",
-          "ts": 1778164384382
-        },
-        {
-          "text": "Full",
-          "ts": 1778164390548
-        },
-        {
-          "text": "Image of cats",
-          "ts": 1778167130380
-        },
         {
           "text": "Create a vibrant infographic that explains photosynthesis as if it were a recipe",
           "ts": 1778167165305
@@ -43,6 +31,18 @@
         {
           "text": "Imagine a bmw m4 skidding on ice",
           "ts": 1778167517892
+        },
+        {
+          "text": "Create a vibrant infographic that explains photosynthesis as if it were a recipe",
+          "ts": 1778167617309
+        },
+        {
+          "text": "Image of bmw m4 skidding on ice",
+          "ts": 1778167646210
+        },
+        {
+          "text": "Image of bmw m4 skidding on ice",
+          "ts": 1778167659453
         }
       ]
     },
@@ -223,19 +223,67 @@
           "ts": 1778165310214
         }
       ]
+    },
+    "120363200367779016": {
+      "messages": 2,
+      "lastSeen": 1778167899834,
+      "recentMsgs": [
+        {
+          "text": "Heroku billing @ksh200 dm \nNo negotiating 😂😂my price is constant I accept \nPay",
+          "ts": 1778167885888
+        },
+        {
+          "text": "Heroku billing @ksh200 dm \nNo negotiating 😂😂my price is constant I accept \nPay",
+          "ts": 1778167899834
+        }
+      ]
+    },
+    "120363427034269465": {
+      "messages": 1,
+      "lastSeen": 1778168268422,
+      "recentMsgs": [
+        {
+          "text": "🚀 Fundo Has Been Updated!\n\nHere’s what’s new on Fundo AI:\n\n✨ Added Option 14 on",
+          "ts": 1778168268422
+        }
+      ]
+    },
+    "161031913480224": {
+      "messages": 2,
+      "lastSeen": 1778345038986,
+      "recentMsgs": [
+        {
+          "text": "https://youtu.be/vpv3a25clGk?si=iHADrM3ubGzdnIV9\n\n\nHow to generate AI Music with",
+          "ts": 1778345038953
+        },
+        {
+          "text": "https://youtu.be/vpv3a25clGk?si=iHADrM3ubGzdnIV9\n\n\nHow to generate AI Music with",
+          "ts": 1778345038986
+        }
+      ]
+    },
+    "120363425897335339": {
+      "messages": 1,
+      "lastSeen": 1778345511128,
+      "recentMsgs": [
+        {
+          "text": "For the love of stickers❤️🥂\n\nSave - Share - & React",
+          "ts": 1778345511128
+        }
+      ]
     }
   },
   "groups": {
     "120363424467941110": {
-      "messages": 1,
-      "lastSeen": 1778163493645
+      "messages": 3,
+      "lastSeen": 1778345038986
     },
     "120363407511506292": {
       "messages": 1,
       "lastSeen": 1778163493880
     }
   },
-  "totalMessages": 123,
+  "totalMessages": 132,
   "cmdCounts": {
     "reset": 3,
     "menu": 12,
@@ -245,6 +293,6 @@
     "!logout": 2,
     "!plan": 1,
     "!admin": 1,
-    "image": 1
+    "image": 3
   }
 }
