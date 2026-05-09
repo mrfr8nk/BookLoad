@@ -104,6 +104,11 @@ const upload = multer({
 // ─── Middleware ────────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Route defaults: / → upload page, /admin → admin dashboard
+app.get('/',      (_req, res) => res.sendFile(path.join(__dirname, 'public', 'upload.html')));
+app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Auth endpoint ────────────────────────────────────────────────────────────

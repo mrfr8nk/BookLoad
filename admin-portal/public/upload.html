@@ -4,427 +4,1061 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Fundo AI — Share Study Materials</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 :root {
-  --bg:#0a0a0a; --surface:rgba(255,255,255,0.05); --border:rgba(255,255,255,0.10);
-  --border-bright:rgba(255,255,255,0.22); --text:#f0f0f0; --muted:rgba(255,255,255,0.5);
-  --radius:18px; --radius-sm:12px;
-  --green:#50dc78; --green-bg:rgba(80,220,120,0.12);
-  --amber:#ffd047; --amber-bg:rgba(255,208,71,0.12);
-  --blue:#7eb8ff; --blue-bg:rgba(126,184,255,0.12);
-  --purple:#c890ff; --purple-bg:rgba(200,144,255,0.12);
+  --bg: #06061a;
+  --surface: rgba(255,255,255,0.03);
+  --surface-hover: rgba(255,255,255,0.055);
+  --border: rgba(255,255,255,0.07);
+  --border-bright: rgba(255,255,255,0.15);
+  --text: #f0f2ff;
+  --muted: rgba(240,242,255,0.45);
+  --muted-2: rgba(240,242,255,0.25);
+  --indigo: #6366f1;
+  --violet: #8b5cf6;
+  --cyan: #06b6d4;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --grad: linear-gradient(135deg, #6366f1, #8b5cf6 50%, #06b6d4);
+  --grad-subtle: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12) 50%, rgba(6,182,212,0.12));
+  --radius: 20px;
+  --radius-sm: 14px;
+  --radius-xs: 10px;
+  --shadow: 0 1px 0 0 rgba(255,255,255,0.04) inset;
+  --glow: 0 0 60px rgba(99,102,241,0.08);
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;}
-body::before{content:'';position:fixed;width:800px;height:800px;border-radius:50%;background:radial-gradient(circle,rgba(80,220,120,0.08) 0%,transparent 70%);top:-300px;left:-300px;pointer-events:none;z-index:0;}
-body::after{content:'';position:fixed;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(126,184,255,0.07) 0%,transparent 70%);bottom:-200px;right:-200px;pointer-events:none;z-index:0;}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Orbs ── */
+.orb {
+  position: fixed; border-radius: 50%;
+  pointer-events: none; z-index: 0;
+  filter: blur(80px); opacity: 0;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+.orb-1 {
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%);
+  top: -300px; left: -300px;
+  animation-duration: 16s;
+  animation-delay: 0s;
+  opacity: 1;
+}
+.orb-2 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(6,182,212,0.12) 0%, transparent 70%);
+  bottom: -200px; right: -200px;
+  animation-duration: 20s;
+  animation-delay: -6s;
+  opacity: 1;
+}
+.orb-3 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 70%);
+  top: 40%; left: 50%; transform: translate(-50%, -50%);
+  animation-duration: 14s;
+  animation-delay: -3s;
+  opacity: 1;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  33%       { transform: translateY(-30px) scale(1.04); }
+  66%       { transform: translateY(20px) scale(0.97); }
+}
+.orb-3 {
+  animation: orbFloat3 14s ease-in-out -3s infinite;
+}
+@keyframes orbFloat3 {
+  0%, 100% { transform: translate(-50%,-50%) scale(1); }
+  50%       { transform: translate(-50%,-50%) scale(1.1); }
+}
 
 /* ── Nav ── */
-nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;background:rgba(10,10,10,0.85);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);}
-.nav-brand{display:flex;align-items:center;gap:12px;}
-.nav-brand img{width:36px;height:36px;border-radius:10px;object-fit:cover;}
-.nav-brand-name{font-size:17px;font-weight:700;}
-.nav-links a{color:var(--muted);text-decoration:none;font-size:13px;margin-left:20px;transition:color .2s;}
-.nav-links a:hover{color:var(--text);}
-.nav-wa-btn{display:inline-flex;align-items:center;gap:7px;background:#25d366;color:#fff;padding:8px 18px;border-radius:99px;font-size:13px;font-weight:700;text-decoration:none;transition:opacity .2s;}
-.nav-wa-btn:hover{opacity:0.88;}
+nav {
+  position: sticky; top: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40px; height: 66px;
+  background: rgba(6,6,26,0.75);
+  backdrop-filter: blur(28px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+}
+.nav-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
+.nav-logo {
+  width: 36px; height: 36px; border-radius: 10px; object-fit: cover;
+  border: 1px solid rgba(99,102,241,0.3);
+}
+.nav-logo-fallback {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--grad); display: flex; align-items: center; justify-content: center;
+}
+.nav-name { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-link {
+  color: var(--muted); text-decoration: none; font-size: 13.5px; font-weight: 500;
+  padding: 7px 14px; border-radius: 8px; transition: all .2s;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--grad); color: #fff;
+  padding: 9px 20px; border-radius: 99px;
+  font-size: 13px; font-weight: 700; text-decoration: none;
+  transition: opacity .2s, transform .2s;
+  box-shadow: 0 4px 24px rgba(99,102,241,0.35);
+  white-space: nowrap;
+}
+.nav-cta:hover { opacity: 0.88; transform: translateY(-1px); }
+.nav-cta [data-lucide] { width: 15px; height: 15px; stroke-width: 2.5; }
+
+/* ── Shared utils ── */
+.grad-text {
+  background: var(--grad);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.section-wrap { position: relative; z-index: 1; max-width: 1140px; margin: 0 auto; padding: 0 32px; }
+.section-label {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.4px;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 14px;
+}
+.section-label [data-lucide] { width: 13px; height: 13px; color: var(--indigo); }
+.section-title { font-size: clamp(1.7rem, 3.5vw, 2.4rem); font-weight: 800; letter-spacing: -0.8px; line-height: 1.2; margin-bottom: 12px; }
+.section-sub { font-size: 15.5px; color: var(--muted); line-height: 1.65; max-width: 520px; }
+
+/* ── Entrance animations ── */
+.fade-up { opacity: 0; transform: translateY(28px); transition: opacity .65s cubic-bezier(.4,0,.2,1), transform .65s cubic-bezier(.4,0,.2,1); }
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+.delay-1 { transition-delay: .08s; }
+.delay-2 { transition-delay: .16s; }
+.delay-3 { transition-delay: .24s; }
+.delay-4 { transition-delay: .32s; }
 
 /* ── Hero ── */
-.hero{position:relative;z-index:1;text-align:center;padding:80px 24px 60px;}
-.hero-badge{display:inline-flex;align-items:center;gap:7px;background:var(--green-bg);border:1px solid rgba(80,220,120,0.25);border-radius:99px;padding:6px 16px;font-size:12px;font-weight:700;color:var(--green);margin-bottom:24px;letter-spacing:.5px;}
-.hero h1{font-size:clamp(2rem,5vw,3.4rem);font-weight:800;letter-spacing:-1.5px;line-height:1.15;margin-bottom:18px;}
-.hero h1 span{background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.hero p{font-size:17px;color:var(--muted);max-width:560px;margin:0 auto 36px;line-height:1.6;}
-.hero-stats{display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap;}
-.hero-stat{text-align:center;}
-.hero-stat-val{font-size:28px;font-weight:800;letter-spacing:-1px;}
-.hero-stat-label{font-size:12px;color:var(--muted);margin-top:2px;}
+.hero {
+  position: relative; z-index: 1;
+  text-align: center;
+  padding: 90px 32px 72px;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 99px; padding: 7px 18px;
+  font-size: 12px; font-weight: 700; color: #a5b4fc;
+  letter-spacing: .5px; margin-bottom: 28px;
+  animation: heroIn .6s cubic-bezier(.4,0,.2,1) both;
+}
+.hero-badge [data-lucide] { width: 13px; height: 13px; }
+.hero-h1 {
+  font-size: clamp(2.6rem, 6vw, 4.2rem);
+  font-weight: 900; letter-spacing: -2px; line-height: 1.1;
+  margin-bottom: 22px;
+  animation: heroIn .7s .08s cubic-bezier(.4,0,.2,1) both;
+}
+.hero-sub {
+  font-size: 18px; color: var(--muted); max-width: 540px;
+  margin: 0 auto 52px; line-height: 1.65;
+  animation: heroIn .7s .16s cubic-bezier(.4,0,.2,1) both;
+}
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-stats {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; flex-wrap: wrap;
+  animation: heroIn .7s .24s cubic-bezier(.4,0,.2,1) both;
+}
+.hero-stat {
+  padding: 20px 40px; text-align: center;
+  border-right: 1px solid var(--border);
+}
+.hero-stat:last-child { border-right: none; }
+.hero-stat-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 12px;
+  background: var(--grad-subtle);
+  border: 1px solid rgba(99,102,241,0.15);
+  margin: 0 auto 10px;
+}
+.hero-stat-icon [data-lucide] { width: 18px; height: 18px; color: #a5b4fc; }
+.hero-stat-val { font-size: 30px; font-weight: 800; letter-spacing: -1.2px; }
+.hero-stat-label { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 500; }
 
-/* ── Rewards section ── */
-.rewards{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:20px 24px 60px;}
-.section-label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:16px;}
-.section-title{font-size:clamp(1.5rem,3vw,2rem);font-weight:800;letter-spacing:-.5px;margin-bottom:10px;}
-.section-sub{font-size:15px;color:var(--muted);max-width:480px;line-height:1.6;margin-bottom:36px;}
-.rewards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;}
-.reward-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color .2s,transform .2s;}
-.reward-card:hover{border-color:var(--border-bright);transform:translateY(-2px);}
-.reward-card-icon{font-size:32px;margin-bottom:14px;}
-.reward-card-title{font-size:15px;font-weight:700;margin-bottom:6px;}
-.reward-card-text{font-size:13px;color:var(--muted);line-height:1.5;}
-.reward-card.green{border-color:rgba(80,220,120,0.2);}
-.reward-card.blue{border-color:rgba(126,184,255,0.2);}
-.reward-card.amber{border-color:rgba(255,208,71,0.2);}
-.reward-card.purple{border-color:rgba(200,144,255,0.2);}
+/* ── Rewards ── */
+.rewards-section { padding: 80px 0; }
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px; margin-top: 40px;
+}
+.reward-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 26px;
+  transition: border-color .25s, transform .25s, background .25s;
+  box-shadow: var(--shadow), var(--glow);
+  cursor: default;
+}
+.reward-card:hover {
+  border-color: rgba(99,102,241,0.3);
+  background: var(--surface-hover);
+  transform: translateY(-3px);
+}
+.reward-card-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+  border: 1px solid;
+}
+.reward-card-icon [data-lucide] { width: 22px; height: 22px; stroke-width: 1.8; }
+.icon-indigo { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.2); }
+.icon-indigo [data-lucide] { color: #a5b4fc; }
+.icon-cyan   { background: rgba(6,182,212,0.10); border-color: rgba(6,182,212,0.2); }
+.icon-cyan   [data-lucide] { color: #67e8f9; }
+.icon-violet { background: rgba(139,92,246,0.10); border-color: rgba(139,92,246,0.2); }
+.icon-violet [data-lucide] { color: #c4b5fd; }
+.icon-green  { background: rgba(16,185,129,0.10); border-color: rgba(16,185,129,0.2); }
+.icon-green  [data-lucide] { color: #6ee7b7; }
+.icon-amber  { background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.2); }
+.icon-amber  [data-lucide] { color: #fcd34d; }
+.reward-card-title { font-size: 15.5px; font-weight: 700; margin-bottom: 8px; }
+.reward-card-text  { font-size: 13.5px; color: var(--muted); line-height: 1.55; }
 
 /* ── How it works ── */
-.how{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 60px;}
-.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
-.step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;}
-.step-num{width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--border-bright);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;}
-.step-title{font-size:14px;font-weight:700;}
-.step-text{font-size:12px;color:var(--muted);line-height:1.5;}
-.step-arrow{color:rgba(255,255,255,0.2);font-size:22px;align-self:center;margin-top:-28px;}
+.how-section { padding: 80px 0; }
+.steps-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 0; margin-top: 48px; position: relative;
+}
+.steps-row::before {
+  content: '';
+  position: absolute; top: 28px; left: calc(12.5% + 16px); right: calc(12.5% + 16px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99,102,241,0.3) 20%, rgba(6,182,212,0.3) 80%, transparent);
+  z-index: 0;
+}
+.step {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 0 16px; position: relative; z-index: 1;
+}
+.step-circle {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid rgba(99,102,241,0.3);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+  transition: border-color .25s, background .25s;
+  position: relative; z-index: 2;
+  backdrop-filter: blur(12px);
+}
+.step-circle [data-lucide] { width: 22px; height: 22px; color: #a5b4fc; stroke-width: 1.8; }
+.step-num {
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--grad); font-size: 10px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+.step:hover .step-circle {
+  border-color: rgba(99,102,241,0.6);
+  background: rgba(99,102,241,0.08);
+}
+.step-title { font-size: 14.5px; font-weight: 700; margin-bottom: 8px; }
+.step-text  { font-size: 13px; color: var(--muted); line-height: 1.55; }
 
-/* ── Upload form ── */
-.upload-section{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:0 24px 80px;}
-.upload-card{background:rgba(255,255,255,0.04);border:1px solid var(--border-bright);border-radius:24px;padding:40px;backdrop-filter:blur(20px);}
-.upload-card-header{text-align:center;margin-bottom:32px;}
-.upload-card-header h2{font-size:1.6rem;font-weight:800;margin-bottom:8px;}
-.upload-card-header p{font-size:14px;color:var(--muted);}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
-.form-label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);}
-input,select,textarea{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;padding:12px 16px;width:100%;transition:border-color .2s,background .2s;outline:none;font-family:inherit;appearance:none;-webkit-appearance:none;}
-input::placeholder{color:var(--muted);}
-input:focus,select:focus{border-color:var(--border-bright);background:rgba(255,255,255,0.09);}
-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
-select option{background:#1a1a1a;}
+/* ── Upload section ── */
+.upload-outer { padding: 80px 0 60px; }
+.upload-form-wrap { max-width: 700px; margin: 0 auto; padding: 0 32px; }
+.upload-card {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border-bright);
+  border-radius: 28px;
+  padding: 44px 44px 40px;
+  backdrop-filter: blur(28px) saturate(150%);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 40px 80px rgba(0,0,0,0.5), 0 0 100px rgba(99,102,241,0.06);
+}
+.upload-card-title {
+  font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+.upload-card-sub { font-size: 13.5px; color: var(--muted); margin-bottom: 32px; line-height: 1.5; }
 
 /* ── Drop zone ── */
-.drop-zone{border:2px dashed rgba(255,255,255,0.15);border-radius:var(--radius);padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,0.02);margin-bottom:16px;}
-.drop-zone:hover,.drop-zone.drag-over{border-color:rgba(80,220,120,0.5);background:rgba(80,220,120,0.04);}
-.drop-zone-icon{font-size:40px;margin-bottom:12px;}
-.drop-zone-title{font-size:16px;font-weight:700;margin-bottom:4px;}
-.drop-zone-sub{font-size:12px;color:var(--muted);}
-#pub-file-input{display:none;}
-.file-selected{display:none;align-items:center;gap:12px;background:var(--green-bg);border:1px solid rgba(80,220,120,0.25);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;}
-.file-selected-icon{font-size:24px;}
-.file-selected-name{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.file-selected-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0;}
-.file-selected-remove:hover{color:#ff8080;}
+.drop-zone {
+  border: 1.5px dashed rgba(99,102,241,0.3);
+  border-radius: var(--radius-sm);
+  padding: 40px 24px; text-align: center;
+  cursor: pointer; transition: all .25s;
+  background: rgba(99,102,241,0.03);
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.drop-zone::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--grad-subtle);
+  opacity: 0; transition: opacity .25s;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: rgba(99,102,241,0.6);
+  background: rgba(99,102,241,0.05);
+  transform: scale(1.005);
+}
+.drop-zone:hover::before, .drop-zone.drag-over::before { opacity: 1; }
+.drop-zone-inner { position: relative; z-index: 1; }
+.drop-zone-icon-wrap {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.2);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.drop-zone-icon-wrap [data-lucide] { width: 26px; height: 26px; color: #a5b4fc; stroke-width: 1.6; }
+.drop-zone-title { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+.drop-zone-sub   { font-size: 12.5px; color: var(--muted); }
+#pub-file-input  { display: none; }
 
-/* ── Submit btn ── */
-.submit-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--green),#3ab86a);color:#0a0a0a;font-size:16px;font-weight:800;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;letter-spacing:.2px;margin-top:8px;}
-.submit-btn:hover{opacity:0.9;transform:translateY(-1px);}
-.submit-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
-.form-note{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5;}
+/* ── File selected pill ── */
+.file-selected {
+  display: none; align-items: center; gap: 14px;
+  background: rgba(16,185,129,0.07);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px; margin-bottom: 20px;
+}
+.file-selected-icon-wrap {
+  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+  background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.2);
+  display: flex; align-items: center; justify-content: center;
+}
+.file-selected-icon-wrap [data-lucide] { width: 19px; height: 19px; color: #6ee7b7; stroke-width: 1.8; }
+.file-selected-info { flex: 1; min-width: 0; }
+.file-selected-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-selected-size { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.file-remove-btn {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; padding: 4px; border-radius: 6px;
+  transition: color .2s, background .2s; flex-shrink: 0;
+  display: flex; align-items: center;
+}
+.file-remove-btn:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+.file-remove-btn [data-lucide] { width: 16px; height: 16px; }
+
+/* ── Form fields ── */
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.form-label {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .7px;
+  text-transform: uppercase; color: var(--muted);
+}
+.form-label .required-star { color: #a5b4fc; margin-left: 3px; font-size: 13px; }
+input, select, textarea {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text);
+  font-size: 14px; font-family: inherit;
+  padding: 11px 15px;
+  width: 100%;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+  outline: none;
+  appearance: none; -webkit-appearance: none;
+}
+input::placeholder, textarea::placeholder { color: var(--muted-2); }
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(99,102,241,0.5);
+  background: rgba(99,102,241,0.05);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+select option { background: #0d0d2a; color: var(--text); }
+
+/* ── Divider ── */
+.form-divider {
+  display: flex; align-items: center; gap: 14px;
+  margin: 20px 0; color: var(--muted-2); font-size: 12px; font-weight: 500;
+}
+.form-divider::before, .form-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── Error box ── */
+.error-box {
+  display: none; align-items: flex-start; gap: 10px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.22);
+  border-radius: var(--radius-xs);
+  padding: 12px 16px; margin-bottom: 16px;
+  font-size: 13px; color: #fca5a5;
+}
+.error-box [data-lucide] { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Submit button ── */
+.submit-btn {
+  width: 100%; padding: 15px;
+  background: var(--grad);
+  color: #fff; font-size: 15px; font-weight: 800;
+  border: none; border-radius: var(--radius-xs);
+  cursor: pointer; transition: all .2s;
+  letter-spacing: .1px; margin-top: 6px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(99,102,241,0.35);
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+}
+.submit-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background .2s;
+}
+.submit-btn:hover:not(:disabled)::before { background: rgba(255,255,255,0.08); }
+.submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 40px rgba(99,102,241,0.45); }
+.submit-btn:active:not(:disabled) { transform: translateY(0); }
+.submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.submit-btn [data-lucide] { width: 18px; height: 18px; stroke-width: 2.5; }
+.form-note { font-size: 12px; color: var(--muted-2); text-align: center; margin-top: 14px; line-height: 1.6; }
 
 /* ── Success state ── */
-.success-state{display:none;text-align:center;padding:20px 0;}
-.success-icon{font-size:56px;margin-bottom:16px;}
-.success-title{font-size:1.4rem;font-weight:800;margin-bottom:8px;color:var(--green);}
-.success-text{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px;}
-.submit-again-btn{background:var(--surface);border:1px solid var(--border-bright);color:var(--text);padding:11px 24px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;}
-.submit-again-btn:hover{background:rgba(255,255,255,0.08);}
-
-/* ── Recent uploads ── */
-.recent{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 80px;}
-.recent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
-.recent-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;transition:border-color .2s;}
-.recent-card:hover{border-color:var(--border-bright);}
-.recent-card-icon{font-size:22px;margin-bottom:10px;}
-.recent-card-title{font-size:13px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.recent-card-meta{font-size:11px;color:var(--muted);}
-
-/* ── Footer ── */
-footer{position:relative;z-index:1;text-align:center;padding:32px 24px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;}
-footer a{color:var(--muted);text-decoration:none;}
-footer a:hover{color:var(--text);}
-.footer-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;}
-.footer-logo img{width:30px;height:30px;border-radius:8px;}
-.footer-logo-name{font-size:15px;font-weight:700;color:var(--text);}
+.success-state {
+  display: none; text-align: center; padding: 20px 10px 10px;
+}
+.success-check {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.3);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 22px;
+  animation: popIn .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.success-check [data-lucide] { width: 32px; height: 32px; color: #6ee7b7; stroke-width: 2; }
+@keyframes popIn {
+  from { opacity: 0; transform: scale(.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.success-title { font-size: 1.4rem; font-weight: 800; color: #6ee7b7; margin-bottom: 10px; }
+.success-text  { font-size: 14px; color: var(--muted); line-height: 1.65; max-width: 380px; margin: 0 auto 26px; }
+.success-rewards {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  flex-wrap: wrap; margin-bottom: 28px;
+}
+.reward-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 99px; padding: 6px 14px;
+  font-size: 12px; font-weight: 600; color: #a5b4fc;
+}
+.reward-chip [data-lucide] { width: 13px; height: 13px; }
+.upload-again-btn {
+  background: var(--surface-hover);
+  border: 1px solid var(--border-bright);
+  color: var(--text); padding: 12px 28px;
+  border-radius: var(--radius-xs);
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all .2s; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.upload-again-btn:hover { background: rgba(255,255,255,0.08); }
+.upload-again-btn [data-lucide] { width: 15px; height: 15px; }
 
 /* ── Spinner ── */
-.spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,0.15);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
-@keyframes spin{to{transform:rotate(360deg);}}
+.spinner {
+  width: 18px; height: 18px; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@media(max-width:640px){
-  .hero{padding:60px 20px 40px;}
-  .hero-stats{gap:20px;}
-  .upload-card{padding:24px 20px;}
-  .form-row{grid-template-columns:1fr;}
-  nav{padding:0 20px;}
-  .nav-links{display:none;}
+/* ── Recent resources ── */
+.recent-section { padding: 60px 0 80px; }
+.recent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px; margin-top: 36px;
+}
+.recent-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 18px 18px 16px;
+  transition: border-color .22s, transform .22s;
+}
+.recent-card:hover {
+  border-color: rgba(99,102,241,0.25);
+  transform: translateY(-2px);
+}
+.recent-card-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px; border: 1px solid;
+}
+.recent-card-icon [data-lucide] { width: 16px; height: 16px; stroke-width: 1.8; }
+.recent-card-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-card-meta  { font-size: 11.5px; color: var(--muted); }
+.recent-empty { color: var(--muted); font-size: 14px; padding: 20px 0; }
+
+/* ── Footer ── */
+footer {
+  position: relative; z-index: 1;
+  border-top: 1px solid var(--border);
+  background: rgba(6,6,26,0.6);
+  backdrop-filter: blur(20px);
+}
+.footer-top {
+  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: 40px; padding: 60px 0 48px;
+}
+.footer-brand {}
+.footer-logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.footer-logo-img { width: 32px; height: 32px; border-radius: 9px; object-fit: cover; border: 1px solid rgba(99,102,241,0.3); }
+.footer-logo-name { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
+.footer-tagline { font-size: 13.5px; color: var(--muted); line-height: 1.6; max-width: 260px; margin-bottom: 22px; }
+.footer-socials { display: flex; gap: 10px; }
+.footer-social-btn {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); text-decoration: none;
+  transition: all .2s;
+}
+.footer-social-btn:hover { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.3); color: #a5b4fc; }
+.footer-social-btn [data-lucide] { width: 16px; height: 16px; }
+.footer-col-title {
+  font-size: 11.5px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 18px;
+}
+.footer-links { display: flex; flex-direction: column; gap: 11px; }
+.footer-link {
+  display: flex; align-items: center; gap: 8px;
+  color: rgba(240,242,255,0.6); text-decoration: none;
+  font-size: 13.5px; transition: color .2s;
+}
+.footer-link:hover { color: var(--text); }
+.footer-link [data-lucide] { width: 14px; height: 14px; flex-shrink: 0; }
+.footer-bottom {
+  border-top: 1px solid var(--border);
+  padding: 22px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px;
+}
+.footer-bottom-left {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--muted);
+}
+.footer-bottom-left [data-lucide] { width: 14px; height: 14px; color: #ef4444; }
+.footer-bottom-right { display: flex; gap: 20px; flex-wrap: wrap; }
+.footer-legal {
+  font-size: 12.5px; color: var(--muted-2); text-decoration: none;
+  transition: color .2s;
+}
+.footer-legal:hover { color: var(--muted); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 99px; }
+
+@media (max-width: 900px) {
+  nav { padding: 0 20px; }
+  .nav-links { display: none; }
+  .hero { padding: 70px 20px 56px; }
+  .hero-stats { flex-direction: column; gap: 0; }
+  .hero-stat { border-right: none; border-bottom: 1px solid var(--border); width: 100%; padding: 16px 20px; }
+  .hero-stat:last-child { border-bottom: none; }
+  .steps-row { grid-template-columns: 1fr 1fr; gap: 24px; }
+  .steps-row::before { display: none; }
+  .upload-card { padding: 28px 22px; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr 1fr; gap: 32px; padding: 40px 0 32px; }
+  .footer-brand { grid-column: 1/-1; }
+  .footer-bottom { flex-direction: column; text-align: center; }
+}
+@media (max-width: 540px) {
+  .rewards-grid { grid-template-columns: 1fr; }
+  .steps-row { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
+<!-- Orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- ══ NAV ══ -->
 <nav>
-  <div class="nav-brand">
-    <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo AI" onerror="this.style.display='none'"/>
-    <div class="nav-brand-name">Fundo AI</div>
-  </div>
+  <a href="/" class="nav-brand">
+    <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo AI" class="nav-logo" onerror="this.style.display='none'"/>
+    <span class="nav-name">Fundo AI</span>
+  </a>
   <div class="nav-links">
-    <a href="#upload">Upload</a>
-    <a href="#rewards">Rewards</a>
-    <a href="#how">How It Works</a>
+    <a href="#upload" class="nav-link">Upload</a>
+    <a href="#rewards" class="nav-link">Rewards</a>
+    <a href="#how" class="nav-link">How It Works</a>
+    <a href="#recent" class="nav-link">Resources</a>
   </div>
-  <a class="nav-wa-btn" href="https://wa.me/263000000000" target="_blank">📲 Open on WhatsApp</a>
+  <a href="https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X" target="_blank" class="nav-cta">
+    <i data-lucide="message-circle"></i>
+    Open Fundo AI
+  </a>
 </nav>
 
-<!-- HERO -->
+<!-- ══ HERO ══ -->
 <section class="hero">
-  <div class="hero-badge">🌍 Community Learning Initiative</div>
-  <h1>Share Your Notes.<br><span>Help Every Student Win.</span></h1>
-  <p>Upload ZIMSEC & Cambridge past papers, textbooks, syllabuses, or notes. Get rewarded every time your contribution is approved.</p>
+  <div class="hero-badge">
+    <i data-lucide="globe"></i>
+    Community Learning Initiative
+  </div>
+  <h1 class="hero-h1">
+    Share Knowledge.<br>
+    <span class="grad-text">Earn Rewards.</span>
+  </h1>
+  <p class="hero-sub">
+    Upload ZIMSEC &amp; Cambridge past papers, textbooks, and syllabuses.
+    Help every student pass — and get rewarded every time your contribution is approved.
+  </p>
   <div class="hero-stats">
-    <div class="hero-stat"><div class="hero-stat-val" style="color:var(--green)" id="stat-resources">—</div><div class="hero-stat-label">Resources Available</div></div>
-    <div class="hero-stat"><div class="hero-stat-val" style="color:var(--blue)" id="stat-users">—</div><div class="hero-stat-label">Students Using Fundo AI</div></div>
-    <div class="hero-stat"><div class="hero-stat-val" style="color:var(--amber)">🎁</div><div class="hero-stat-label">Rewards Per 3 Uploads</div></div>
-  </div>
-</section>
-
-<!-- REWARDS -->
-<section class="rewards" id="rewards">
-  <div class="section-label">Why Upload?</div>
-  <div class="section-title">You Give. You Get.</div>
-  <div class="section-sub">Every 3 approved uploads unlocks a reward bundle — automatically sent to your WhatsApp account.</div>
-  <div class="rewards-grid">
-    <div class="reward-card green">
-      <div class="reward-card-icon">📄</div>
-      <div class="reward-card-title">+1 Bonus Project PDF</div>
-      <div class="reward-card-text">Generate a full ZIMSEC or Cambridge school project worth 50 marks — for free.</div>
+    <div class="hero-stat">
+      <div class="hero-stat-icon"><i data-lucide="library"></i></div>
+      <div class="hero-stat-val grad-text" id="stat-resources">—</div>
+      <div class="hero-stat-label">Resources Available</div>
     </div>
-    <div class="reward-card blue">
-      <div class="reward-card-icon">💬</div>
-      <div class="reward-card-title">+10 Bonus Chats</div>
-      <div class="reward-card-text">Ask Fundo AI 10 extra questions beyond your daily limit. No upgrade needed.</div>
+    <div class="hero-stat">
+      <div class="hero-stat-icon"><i data-lucide="users"></i></div>
+      <div class="hero-stat-val grad-text" id="stat-users">—</div>
+      <div class="hero-stat-label">Students on Fundo AI</div>
     </div>
-    <div class="reward-card amber">
-      <div class="reward-card-icon">🎨</div>
-      <div class="reward-card-title">+2 Image Generations</div>
-      <div class="reward-card-text">Generate AI images for your projects, presentations, or just for fun.</div>
-    </div>
-    <div class="reward-card purple">
-      <div class="reward-card-icon">🏆</div>
-      <div class="reward-card-title">Community Recognition</div>
-      <div class="reward-card-text">Top uploaders appear on the leaderboard — be the student who helps everyone pass.</div>
+    <div class="hero-stat">
+      <div class="hero-stat-icon"><i data-lucide="gift"></i></div>
+      <div class="hero-stat-val grad-text">3</div>
+      <div class="hero-stat-label">Uploads Per Reward Bundle</div>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="how" id="how">
-  <div class="section-label">Process</div>
-  <div class="section-title">How It Works</div>
-  <div class="section-sub" style="margin-bottom:36px">Simple, fast, and rewarding.</div>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-title">Pick Your File</div>
-      <div class="step-text">Choose a past paper, textbook, syllabus, or marking scheme from your device.</div>
+<!-- ══ REWARDS ══ -->
+<section class="rewards-section" id="rewards">
+  <div class="section-wrap">
+    <div class="section-label fade-up">
+      <i data-lucide="sparkles"></i>
+      Why Upload?
     </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-title">Fill the Details</div>
-      <div class="step-text">Select the subject, level, and your WhatsApp number so we can send your reward.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-title">Submit for Review</div>
-      <div class="step-text">Our team checks the material within 24 hours and approves it for all students.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-title">Collect Your Reward</div>
-      <div class="step-text">After every 3 approvals, your bonus credits are automatically added to your account.</div>
+    <h2 class="section-title fade-up delay-1">You Give. You Get.</h2>
+    <p class="section-sub fade-up delay-2">Every 3 approved uploads unlocks a full reward bundle — automatically added to your Fundo AI account on WhatsApp.</p>
+    <div class="rewards-grid">
+      <div class="reward-card fade-up delay-1">
+        <div class="reward-card-icon icon-indigo"><i data-lucide="file-text"></i></div>
+        <div class="reward-card-title">+1 Project PDF</div>
+        <div class="reward-card-text">Generate a full ZIMSEC or Cambridge school project guide worth 50 marks — completely free.</div>
+      </div>
+      <div class="reward-card fade-up delay-2">
+        <div class="reward-card-icon icon-cyan"><i data-lucide="message-circle"></i></div>
+        <div class="reward-card-title">+10 AI Chats</div>
+        <div class="reward-card-text">Ask Fundo AI 10 extra questions beyond your daily plan limit — no upgrade required.</div>
+      </div>
+      <div class="reward-card fade-up delay-3">
+        <div class="reward-card-icon icon-violet"><i data-lucide="image"></i></div>
+        <div class="reward-card-title">+2 Image Generations</div>
+        <div class="reward-card-text">Generate AI images for projects and presentations using NVIDIA FLUX — premium quality.</div>
+      </div>
+      <div class="reward-card fade-up delay-4">
+        <div class="reward-card-icon icon-amber"><i data-lucide="trophy"></i></div>
+        <div class="reward-card-title">Community Recognition</div>
+        <div class="reward-card-text">Top contributors appear on the admin leaderboard. Be the student who helps everyone pass.</div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- UPLOAD FORM -->
-<section class="upload-section" id="upload">
-  <div class="upload-card">
-    <div class="upload-card-header">
-      <h2>📤 Upload a Resource</h2>
-      <p>Fill in the details below — your upload will be reviewed and made available to all Fundo AI users.</p>
+<!-- ══ HOW IT WORKS ══ -->
+<section class="how-section" id="how">
+  <div class="section-wrap">
+    <div class="section-label fade-up"><i data-lucide="map"></i>Process</div>
+    <h2 class="section-title fade-up delay-1">How It Works</h2>
+    <p class="section-sub fade-up delay-2" style="margin-bottom:0">Simple, fast, and rewarding — it takes under two minutes.</p>
+    <div class="steps-row">
+      <div class="step fade-up delay-1">
+        <div class="step-circle">
+          <i data-lucide="upload-cloud"></i>
+          <div class="step-num">1</div>
+        </div>
+        <div class="step-title">Pick Your File</div>
+        <div class="step-text">Choose a past paper, textbook, syllabus, or marking scheme from your device.</div>
+      </div>
+      <div class="step fade-up delay-2">
+        <div class="step-circle">
+          <i data-lucide="clipboard-list"></i>
+          <div class="step-num">2</div>
+        </div>
+        <div class="step-title">Fill the Details</div>
+        <div class="step-text">Select subject, level, and add your WhatsApp number so we can send your rewards.</div>
+      </div>
+      <div class="step fade-up delay-3">
+        <div class="step-circle">
+          <i data-lucide="shield-check"></i>
+          <div class="step-num">3</div>
+        </div>
+        <div class="step-title">Admin Review</div>
+        <div class="step-text">Our team verifies and approves the material within 24 hours, making it live for all students.</div>
+      </div>
+      <div class="step fade-up delay-4">
+        <div class="step-circle">
+          <i data-lucide="zap"></i>
+          <div class="step-num">4</div>
+        </div>
+        <div class="step-title">Collect Rewards</div>
+        <div class="step-text">After every 3 approvals, your bonus credits are automatically added to your account.</div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <!-- Success state -->
-    <div class="success-state" id="success-state">
-      <div class="success-icon">🎉</div>
-      <div class="success-title">Upload Submitted!</div>
-      <div class="success-text">Your material is in for review. Once approved, your rewards will be automatically added to your Fundo AI account on WhatsApp.<br><br>Every 3 approvals = 1 PDF + 10 chats + 2 images. Keep going!</div>
-      <button class="submit-again-btn" onclick="resetForm()">Upload Another</button>
-    </div>
+<!-- ══ UPLOAD FORM ══ -->
+<section class="upload-outer" id="upload">
+  <div class="upload-form-wrap">
+    <div class="section-label fade-up" style="justify-content:center;margin-bottom:10px"><i data-lucide="upload-cloud"></i>Upload a Resource</div>
+    <div class="upload-card fade-up delay-1">
 
-    <!-- Form -->
-    <div id="upload-form">
-      <!-- Drop zone -->
-      <div class="drop-zone" id="pub-drop-zone" onclick="document.getElementById('pub-file-input').click()" ondragover="pubDragOver(event)" ondragleave="pubDragLeave(event)" ondrop="pubDrop(event)">
-        <div class="drop-zone-icon">📂</div>
-        <div class="drop-zone-title">Drop your file here or click to browse</div>
-        <div class="drop-zone-sub">PDF, DOC, DOCX, JPG, PNG · Max 80 MB</div>
-      </div>
-      <input type="file" id="pub-file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.pptx" onchange="pubFilePick(event)"/>
-      <div class="file-selected" id="pub-file-selected">
-        <span class="file-selected-icon" id="pub-file-icon">📄</span>
-        <span class="file-selected-name" id="pub-file-name"></span>
-        <button class="file-selected-remove" onclick="removeSelectedFile()">✕</button>
-      </div>
-
-      <!-- File title -->
-      <div class="form-group">
-        <label class="form-label">Resource Title</label>
-        <input type="text" id="pub-title" placeholder="e.g. ZIMSEC Biology Paper 1 2023"/>
+      <!-- Success state -->
+      <div class="success-state" id="success-state">
+        <div class="success-check"><i data-lucide="check"></i></div>
+        <div class="success-title">Upload Submitted</div>
+        <div class="success-text">Your material is in review. Once approved, your rewards are automatically credited to your Fundo AI WhatsApp account.</div>
+        <div class="success-rewards">
+          <div class="reward-chip"><i data-lucide="file-text"></i> +1 Project PDF</div>
+          <div class="reward-chip"><i data-lucide="message-circle"></i> +10 AI Chats</div>
+          <div class="reward-chip"><i data-lucide="image"></i> +2 Images</div>
+        </div>
+        <button class="upload-again-btn" onclick="resetForm()">
+          <i data-lucide="rotate-ccw"></i>
+          Upload Another
+        </button>
       </div>
 
-      <!-- Category + Level -->
-      <div class="form-row">
+      <!-- Form -->
+      <div id="upload-form">
+        <div class="upload-card-title">Share a Study Material</div>
+        <div class="upload-card-sub">Fill in the details below — your upload will be reviewed and made available to all Fundo AI users.</div>
+
+        <!-- Drop zone -->
+        <div class="drop-zone" id="pub-drop-zone"
+          onclick="document.getElementById('pub-file-input').click()"
+          ondragover="pubDragOver(event)" ondragleave="pubDragLeave()" ondrop="pubDrop(event)">
+          <div class="drop-zone-inner">
+            <div class="drop-zone-icon-wrap"><i data-lucide="upload-cloud"></i></div>
+            <div class="drop-zone-title">Drop your file here or click to browse</div>
+            <div class="drop-zone-sub">PDF, DOC, DOCX, JPG, PNG — up to 80 MB</div>
+          </div>
+        </div>
+        <input type="file" id="pub-file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.pptx" onchange="pubFilePick(event)"/>
+
+        <!-- File selected -->
+        <div class="file-selected" id="pub-file-selected">
+          <div class="file-selected-icon-wrap"><i data-lucide="file-text" id="pub-file-icon-lc"></i></div>
+          <div class="file-selected-info">
+            <div class="file-selected-name" id="pub-file-name"></div>
+            <div class="file-selected-size" id="pub-file-size"></div>
+          </div>
+          <button class="file-remove-btn" onclick="removeSelectedFile()"><i data-lucide="x"></i></button>
+        </div>
+
+        <!-- Title -->
         <div class="form-group">
-          <label class="form-label">Category</label>
-          <select id="pub-category">
-            <option value="paper">Past Paper</option>
-            <option value="textbook">Textbook</option>
-            <option value="syllabus">Syllabus</option>
-            <option value="marking_scheme">Marking Scheme</option>
+          <label class="form-label">Resource Title</label>
+          <input type="text" id="pub-title" placeholder="e.g. ZIMSEC Biology Paper 1 — 2023"/>
+        </div>
+
+        <!-- Category + Level -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select id="pub-category">
+              <option value="paper">Past Paper</option>
+              <option value="textbook">Textbook</option>
+              <option value="syllabus">Syllabus</option>
+              <option value="marking_scheme">Marking Scheme</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Level</label>
+            <select id="pub-level" onchange="pubLevelChange()">
+              <option value="primary">Primary</option>
+              <option value="olevel" selected>O-Level</option>
+              <option value="alevel">A-Level</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Grade + Subject -->
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Grade / Form</label>
+            <select id="pub-grade"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Subject <span class="required-star">★</span></label>
+            <select id="pub-subject"><option value="">— Select subject —</option></select>
+          </div>
+        </div>
+
+        <!-- Curriculum -->
+        <div class="form-group">
+          <label class="form-label">Curriculum</label>
+          <select id="pub-curriculum">
+            <option value="ZIMSEC">ZIMSEC</option>
+            <option value="Cambridge">Cambridge</option>
+            <option value="">Both / General</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Level</label>
-          <select id="pub-level" onchange="pubLevelChange()">
-            <option value="primary">Primary</option>
-            <option value="olevel" selected>O-Level</option>
-            <option value="alevel">A-Level</option>
-          </select>
-        </div>
-      </div>
 
-      <!-- Grade + Subject -->
-      <div class="form-row">
+        <div class="form-divider">Your details for rewards</div>
+
         <div class="form-group">
-          <label class="form-label">Grade / Form</label>
-          <select id="pub-grade"></select>
+          <label class="form-label">Your Name (optional)</label>
+          <input type="text" id="pub-name" placeholder="e.g. Tatenda M."/>
         </div>
         <div class="form-group">
-          <label class="form-label">Subject</label>
-          <select id="pub-subject"><option value="">— Select subject —</option></select>
+          <label class="form-label">WhatsApp Number <span class="required-star">★ Required for rewards</span></label>
+          <input type="tel" id="pub-phone" placeholder="e.g. 263712345678" inputmode="numeric"/>
         </div>
+
+        <!-- Error -->
+        <div class="error-box" id="pub-error">
+          <i data-lucide="alert-circle"></i>
+          <span id="pub-error-text"></span>
+        </div>
+
+        <button class="submit-btn" id="pub-submit-btn" onclick="doPublicUpload()">
+          <i data-lucide="send"></i>
+          Submit for Review
+        </button>
+        <p class="form-note">By submitting, you confirm this is your own material or freely shareable content.<br>Rewards are credited automatically after admin approval — usually within 24 hours.</p>
       </div>
-
-      <!-- Curriculum -->
-      <div class="form-group">
-        <label class="form-label">Curriculum</label>
-        <select id="pub-curriculum">
-          <option value="ZIMSEC">ZIMSEC</option>
-          <option value="Cambridge">Cambridge</option>
-          <option value="">Both / General</option>
-        </select>
-      </div>
-
-      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0 20px;"/>
-
-      <!-- Uploader info -->
-      <div class="form-group">
-        <label class="form-label">Your Name (optional)</label>
-        <input type="text" id="pub-name" placeholder="e.g. Tatenda M."/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Your WhatsApp Number <span style="color:var(--green)">★ Required for rewards</span></label>
-        <input type="tel" id="pub-phone" placeholder="e.g. 263712345678" inputmode="numeric"/>
-      </div>
-
-      <!-- Error -->
-      <div id="pub-error" style="display:none;color:#ff9090;font-size:13px;margin-bottom:12px;padding:10px 14px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.2);border-radius:10px;"></div>
-
-      <button class="submit-btn" id="pub-submit-btn" onclick="doPublicUpload()">
-        🚀 Submit for Review
-      </button>
-      <p class="form-note">By submitting, you confirm this is your own material or freely shareable content.<br>Rewards are credited after admin approval (usually within 24 hours).</p>
     </div>
   </div>
 </section>
 
-<!-- RECENT UPLOADS -->
-<section class="recent">
-  <div class="section-label">Community</div>
-  <div class="section-title">Recently Added Resources</div>
-  <div class="section-sub" style="margin-bottom:24px">The latest materials approved and available for all students.</div>
-  <div class="recent-grid" id="recent-grid">
-    <div style="color:var(--muted);font-size:13px">Loading…</div>
+<!-- ══ RECENT RESOURCES ══ -->
+<section class="recent-section" id="recent">
+  <div class="section-wrap">
+    <div class="section-label fade-up"><i data-lucide="layers"></i>Community</div>
+    <h2 class="section-title fade-up delay-1">Recently Added</h2>
+    <p class="section-sub fade-up delay-2">The latest materials approved and live for all students on Fundo AI.</p>
+    <div class="recent-grid" id="recent-grid">
+      <p class="recent-empty">Loading resources…</p>
+    </div>
   </div>
 </section>
 
-<!-- FOOTER -->
+<!-- ══ FOOTER ══ -->
 <footer>
-  <div class="footer-logo">
-    <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo AI" onerror="this.style.display='none'"/>
-    <span class="footer-logo-name">Fundo AI</span>
+  <div class="section-wrap">
+    <div class="footer-top">
+      <!-- Brand -->
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo AI" class="footer-logo-img" onerror="this.style.display='none'"/>
+          <span class="footer-logo-name">Fundo AI</span>
+        </div>
+        <p class="footer-tagline">AI-powered education for every Zimbabwean student. ZIMSEC &amp; Cambridge aligned, delivered on WhatsApp.</p>
+        <div class="footer-socials">
+          <a href="https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X" target="_blank" class="footer-social-btn" title="WhatsApp Channel">
+            <i data-lucide="message-circle"></i>
+          </a>
+          <a href="mailto:support.fundo.ai@gmail.com" class="footer-social-btn" title="Email Support">
+            <i data-lucide="mail"></i>
+          </a>
+          <a href="/admin" class="footer-social-btn" title="Admin Portal">
+            <i data-lucide="shield"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Resources -->
+      <div>
+        <div class="footer-col-title">Resources</div>
+        <div class="footer-links">
+          <a href="#upload" class="footer-link"><i data-lucide="book-open"></i>Past Papers</a>
+          <a href="#upload" class="footer-link"><i data-lucide="book"></i>Textbooks</a>
+          <a href="#upload" class="footer-link"><i data-lucide="list"></i>Syllabuses</a>
+          <a href="#upload" class="footer-link"><i data-lucide="check-square"></i>Marking Schemes</a>
+        </div>
+      </div>
+
+      <!-- Community -->
+      <div>
+        <div class="footer-col-title">Community</div>
+        <div class="footer-links">
+          <a href="#upload" class="footer-link"><i data-lucide="upload-cloud"></i>Share Materials</a>
+          <a href="#rewards" class="footer-link"><i data-lucide="gift"></i>Rewards Program</a>
+          <a href="#how" class="footer-link"><i data-lucide="map"></i>How It Works</a>
+          <a href="#recent" class="footer-link"><i data-lucide="layers"></i>Recent Uploads</a>
+        </div>
+      </div>
+
+      <!-- Support -->
+      <div>
+        <div class="footer-col-title">Support</div>
+        <div class="footer-links">
+          <a href="https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X" target="_blank" class="footer-link"><i data-lucide="message-circle"></i>WhatsApp Channel</a>
+          <a href="mailto:support.fundo.ai@gmail.com" class="footer-link"><i data-lucide="mail"></i>Email Support</a>
+          <a href="https://wa.me/263000000000" target="_blank" class="footer-link"><i data-lucide="phone"></i>Chat on WhatsApp</a>
+          <a href="/admin" class="footer-link"><i data-lucide="settings"></i>Admin Portal</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="footer-bottom">
+      <div class="footer-bottom-left">
+        Made with <i data-lucide="heart"></i> by&nbsp;<strong>Darrell Mucheri</strong>&nbsp;·&nbsp;&copy; 2025 Fundo AI
+      </div>
+      <div class="footer-bottom-right">
+        <a href="#" class="footer-legal">Privacy Policy</a>
+        <a href="#" class="footer-legal">Terms of Service</a>
+        <a href="fundoai.gleeze.com" class="footer-legal">fundoai.gleeze.com</a>
+      </div>
+    </div>
   </div>
-  <p>WhatsApp Educational Chatbot for Zimbabwean Students · ZIMSEC &amp; Cambridge</p>
-  <p style="margin-top:8px"><a href="mailto:support.fundo.ai@gmail.com">support.fundo.ai@gmail.com</a> · Created by Darrell Mucheri</p>
 </footer>
 
+<!-- Lucide icons -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script>
+// ── Subjects / grades data ──
 const SUBJECTS = {
-  primary:['Mathematics','English','Science','Social Studies','Shona','Ndebele','Environmental Science','Agriculture','Art','Physical Education'],
-  olevel:['Mathematics','English Language','Combined Science','Biology','Physics','Chemistry','History','Geography','Shona','Ndebele','Commerce','Economics','Accounts','ICT','Agriculture','Food & Nutrition','Building Studies','Art & Design','Music','Physical Education','Religious Education','Fashion & Fabrics','Woodwork','Metal Work','Technical Graphics','Home Economics'],
-  alevel:['Mathematics','Further Mathematics','Biology','Physics','Chemistry','History','Geography','English Literature','Business Studies','Accounting','Economics','Computer Science','Agriculture','Divinity','Sociology','Psychology','French','German','Art','Music','Physical Education','Law','Political Studies','Environmental Management','Travel & Tourism','Fashion & Fabrics','Food Technology','Building Technology','Civil & Water Engineering'],
+  primary: ['Mathematics','English','Science','Social Studies','Shona','Ndebele','Environmental Science','Agriculture','Art','Physical Education'],
+  olevel:  ['Mathematics','English Language','Combined Science','Biology','Physics','Chemistry','History','Geography','Shona','Ndebele','Commerce','Economics','Accounts','ICT','Agriculture','Food & Nutrition','Building Studies','Art & Design','Music','Physical Education','Religious Education','Fashion & Fabrics','Woodwork','Metal Work','Technical Graphics','Home Economics'],
+  alevel:  ['Mathematics','Further Mathematics','Biology','Physics','Chemistry','History','Geography','English Literature','Business Studies','Accounting','Economics','Computer Science','Agriculture','Divinity','Sociology','Psychology','French','German','Art','Music','Physical Education','Law','Political Studies','Environmental Management','Travel & Tourism','Fashion & Fabrics','Food Technology','Building Technology','Civil & Water Engineering'],
 };
 const GRADES = {
-  primary:['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7'],
-  olevel:['Form 1','Form 2','Form 3','Form 4'],
-  alevel:['Lower 6','Upper 6'],
+  primary: ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7'],
+  olevel:  ['Form 1','Form 2','Form 3','Form 4'],
+  alevel:  ['Lower 6','Upper 6'],
 };
 
 let selectedFile = null;
 
+// ── Init ──
 window.addEventListener('DOMContentLoaded', () => {
+  lucide.createIcons();
   pubLevelChange();
   loadCommunityStats();
   loadRecentUploads();
+  initScrollAnimations();
 });
 
-function pubLevelChange() {
-  const level = document.getElementById('pub-level').value;
-  const grades = GRADES[level]||[];
-  document.getElementById('pub-grade').innerHTML = grades.map(g=>`<option value="${g}">${g}</option>`).join('');
-  const subs = SUBJECTS[level]||[];
-  document.getElementById('pub-subject').innerHTML = ['<option value="">— Select subject —</option>',
-    ...subs.map(s=>`<option value="${s}">${s}</option>`)].join('');
+// ── Scroll animations ──
+function initScrollAnimations() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
 }
 
-function pubDragOver(e) { e.preventDefault(); document.getElementById('pub-drop-zone').classList.add('drag-over'); }
-function pubDragLeave() { document.getElementById('pub-drop-zone').classList.remove('drag-over'); }
-function pubDrop(e) { e.preventDefault(); pubDragLeave(); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }
-function pubFilePick(e) { if (e.target.files[0]) setFile(e.target.files[0]); e.target.value=''; }
+// ── Level change ──
+function pubLevelChange() {
+  const level = document.getElementById('pub-level').value;
+  const grades = GRADES[level] || [];
+  document.getElementById('pub-grade').innerHTML = grades.map(g => `<option value="${g}">${g}</option>`).join('');
+  const subs = SUBJECTS[level] || [];
+  document.getElementById('pub-subject').innerHTML =
+    ['<option value="">— Select subject —</option>', ...subs.map(s => `<option value="${s}">${s}</option>`)].join('');
+}
 
+// ── Drag/drop ──
+function pubDragOver(e) { e.preventDefault(); document.getElementById('pub-drop-zone').classList.add('drag-over'); }
+function pubDragLeave()  { document.getElementById('pub-drop-zone').classList.remove('drag-over'); }
+function pubDrop(e)      { e.preventDefault(); pubDragLeave(); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }
+function pubFilePick(e)  { if (e.target.files[0]) setFile(e.target.files[0]); e.target.value = ''; }
+
+// ── Set file ──
 function setFile(file) {
   selectedFile = file;
   const ext = file.name.split('.').pop().toLowerCase();
-  const icons = {pdf:'📄',doc:'📝',docx:'📝',pptx:'📊',jpg:'🖼',jpeg:'🖼',png:'🖼'};
-  document.getElementById('pub-file-icon').textContent = icons[ext]||'📁';
+  const iconMap = { pdf: 'file-text', doc: 'file', docx: 'file', pptx: 'presentation', jpg: 'image', jpeg: 'image', png: 'image' };
+  const iconName = iconMap[ext] || 'file';
+  const iconEl = document.getElementById('pub-file-icon-lc');
+  iconEl.setAttribute('data-lucide', iconName);
+  lucide.createIcons({ nodes: [iconEl] });
+
   document.getElementById('pub-file-name').textContent = file.name;
+  document.getElementById('pub-file-size').textContent = formatBytes(file.size);
   document.getElementById('pub-file-selected').style.display = 'flex';
   document.getElementById('pub-drop-zone').style.display = 'none';
-  // Auto-fill title if empty
+
   const titleInput = document.getElementById('pub-title');
-  if (!titleInput.value.trim()) titleInput.value = file.name.replace(/\.[^.]+$/,'');
+  if (!titleInput.value.trim()) titleInput.value = file.name.replace(/\.[^.]+$/, '');
 }
+
 function removeSelectedFile() {
   selectedFile = null;
   document.getElementById('pub-file-selected').style.display = 'none';
   document.getElementById('pub-drop-zone').style.display = '';
+  document.getElementById('pub-title').value = '';
 }
 
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+// ── Error handling ──
 function showError(msg) {
-  const el = document.getElementById('pub-error');
-  el.textContent = msg; el.style.display = '';
-  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  const box = document.getElementById('pub-error');
+  document.getElementById('pub-error-text').textContent = msg;
+  box.style.display = 'flex';
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 function clearError() { document.getElementById('pub-error').style.display = 'none'; }
 
+// ── Upload ──
 async function doPublicUpload() {
   clearError();
   if (!selectedFile) { showError('Please select a file to upload.'); return; }
   const subject = document.getElementById('pub-subject').value;
-  if (!subject) { showError('Please select a subject.'); return; }
+  if (!subject)   { showError('Please select a subject.'); return; }
 
   const category   = document.getElementById('pub-category').value;
   const level      = document.getElementById('pub-level').value;
   const grade      = document.getElementById('pub-grade').value;
   const curriculum = document.getElementById('pub-curriculum').value;
-  const title      = document.getElementById('pub-title').value.trim() || selectedFile.name.replace(/\.[^.]+$/,'');
+  const title      = (document.getElementById('pub-title').value.trim() || selectedFile.name).replace(/\.[^.]+$/, '');
   const name       = document.getElementById('pub-name').value.trim();
-  const phone      = document.getElementById('pub-phone').value.trim().replace(/\s+/g,'');
-  const subjectFull= curriculum ? `${subject} (${curriculum})` : subject;
+  const phone      = document.getElementById('pub-phone').value.trim().replace(/\s+/g, '');
+  const subjectFull = curriculum ? `${subject} (${curriculum})` : subject;
 
   const btn = document.getElementById('pub-submit-btn');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner" style="display:inline-block;border-top-color:#0a0a0a;width:18px;height:18px;border:2px solid rgba(0,0,0,0.2);border-top-color:#0a0a0a;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px"></div> Uploading…';
+  btn.innerHTML = '<div class="spinner"></div> Uploading…';
 
   const fd = new FormData();
   fd.append('file', selectedFile, selectedFile.name);
@@ -437,20 +1071,23 @@ async function doPublicUpload() {
   fd.append('uploaderPhone', phone);
 
   try {
-    const res = await fetch('/api/public/upload', { method:'POST', body: fd });
-    const data = await res.json().catch(()=>({}));
+    const res = await fetch('/api/public/upload', { method: 'POST', body: fd });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Upload failed');
     document.getElementById('upload-form').style.display = 'none';
     document.getElementById('success-state').style.display = '';
+    lucide.createIcons();
     loadCommunityStats();
     loadRecentUploads();
-  } catch(e) {
+  } catch (e) {
     showError(e.message || 'Upload failed. Please try again.');
     btn.disabled = false;
-    btn.innerHTML = '🚀 Submit for Review';
+    btn.innerHTML = '<i data-lucide="send"></i> Submit for Review';
+    lucide.createIcons({ nodes: [btn.querySelector('[data-lucide]')] });
   }
 }
 
+// ── Reset form ──
 function resetForm() {
   selectedFile = null;
   document.getElementById('pub-file-selected').style.display = 'none';
@@ -458,43 +1095,58 @@ function resetForm() {
   document.getElementById('pub-title').value = '';
   document.getElementById('pub-name').value = '';
   document.getElementById('pub-phone').value = '';
-  document.getElementById('pub-submit-btn').disabled = false;
-  document.getElementById('pub-submit-btn').innerHTML = '🚀 Submit for Review';
   clearError();
+  const btn = document.getElementById('pub-submit-btn');
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="send"></i> Submit for Review';
   document.getElementById('success-state').style.display = 'none';
   document.getElementById('upload-form').style.display = '';
+  lucide.createIcons();
 }
 
+// ── Community stats ──
 async function loadCommunityStats() {
   try {
     const res = await fetch('/api/community/stats');
     const d = await res.json();
     const rEl = document.getElementById('stat-resources');
     const uEl = document.getElementById('stat-users');
-    if (rEl) rEl.textContent = d.totalResources || '—';
-    if (uEl) uEl.textContent = d.totalUsers     || '—';
-  } catch(_) {}
+    if (rEl && d.totalResources) rEl.textContent = d.totalResources;
+    if (uEl && d.totalUsers)     uEl.textContent = d.totalUsers;
+  } catch (_) {}
 }
+
+// ── Recent uploads ──
+const CAT_ICON  = { paper: 'file-text', textbook: 'book-open', syllabus: 'list', marking_scheme: 'check-square' };
+const CAT_LABEL = { paper: 'Past Paper', textbook: 'Textbook', syllabus: 'Syllabus', marking_scheme: 'Marking Scheme' };
+const CAT_COLOR = { paper: 'icon-indigo', textbook: 'icon-cyan', syllabus: 'icon-green', marking_scheme: 'icon-amber' };
+const LVL_LABEL = { primary: 'Primary', olevel: 'O-Level', alevel: 'A-Level' };
 
 async function loadRecentUploads() {
   try {
     const res = await fetch('/api/community/stats');
     const d = await res.json();
     const grid = document.getElementById('recent-grid');
-    if (!d.recentApproved?.length) { grid.innerHTML = '<div style="color:var(--muted);font-size:13px">No resources yet — be the first to upload!</div>'; return; }
-    const catIcon = c => ({paper:'📝',textbook:'📖',syllabus:'📋',marking_scheme:'✅'}[c]||'📁');
-    const catLabel = c => ({paper:'Past Paper',textbook:'Textbook',syllabus:'Syllabus',marking_scheme:'Marking Scheme'}[c]||c);
-    const levelLabel = l => ({primary:'Primary',olevel:'O-Level',alevel:'A-Level'}[l]||l);
+    if (!d.recentApproved?.length) {
+      grid.innerHTML = '<p class="recent-empty">No resources yet — be the first to upload!</p>';
+      return;
+    }
     grid.innerHTML = d.recentApproved.map(m => `
-      <div class="recent-card">
-        <div class="recent-card-icon">${catIcon(m.category)}</div>
+      <div class="recent-card fade-up">
+        <div class="recent-card-icon ${CAT_COLOR[m.category] || 'icon-indigo'}">
+          <i data-lucide="${CAT_ICON[m.category] || 'file'}"></i>
+        </div>
         <div class="recent-card-title" title="${esc(m.title)}">${esc(m.title)}</div>
-        <div class="recent-card-meta">${catLabel(m.category)} · ${levelLabel(m.level)}<br>${esc(m.subject)}</div>
+        <div class="recent-card-meta">${CAT_LABEL[m.category] || m.category} · ${LVL_LABEL[m.level] || m.level}<br>${esc(m.subject)}</div>
       </div>`).join('');
-  } catch(_) {}
+    lucide.createIcons();
+    initScrollAnimations();
+  } catch (_) {}
 }
 
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 </body>
 </html>
