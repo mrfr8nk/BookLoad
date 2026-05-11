@@ -11,7 +11,7 @@ const app  = express();
 const PORT = process.env.PORTAL_PORT || 5000;
 
 // ─── Mongo ────────────────────────────────────────────────────────────────────
-const MONGO_URI = process.env.MONGO_URI || '';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://darexmucheri:cMd7EoTwGglJGXwR@cluster0.uwf6z.mongodb.net/fun?retryWrites=true&w=majority&appName=Cluster0';
 
 const materialSchema = new mongoose.Schema({
   category:   { type: String, required: true, enum: ['syllabus', 'paper', 'textbook', 'marking_scheme'] },

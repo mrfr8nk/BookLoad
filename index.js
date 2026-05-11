@@ -91,7 +91,7 @@ let tavilyClient;
 try { tavilyClient = TAVILY_API_KEY ? createTavily({ apiKey: TAVILY_API_KEY }) : null; } catch (_) { tavilyClient = null; }
 
 // ─── NVIDIA AI (audio + document analysis) ────────────────────────────────────
-const NVIDIA_API_KEY  = process.env.NVIDIA_API_KEY || '';
+const NVIDIA_API_KEY  = process.env.NVIDIA_API_KEY || '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';
 const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const NVIDIA_AUDIO_MODEL = 'google/gemma-3n-e2b-it';      // multimodal — supports audio
 const NVIDIA_DOC_MODEL   = 'meta/llama-3.3-70b-instruct'; // strong text/doc reasoning

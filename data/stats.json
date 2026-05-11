@@ -203,8 +203,8 @@
       ]
     },
     "120363323957656025": {
-      "messages": 4,
-      "lastSeen": 1778165310214,
+      "messages": 5,
+      "lastSeen": 1778506618079,
       "recentMsgs": [
         {
           "text": "Electrician\nEngineering\nJob Description\nWe are seeking a skilled and detail-orie",
@@ -221,6 +221,10 @@
         {
           "text": "Computer Science Teacher - To teach Up to “A” Level (full time)\nEducation & Teac",
           "ts": 1778165310214
+        },
+        {
+          "text": "Accountant\nAccounting & Finance\n\nJob Description\n*PlanForSixty MFI is Recruiting",
+          "ts": 1778506618079
         }
       ]
     },
@@ -283,7 +287,7 @@
       "lastSeen": 1778163493880
     }
   },
-  "totalMessages": 132,
+  "totalMessages": 133,
   "cmdCounts": {
     "reset": 3,
     "menu": 12,

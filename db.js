@@ -7,7 +7,7 @@
 import mongoose from 'mongoose';
 
 // ─── Connection ────────────────────────────────────────────────────────────────
-const MONGO_URI = process.env.MONGO_URI || '';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://darexmucheri:cMd7EoTwGglJGXwR@cluster0.uwf6z.mongodb.net/fun?retryWrites=true&w=majority&appName=Cluster0';
 let dbReady = false;
 
 export async function connectDB() {
