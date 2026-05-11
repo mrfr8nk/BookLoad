@@ -84,14 +84,14 @@ const TEMP_DIR      = path.join(__dirname, 'temp');
 const logger = pino({ level: 'silent' });
 
 // ─── AI Config ────────────────────────────────────────────────────────────────
-const DUCK_API_KEY   = 'randongenkey100limit';
+const DUCK_API_KEY   = process.env.DUCK_API_KEY || 'randongenkey100limit';
 const BK9_MODEL      = 'meta-llama/llama-4-scout-17b-16e-instruct';
-const TAVILY_API_KEY = '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';
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY || '';
 let tavilyClient;
-try { tavilyClient = createTavily({ apiKey: TAVILY_API_KEY }); } catch (_) { tavilyClient = null; }
+try { tavilyClient = TAVILY_API_KEY ? createTavily({ apiKey: TAVILY_API_KEY }) : null; } catch (_) { tavilyClient = null; }
 
 // ─── NVIDIA AI (audio + document analysis) ────────────────────────────────────
-const NVIDIA_API_KEY  = process.env.NVIDIA_API_KEY || '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';
+const NVIDIA_API_KEY  = process.env.NVIDIA_API_KEY || '';
 const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const NVIDIA_AUDIO_MODEL = 'google/gemma-3n-e2b-it';      // multimodal — supports audio
 const NVIDIA_DOC_MODEL   = 'meta/llama-3.3-70b-instruct'; // strong text/doc reasoning
@@ -1121,7 +1121,7 @@ async function analyzeDocumentNvidia(text, fileName = 'document') {
 
 // ─── Image generation ─────────────────────────────────────────────────────────
 const NVIDIA_IMAGE_URL = 'https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-dev';
-const NVIDIA_IMAGE_KEY = process.env.NVIDIA_API_KEY || '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';
+const NVIDIA_IMAGE_KEY = process.env.NVIDIA_API_KEY || '';
 
 // BK9 + other fallback APIs (GET-based, return raw image bytes)
 const FALLBACK_IMAGE_APIS = [
