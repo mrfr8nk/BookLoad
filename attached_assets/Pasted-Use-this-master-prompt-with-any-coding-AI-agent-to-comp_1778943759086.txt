@@ -1,0 +1,199 @@
+Use this master prompt with any coding AI agent to completely redesign a weak-looking website into a premium glassmorphism UI:
+
+
+---
+
+Create a COMPLETE modern UI/UX redesign for this website.
+
+The current design looks outdated, cluttered, AI-generated, and unprofessional. Transform it into a PREMIUM futuristic glassmorphism interface similar to modern SaaS platforms.
+
+GOALS:
+
+Make the website look world-class
+
+Modern glassmorphism aesthetic
+
+Clean spacing and layout
+
+Mobile-first responsive design
+
+Smooth animations
+
+Premium typography
+
+Professional dashboard feel
+
+Attractive gradients and blur effects
+
+Advanced hover interactions
+
+Elegant cards and components
+
+Fast performance
+
+Production-ready UI
+
+
+DESIGN STYLE:
+
+Apple + Linear + Stripe + Vercel inspired
+
+Frosted glass panels
+
+Transparent blurred backgrounds
+
+Soft shadows
+
+Rounded corners (16px–28px)
+
+Floating UI elements
+
+Gradient borders
+
+Smooth transitions
+
+Dark mode preferred
+
+Neon accent highlights
+
+Minimal but futuristic
+
+
+COLOR SYSTEM: Use a premium dark palette:
+
+Background: #0b1020 / #0f172a
+
+Glass surfaces: rgba(255,255,255,0.08)
+
+Borders: rgba(255,255,255,0.12)
+
+Primary: #7c3aed
+
+Secondary: #06b6d4
+
+Accent glow effects
+
+High contrast readable text
+
+
+TYPOGRAPHY:
+
+Use Inter or Satoshi font
+
+Large bold headings
+
+Clean readable body text
+
+Proper visual hierarchy
+
+
+REQUIRED UI IMPROVEMENTS:
+
+Redesign navbar
+
+Redesign hero section
+
+Upgrade buttons
+
+Modernize forms
+
+Glass cards everywhere appropriate
+
+Better tables
+
+Better modals
+
+Beautiful sidebar
+
+Responsive mobile menu
+
+Animated gradients
+
+Loading skeletons
+
+Toast notifications
+
+Better spacing system
+
+Better icon usage
+
+Smooth page transitions
+
+
+ANIMATIONS:
+
+Framer Motion animations
+
+Smooth hover effects
+
+Fade-in sections
+
+Floating particles/background glow
+
+Subtle motion only
+
+No laggy animations
+
+
+TECH REQUIREMENTS:
+
+Production-ready code
+
+Clean component structure
+
+Reusable components
+
+Accessibility support
+
+Fully responsive
+
+Optimized performance
+
+SEO-friendly structure
+
+Modern CSS practices
+
+TailwindCSS preferred
+
+Avoid ugly default styles
+
+Avoid generic AI-looking layouts
+
+
+IMPORTANT: Do NOT make the site look like a cheap template. Do NOT overuse colors. Do NOT clutter the interface. Prioritize elegance, spacing, depth, and premium feel.
+
+IF POSSIBLE ADD:
+
+Animated background blobs
+
+Aurora gradients
+
+Glass sidebar
+
+Floating dock navigation
+
+Interactive stats cards
+
+Gradient charts
+
+Spotlight hover effects
+
+Dynamic dashboard widgets
+
+
+OUTPUT: Provide the FULL upgraded frontend code with:
+
+Improved layout
+
+New styling
+
+Responsive behavior
+
+Animations
+
+Reusable components
+
+Clean folder structure
+
+
+The final result should look like a billion-dollar startup product, not a beginner AI-generated website.
