@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app  = express();
-const PORT = process.env.PORTAL_PORT || 5000;
+const PORT = process.env.PORTAL_PORT || 3000;
 
 // ─── Mongo ────────────────────────────────────────────────────────────────────
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://darexmucheri:cMd7EoTwGglJGXwR@cluster0.uwf6z.mongodb.net/fun?retryWrites=true&w=majority&appName=Cluster0';
