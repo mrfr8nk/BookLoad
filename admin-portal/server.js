@@ -367,6 +367,25 @@ app.post('/api/materials/:id/approve', requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── DELETE /api/users/:phone ─────────────────────────────────────────────────
+app.delete('/api/users/:phone', requireAuth, async (req, res) => {
+  try {
+    const user = await UserModel.findOneAndDelete({ phone: req.params.phone });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── DELETE /api/users (bulk) ─────────────────────────────────────────────────
+app.delete('/api/users', requireAuth, async (req, res) => {
+  try {
+    const { phones } = req.body;
+    if (!Array.isArray(phones) || !phones.length) return res.status(400).json({ error: 'No phones provided' });
+    const result = await UserModel.deleteMany({ phone: { $in: phones } });
+    res.json({ deleted: result.deletedCount });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Fundo AI Admin Portal running on port ${PORT}`);
