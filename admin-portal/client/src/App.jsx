@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import UploadPage from './pages/UploadPage.jsx';
-import AdminPage from './pages/AdminPage.jsx';
+import LandingPage from './pages/LandingPage.jsx';
+import UploadPage  from './pages/UploadPage.jsx';
+import AdminPage   from './pages/AdminPage.jsx';
 import { ToastProvider } from './hooks/useToast.jsx';
 
 export default function App() {
@@ -8,8 +9,9 @@ export default function App() {
     <ToastProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/"      element={<UploadPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/"       element={<LandingPage />} />
+          <Route path="/upload" element={<UploadPage />} />
+          <Route path="/admin"  element={<AdminPage />} />
         </Routes>
       </BrowserRouter>
     </ToastProvider>
