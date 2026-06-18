@@ -5,7 +5,9 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "build": "cd client && npm run build",
+    "start": "node server.js",
+    "dev": "npm run build && node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",

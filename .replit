@@ -20,11 +20,7 @@ args = "Start application"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Admin Portal Backend"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Admin Portal UI"
+args = "Admin Portal"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -38,24 +34,12 @@ args = "node index.js"
 outputType = "console"
 
 [[workflows.workflow]]
-name = "Admin Portal Backend"
+name = "Admin Portal"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node admin-portal/server.js"
-waitForPort = 3000
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "Admin Portal UI"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd admin-portal/client && npm run dev"
 waitForPort = 5000
 
 [workflows.workflow.metadata]

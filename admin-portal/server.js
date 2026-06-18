@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app  = express();
-const PORT = process.env.PORTAL_PORT || 3000;
+const PORT = process.env.PORTAL_PORT || 5000;
 
 // ─── Mongo ────────────────────────────────────────────────────────────────────
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://darexmucheri:cMd7EoTwGglJGXwR@cluster0.uwf6z.mongodb.net/fun?retryWrites=true&w=majority&appName=Cluster0';
@@ -104,11 +104,9 @@ const upload = multer({
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-// Route defaults: / → upload page, /admin → admin dashboard
-app.get('/',      (_req, res) => res.sendFile(path.join(__dirname, 'public', 'upload.html')));
-app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-
-app.use(express.static(path.join(__dirname, 'public')));
+// ─── Serve React build ────────────────────────────────────────────────────────
+const CLIENT_DIST = path.join(__dirname, 'client', 'dist');
+app.use(express.static(CLIENT_DIST));
 
 // ─── Auth endpoint ────────────────────────────────────────────────────────────
 app.post('/api/login', (req, res) => {
@@ -384,6 +382,11 @@ app.delete('/api/users', requireAuth, async (req, res) => {
     const result = await UserModel.deleteMany({ phone: { $in: phones } });
     res.json({ deleted: result.deletedCount });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── SPA fallback — must be LAST ──────────────────────────────────────────────
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(CLIENT_DIST, 'index.html'));
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
