@@ -1,103 +1,163 @@
-# Fundo AI — WhatsApp Educational Chatbot
+# Fundo AI — WhatsApp Educational Chatbot + Marketing Website
 
 ## Overview
-Fundo AI is a WhatsApp bot built for Zimbabwean students. It provides AI-powered educational assistance aligned with the ZIMSEC curriculum, supporting text, voice, image, and PDF interactions.
+Fundo AI is a WhatsApp bot built for Zimbabwean students. It provides AI-powered educational assistance aligned with the ZIMSEC curriculum, supporting text, voice, image, and PDF interactions. A full Mindgrasp-style marketing website and admin portal is served on port 5000.
 
 **Created by:** Darrell Mucheri  
-**Website:** fundoai.gleeze.com
+**Website:** fundoai.gleeze.com  
+**WhatsApp:** wa.me/263719647303  
+**Support:** support.fundo.ai@gmail.com
+
+---
 
 ## Architecture
 - **Runtime:** Node.js 20 (ES Modules)
 - **WhatsApp Library:** `@whiskeysockets/baileys`
 - **AI APIs:** BK9 (primary), MagicStudio for images
-- **Database:** MongoDB (via Mongoose) for plan/payment system
+- **Database:** MongoDB Atlas (via Mongoose) — plans, payments, resources, users
 - **Gift Codes:** File-based (`data/giftcodes.json`)
 - **Entry point:** `index.js`
 - **Config:** `settings.js`
+- **Web:** React + Vite SPA served by Express on port 5000
+
+---
 
 ## Project Structure
 ```
-index.js          — Main bot logic (3400+ lines)
-settings.js       — Bot credentials/config
-db.js             — MongoDB + plan system + gift codes
-data/             — Persistent data (stats, welcomed users, history, profiles, giftcodes)
-session/          — WhatsApp session credentials (auto-generated)
-temp/             — Temporary files
-admin-portal/     — Web resource upload portal (port 5000)
-  server.js       — Express API (auth, upload to CDN, CRUD on MongoDB)
-  public/         — Glassmorphism frontend (login, upload, manage)
+index.js                — Main WhatsApp bot logic
+settings.js             — Bot credentials/config
+db.js                   — MongoDB + plan system + gift codes
+data/                   — Persistent data (stats, welcomed users, history, profiles, giftcodes)
+session/                — WhatsApp session credentials (auto-generated)
+temp/                   — Temporary files
+admin-portal/
+  server.js             — Express server (port 5000): serves React build + all API routes
+  client/               — React + Vite frontend
+    src/
+      pages/
+        LandingPage.jsx — Mindgrasp-style marketing site (/)
+        AdminPage.jsx   — Admin dashboard (/admin)
+        UploadPage.jsx  — Community upload (/upload)
+        ContactPage.jsx — Contact page (/contact)
+        PrivacyPage.jsx — Privacy policy (/privacy)
+        TermsPage.jsx   — Terms of service (/terms)
+        HelpPage.jsx    — Help centre / FAQ (/help)
+      components/
+        SimplePage.jsx  — Shared layout for simple pages
+      hooks/
+        useToast.jsx    — Toast notification system
+    dist/               — Production build (served by Express)
 ```
 
-## Admin Portal (Resource Upload Web App)
-- **URL:** port 5000 (webview) — workflow: `Admin Portal`
-- **Login:** admin username/password from `settings.js`
-- **Features:** multi-file upload → CDN → MongoDB, rename, delete, bulk delete, filter, search, year field for past papers
-- **Resources uploaded here instantly appear on the Fundo bot** when students request materials
+---
 
-## Key Features
-- **First-Time Onboarding** — 4 steps: email → name → age → school name → welcome
-- **Main Menu with Logo** — Menu is sent as image with caption using LOGO_URL from settings.js
-- **AI Chat** — ZIMSEC & Cambridge curriculum-aligned (normal + quick mode)
-- **Image Generation** — MagicStudio (primary) + 4 fallback APIs; 100+ prompt styles
-- **PDF Project Generator** — 6-stage guide (50 marks); personalised with student name & school name from profile; 24-hour restriction for new FREE plan users
+## Web Routes (port 5000)
+| Path | Page |
+|------|------|
+| `/` | Landing page (Mindgrasp-style marketing) |
+| `/upload` | Community resource upload |
+| `/admin` | Admin dashboard (login required) |
+| `/contact` | Contact page |
+| `/privacy` | Privacy policy |
+| `/terms` | Terms of service |
+| `/help` | Help centre & FAQ |
+
+All routes are server-side handled via SPA fallback in Express.
+
+---
+
+## Admin Portal Features
+- **Login:** admin username/password from `settings.js`
+- **Resources tab:** multi-file upload → CDN → MongoDB, rename, delete, bulk delete, filter, search, year field
+- **Analytics tab:** charts, plan breakdown, student stats
+- **Students tab:** bulk delete, plan change
+- **Pending tab:** review community-uploaded materials
+- Resources uploaded here **instantly appear on the Fundo bot** when students request materials
+
+---
+
+## WhatsApp Bot Features
+- **Onboarding** — 4-step: email → name → age → school → welcome
+- **Main Menu with Logo** — Sent as image with caption using LOGO_URL
+- **AI Chat** — ZIMSEC & Cambridge curriculum-aligned
+- **Image Generation** — MagicStudio (primary) + 4 fallback APIs
+- **PDF Project Generator** — 6-stage guide, personalised with student name & school
 - **Flash Quiz System** — MCQ quiz by level and subject
 - **Voice Notes** — STT transcription + TTS replies
 - **Image & PDF Analysis** — Vision + text extraction
-- **Owner/Admin Commands** — Full moderation & monitoring with user profile details (name/email/age/school) + MongoDB signup dates
-- **Admin Login** — Any number can login with username/password from settings.js
-- **Gift Code System** — Admin generates codes with usage limits (`!gencode PRO 5`), users redeem them; per-user duplicate prevention
-- **Support/Report System** — Users type `support <message>` or `report <message>`; reports are saved to `data/reports.json` and forwarded to owner; admin views with `!reports`
-- **Bot Self-Reply Prevention** — Bot number filtered from message processing to prevent loop
-- **Usage Limits + Cooldown Timers** — Dynamic countdown on limit messages
-- **Global Cancel** — "cancel", "stop", "exit" works everywhere including support flow
-- **Study Materials Library** — Syllabuses, past papers & textbooks: browse by level/subject/curriculum (ZIMSEC or Cambridge), files sent directly to user (no URL links)
-- **Bulk Upload Support** — After each upload, user prompted yes/new/done for multi-file sessions in one flow
-- **Upload Rewards System** — Every 3 approved uploads earns: 1 bonus PDF + 10 bonus chats + 2 bonus images
-- **Media Download Limits** — Free users: 10 downloads/day; paid plans: unlimited
-- **Extra Credits** — extraMessages & extraImages fields allow overflow access beyond plan limits (earned from uploads)
+- **Study Materials Library** — Past papers, syllabuses, textbooks by level/subject/curriculum
+- **Gift Code System** — Admin generates codes with usage limits
+- **Support/Report System** — Users type `support <message>` or `report <message>`
+- **Upload Rewards** — Every 3 approved uploads earns 1 bonus PDF + 10 chats + 2 images
+- **YouTube Media Fetch** — `/youtube <topic>` fetches educational videos
+- **Image Search** — `/image <description>` fetches from Pinterest/Google
 
-## Support & Community
-- **Support Email:** support.fundo.ai@gmail.com
-- **WhatsApp Channel:** https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X
+---
 
-## Configuration (settings.js)
-Set these environment variables or edit `settings.js`:
-- `SESSION_ID` — Ice~ session ID from https://sessions.subzero.gleeze.com
-- `BOT_NUMBER` — WhatsApp bot number with country code
-- `OWNER_NUMBER` — Owner/master WhatsApp number
-- `ADMIN_USERNAME` — Admin login username (default: mrfrankofc)
-- `ADMIN_PASSWORD` — Admin login password (default: darex123)
-- `LOGO_URL` — Bot logo URL
+## Workflows
+| Name | Command | Purpose |
+|------|---------|---------|
+| `Admin Portal` | `node admin-portal/server.js` | Express server on port 5000 (web + API) |
+| `Start application` | `node index.js` | WhatsApp bot |
 
-## Secrets (stored in Replit Secrets)
-- `MONGO_URI` — MongoDB connection string
-- `PAYNOW_ID` / `PAYNOW_KEY` — EcoCash payment integration (optional)
+---
+
+## Environment Variables / Secrets
+| Secret | Description |
+|--------|-------------|
+| `MONGO_URI` | MongoDB Atlas connection string |
+| `SESSION_ID` | WhatsApp Ice~ session ID |
+| `ADMIN_USERNAME` | Admin login username (default: mrfrankofc) |
+| `ADMIN_PASSWORD` | Admin login password (default: darex123) |
+| `NVIDIA_API_KEY` | NVIDIA AI API key (optional) |
+| `TAVILY_API_KEY` | Tavily search API key (optional) |
+
+---
+
+## Building the Frontend
+```bash
+cd admin-portal/client && npm run build
+```
+The built files go to `admin-portal/client/dist/` and are served by Express automatically.
 
 ## Setup Notes
 - Project uses ES Modules (`"type": "module"` in package.json)
 - `pdf-parse` is loaded via `createRequire` (CJS compatibility)
 - `gifted-btns` is imported as a default export (CJS compatibility)
 - `__dirname` and `__filename` are polyfilled using `fileURLToPath`
+- MongoDB only — no PostgreSQL
 
-## Workflow
-- **Start application** — runs `node index.js` (console output type)
+---
 
-## Admin Commands (via WhatsApp)
-- `!help` — Full command list
-- `!stats`, `!users`, `!topusers`, `!activeusers`, `!groups` — Monitoring
-- `!users` — Lists users with phone, name, email, age, school, plan, and MongoDB signup date
-- `!reports` — View latest 10 support/report submissions
-- `!ban`/`!unban` — Block users
-- `!mute`/`!unmute`, `!botoff`/`!boton` — Bot control
-- `!gencode PRO` — Generate gift code (1 use)
-- `!gencode PRO 5` — Generate gift code usable by 5 people
-- `!gencode PRO MYCODE 3` — Custom code usable 3 times
-- `!listcodes` — List all gift codes with usage counts
-- `!setplan <number> <PLAN>` — Manually set user plan
-- `!broadcast <message>` — Message all users
-- `!admin` — Remote admin login (any number)
+## Admin WhatsApp Commands
+```
+!help                   Full command list
+!stats                  Bot statistics
+!users                  List all users with profile details
+!topusers               Most active users
+!reports                Latest 10 support/report submissions
+!ban / !unban           Block/unblock users
+!mute / !unmute         Mute/unmute users
+!gencode PRO 5          Generate gift code (5 uses)
+!gencode PRO MYCODE 3   Custom gift code (3 uses)
+!listcodes              List all gift codes
+!setplan <num> <PLAN>   Manually set user plan
+!broadcast <message>    Message all users
+!admin                  Remote admin login
+```
 
-## User Support Commands
-- `support <message>` — Submit a support query (forwarded to owner + saved)
-- `report <message>` — Report an issue (same as support)
-- `support` — Starts interactive support flow
+## User Commands
+```
+support <message>       Submit support query (forwarded to owner)
+report <message>        Report an issue
+/image <description>    Fetch/generate image
+/youtube <topic>        Fetch YouTube educational content
+```
+
+---
+
+## User Preferences
+- MongoDB only (no PostgreSQL)
+- Mindgrasp.ai-style design: white background, purple #7c3aed, Playfair Display italic serif for emphasis
+- Single Express service on port 5000 serving React build + API
+- Footer links must all have working routes (no 404s)

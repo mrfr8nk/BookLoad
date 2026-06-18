@@ -1,552 +1,334 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
-  BookOpen, FileText, ClipboardList, CheckCircle, BookMarked,
-  Sparkles, Image as ImageIcon, Mic, FileSearch, HelpCircle,
-  Users, Calendar, FlaskConical, Code2, Calculator, GraduationCap,
-  Bot, Zap, TrendingUp, Briefcase, FolderOpen, Clock, Globe,
-  ArrowRight, Star, ChevronDown, MessageCircle, Shield, Rocket,
-  Check, Menu, X, Play, Youtube, Search, Film, Brain, Layers,
-  Award, Lightbulb, BookCopy, Volume2,
+  ArrowRight, MessageCircle, Check, X as XIcon, Play,
+  BookOpen, FileSearch, Mic, HelpCircle, Calculator, Bot,
+  FlaskConical, Code2, GraduationCap, Users, TrendingUp,
+  Sparkles, Zap, Clock, Volume2, Image as Img, FileText,
+  ChevronDown, Star, Menu, X, Shield, Rocket, Brain,
+  BookMarked, FolderOpen, ClipboardList, Youtube, Search,
+  Award, CheckCircle2, Lightbulb,
 } from 'lucide-react';
 
-/* ──────────────────────────── DATA ──────────────────────────────── */
+/* ─────────────── DESIGN TOKENS ─────────────── */
+const C = {
+  hero:     '#f3eeff',
+  purple:   '#7c3aed',
+  purpleDk: '#6d28d9',
+  dark:     '#1a0a2e',
+  gray50:   '#f9fafb',
+  gray100:  '#f3f4f6',
+  gray200:  '#e5e7eb',
+  gray500:  '#6b7280',
+  gray700:  '#374151',
+  gray900:  '#111827',
+};
+const serif = { fontFamily:"'Playfair Display', Georgia, serif", fontStyle:'italic', color:C.purple };
+
+/* ─────────────── DATA ─────────────── */
+const SCHOOLS = [
+  'ZIMSEC', 'University of Zimbabwe', 'NUST',
+  'Midlands State University', 'Harare Institute of Technology',
+  'Great Zimbabwe University', 'Chinhoyi University',
+  'Lupane State University', 'Bindura University',
+];
+
+const PAIN_CARDS = [
+  { icon:FileSearch, title:'Lost in Past Papers', quote:'"I downloaded 20 papers but have no idea which ones to study."' },
+  { icon:FolderOpen, title:'Scattered Resources', quote:'"My notes are in 5 different places — it\'s a mess every exam season."' },
+  { icon:Brain,      title:'Read It. Forgot It.', quote:'"I studied chapter 3 four times and still can\'t remember it on exam day."' },
+  { icon:HelpCircle, title:'Stuck with No Help', quote:'"It\'s midnight, I\'m confused, and there\'s no one to explain this to me."' },
+];
+
 const FEATURES = [
-  { icon: BookOpen,     title: 'School Projects & Research',          color: '#7c3aed', bg: '#f5f3ff' },
-  { icon: FileText,     title: 'Assignments & Homework',              color: '#2563eb', bg: '#eff6ff' },
-  { icon: ClipboardList,title: 'Past Exam Papers',                   color: '#059669', bg: '#ecfdf5' },
-  { icon: CheckCircle,  title: 'Marking Schemes & Answer Guides',     color: '#d97706', bg: '#fffbeb' },
-  { icon: BookCopy,     title: 'Green Books & Blue Books',            color: '#db2777', bg: '#fdf2f8' },
-  { icon: BookMarked,   title: 'Textbooks & Study Notes',             color: '#0891b2', bg: '#ecfeff' },
-  { icon: Sparkles,     title: 'AI-Powered Explanations',             color: '#7c3aed', bg: '#f5f3ff' },
-  { icon: ImageIcon,    title: 'Image Analysis & Question Solving',   color: '#059669', bg: '#ecfdf5' },
-  { icon: Volume2,      title: 'Audio Explanations & Voice Learning', color: '#9333ea', bg: '#faf5ff' },
-  { icon: FileSearch,   title: 'PDF Analysis & Summarization',        color: '#e11d48', bg: '#fff1f2' },
-  { icon: HelpCircle,   title: 'Interactive Quizzes & Test Prep',     color: '#d97706', bg: '#fffbeb' },
-  { icon: Users,        title: 'Mentorship & Study Guidance',         color: '#2563eb', bg: '#eff6ff' },
-  { icon: Calendar,     title: 'Revision Plans & Exam Strategies',    color: '#059669', bg: '#ecfdf5' },
-  { icon: FlaskConical, title: 'Science Practical Guidance',          color: '#0891b2', bg: '#ecfeff' },
-  { icon: Code2,        title: 'Coding & Programming Help',           color: '#7c3aed', bg: '#f5f3ff' },
-  { icon: Calculator,   title: 'Mathematics Step-by-Step Solving',    color: '#db2777', bg: '#fdf2f8' },
-  { icon: GraduationCap,title: 'O Level & A Level Support',           color: '#d97706', bg: '#fffbeb' },
-  { icon: Bot,          title: 'AI Tutoring Available 24/7',          color: '#7c3aed', bg: '#f5f3ff' },
-  { icon: Zap,          title: 'Instant Answer Checking',             color: '#e11d48', bg: '#fff1f2' },
-  { icon: TrendingUp,   title: 'Progress Tracking & Smart Recs',      color: '#059669', bg: '#ecfdf5' },
-  { icon: Briefcase,    title: 'Career Guidance & Uni Preparation',   color: '#2563eb', bg: '#eff6ff' },
-  { icon: FolderOpen,   title: 'Notes Organisation & Resources',      color: '#9333ea', bg: '#faf5ff' },
-  { icon: Users,        title: 'Group Study Support',                 color: '#d97706', bg: '#fffbeb' },
-  { icon: Clock,        title: 'Fast, Accurate Help Anytime',         color: '#0891b2', bg: '#ecfeff' },
+  { icon:Bot,        title:'AI Notes',         sub:'Notes that write themselves',     desc:'Ask Fundo AI any topic and get structured, curriculum-aligned notes in seconds. Less copying, more understanding.',  color:'#7c3aed', bg:'#f5f3ff', mockup:'notes' },
+  { icon:Volume2,    title:'Voice Learning',   sub:'Learn by listening',              desc:'Send voice notes, get voice replies. Fundo AI transcribes, understands, and teaches through audio — perfect for on-the-go studying.', color:'#059669', bg:'#ecfdf5', mockup:'voice' },
+  { icon:ClipboardList,title:'Past Papers',    sub:'Practice like it\'s the real exam', desc:'Access 270+ ZIMSEC and Cambridge past papers organised by subject, level, and year. With marking scheme guidance.',   color:'#2563eb', bg:'#eff6ff', mockup:'papers' },
+  { icon:Img,        title:'Image Analysis',   sub:'Visual problem solving',          desc:'Photograph a complex diagram, textbook page, or exam question. Fundo AI reads, analyses, and explains it all.',        color:'#d97706', bg:'#fffbeb', mockup:'image' },
 ];
 
-const NEW_UPDATES = [
-  { icon: Brain,   color: '#7c3aed', bg: '#f5f3ff', title: 'Smarter Mock AI', desc: 'Mock AI feature works even better than before — more realistic, detailed feedback.' },
-  { icon: Rocket,  color: '#059669', bg: '#ecfdf5', title: 'Stage 5 Projects', desc: 'Fundo now completes stage 5 for you on projects. Yep, it means that.' },
-  { icon: Search,  color: '#2563eb', bg: '#eff6ff', title: 'Pinterest & Google Images', desc: 'Fetch images on Pinterest or Google. Just send /image dog (don\'t forget the /).' },
-  { icon: Youtube, color: '#e11d48', bg: '#fff1f2', title: 'YouTube Media Fetch', desc: 'Get videos & audios from YouTube. Just send /youtube introduction to algebra.' },
+const STEPS = [
+  { n:1, title:'Start a Chat Session',       desc:'Open WhatsApp and send any message to the Fundo AI number. A dedicated study space where everything stays organised from the start.' },
+  { n:2, title:'Ask or Upload Anything',     desc:'Send text, voice notes, images, PDFs, or questions. Fundo AI instantly understands your subject and level.' },
+  { n:3, title:'Instant AI Processing',      desc:'Within seconds, you receive structured explanations, past paper answers, AI notes, quiz questions, or voice guidance.' },
+  { n:4, title:'Learn, Practice, Master',    desc:'Use flash quizzes, mock exams, and study plans to track your progress and master every topic before exam day.' },
 ];
 
-const LEVELS = [
-  { label: 'Primary',    icon: BookOpen,      color: '#059669', bg: '#ecfdf5', desc: 'Grade 1–7 curriculum support' },
-  { label: 'Secondary',  icon: BookMarked,    color: '#2563eb', bg: '#eff6ff', desc: 'Form 1–4 comprehensive help' },
-  { label: 'O Level',    icon: GraduationCap, color: '#7c3aed', bg: '#f5f3ff', desc: 'ZIMSEC & Cambridge O-Level' },
-  { label: 'A Level',    icon: Award,         color: '#d97706', bg: '#fffbeb', desc: 'Upper & Lower 6 mastery' },
-  { label: 'University', icon: Layers,        color: '#9333ea', bg: '#faf5ff', desc: 'Tertiary-level academic guidance' },
+const WHO_TABS = [
+  { label:'O-Level Students',   sub:'Forms 3 & 4',          icon:BookOpen,      color:'#7c3aed', features:['ZIMSEC O-Level past papers & marking schemes','Step-by-step Maths & Science explanations','AI notes for all subjects','24/7 exam prep support'] },
+  { label:'A-Level Students',   sub:'Upper & Lower 6',      icon:GraduationCap, color:'#059669', features:['A-Level syllabus alignment','Advanced concept breakdowns','Project & coursework guidance','Stage 5 automated completion'] },
+  { label:'Primary School',     sub:'Grades 1–7',           icon:BookMarked,    color:'#2563eb', features:['Age-appropriate explanations','Fun interactive quizzes','Homework & assignment help','Simple voice-note learning'] },
+  { label:'University Students',sub:'Tertiary Level',       icon:Award,         color:'#d97706', features:['Research & project support','PDF document summarization','Complex topic breakdowns','Career & professional guidance'] },
+  { label:'Self-Learners',      sub:'Independent Study',    icon:Lightbulb,     color:'#9333ea', features:['Custom study plans','Cross-subject resource library','Practice tests & mock exams','Flexible 24/7 access'] },
 ];
 
-const PRICING = [
-  {
-    name: 'Starter', price: 2, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe',
-    badge: null,
-    tagline: 'Get started with AI academic help',
-    features: ['Basic AI help', 'Homework support', 'Study resources access'],
-    cta: 'Get Started Today!',
-  },
-  {
-    name: 'Pro', price: 5, color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd',
-    badge: 'Most Popular',
-    tagline: 'Advanced tools for serious students',
-    features: ['All Starter features', 'Advanced explanations', 'Past papers & marking', 'Priority support'],
-    cta: 'Boost Your Studies!',
-  },
-  {
-    name: 'Premium', price: 10, color: '#d97706', bg: '#fffbeb', border: '#fde68a',
-    badge: 'Best Value',
-    tagline: 'Maximum AI power — no limits',
-    features: ['All Pro features', 'AI mock exams', 'Personalised guidance', '24/7 premium support', 'Smart progress tracking'],
-    cta: 'Unlock Your Potential!',
-  },
+const OLD_WAY  = ['Scattered materials','Random study methods','Manual note-taking','Hours searching for papers','No immediate help'];
+const NEW_WAY  = ['Everything in one WhatsApp chat','Smart, structured study plans','AI-generated notes instantly','270+ organised past papers','24/7 AI tutor on demand'];
+
+const TOOLS = [
+  { icon:ClipboardList, label:'AI Past Papers',       color:'#7c3aed' },
+  { icon:FileSearch,    label:'AI PDF Analysis',      color:'#e11d48' },
+  { icon:Volume2,       label:'AI Voice Learning',    color:'#059669' },
+  { icon:HelpCircle,    label:'AI Quiz Generator',    color:'#d97706' },
+  { icon:FileText,      label:'AI Project Generator', color:'#2563eb' },
+  { icon:Img,           label:'AI Image Solver',      color:'#9333ea' },
+  { icon:Calculator,    label:'AI Maths Solver',      color:'#db2777' },
+  { icon:FlaskConical,  label:'AI Science Guide',     color:'#0891b2' },
+  { icon:FileText,      label:'AI Essay Writer',      color:'#059669' },
+  { icon:Zap,           label:'AI Flash Cards',       color:'#7c3aed' },
+  { icon:CheckCircle2,  label:'AI Marking Schemes',   color:'#2563eb' },
+  { icon:Code2,         label:'AI Coding Helper',     color:'#d97706' },
 ];
 
-const BOTTOM_FEATURES = [
-  { icon: Sparkles, title: 'Smarter',    desc: 'Learn better with AI.', color: '#7c3aed', bg: '#f5f3ff' },
-  { icon: Zap,      title: 'Faster',     desc: 'Get answers in seconds.', color: '#059669', bg: '#ecfdf5' },
-  { icon: Shield,   title: 'Reliable',   desc: 'Accurate, trusted academic help.', color: '#2563eb', bg: '#eff6ff' },
-  { icon: Globe,    title: 'For Every Student', desc: 'From basic to advanced levels.', color: '#d97706', bg: '#fffbeb' },
-  { icon: Clock,    title: '24/7 Support', desc: 'We\'re always here for you.', color: '#9333ea', bg: '#faf5ff' },
-];
-
-/* ──────────────────────────── HELPERS ───────────────────────────── */
+/* ─────────────── HELPERS ─────────────── */
 function useCountUp(target, inView) {
   const [v, setV] = useState(0);
   useEffect(() => {
     if (!inView) return;
-    let cur = 0;
-    const step = target / 60;
-    const t = setInterval(() => { cur += step; if (cur >= target) { setV(target); clearInterval(t); } else setV(Math.floor(cur)); }, 16);
+    let c = 0, s = target / 60;
+    const t = setInterval(() => { c += s; if (c >= target) { setV(target); clearInterval(t); } else setV(Math.floor(c)); }, 16);
     return () => clearInterval(t);
   }, [inView, target]);
   return v;
 }
 
-function CountStat({ value, suffix, label, delay }) {
-  const ref  = useRef();
-  const inV  = useInView(ref, { once: true });
-  const val  = useCountUp(value, inV);
-  return (
-    <motion.div ref={ref} initial={{ opacity:0, y:16 }} animate={inV?{opacity:1,y:0}:{}} transition={{ duration:.5, delay }}>
-      <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:'clamp(2.4rem,4vw,3.2rem)', fontWeight:900, letterSpacing:'-2px', color:'#7c3aed', lineHeight:1 }}>{val.toLocaleString()}{suffix}</div>
-        <div style={{ fontSize:13.5, color:'var(--gray-500)', marginTop:6, fontWeight:500 }}>{label}</div>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ──────────────────────────── NAVBAR ────────────────────────────── */
+/* ─────────────── NAVBAR ─────────────── */
 function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 20);
+    const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  const links = [['Features','#features'],['Updates','#updates'],['Pricing','#pricing'],['Upload','#upload']];
-
   return (
-    <nav style={{
-      position:'fixed', top:0, left:0, right:0, zIndex:300,
-      background: scrolled ? 'rgba(255,255,255,.97)' : 'rgba(255,255,255,.9)',
-      backdropFilter:'blur(16px)',
-      borderBottom: scrolled ? '1px solid var(--gray-200)' : '1px solid transparent',
-      boxShadow: scrolled ? '0 1px 8px rgba(0,0,0,.06)' : 'none',
-      transition:'all .25s',
-      padding:'0 clamp(16px,4vw,56px)', height:68,
-      display:'flex', alignItems:'center', justifyContent:'space-between',
-    }}>
-      {/* Brand */}
-      <a href="/" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>
-        <div style={{ width:38, height:38, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', boxShadow:'0 2px 10px rgba(124,58,237,.3)', flexShrink:0 }}>
-          <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
-        </div>
-        <div>
-          <div style={{ fontSize:18, fontWeight:900, color:'var(--gray-900)', letterSpacing:'-.3px', lineHeight:1.1 }}>Fundo<span style={{ color:'#7c3aed' }}>AI</span></div>
-          <div style={{ fontSize:9.5, color:'var(--gray-400)', letterSpacing:'1.2px', fontWeight:700, textTransform:'uppercase', lineHeight:1 }}>2.0 — Unstoppable</div>
-        </div>
-      </a>
-
-      {/* Desktop nav */}
-      <div style={{ display:'flex', alignItems:'center', gap:2 }} className="hide-mobile">
-        {links.map(([label, href]) => (
-          <a key={href} href={href}
-            style={{ fontSize:14, fontWeight:600, color:'var(--gray-600)', padding:'8px 14px', borderRadius:8, textDecoration:'none', transition:'all .15s' }}
-            onMouseEnter={e=>{e.target.style.color='var(--gray-900)';e.target.style.background='var(--gray-100)';}}
-            onMouseLeave={e=>{e.target.style.color='var(--gray-600)';e.target.style.background='none';}}
-          >{label}</a>
-        ))}
-      </div>
-
-      <div style={{ display:'flex', gap:8, alignItems:'center' }} className="hide-mobile">
-        <a href="/admin" style={{ fontSize:13.5, fontWeight:600, color:'var(--gray-600)', padding:'7px 14px', borderRadius:8, border:'1.5px solid var(--gray-200)', textDecoration:'none', transition:'all .15s', background:'#fff' }}
-          onMouseEnter={e=>e.currentTarget.style.borderColor='#7c3aed'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--gray-200)'}>
-          Admin
+    <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:500, background:'rgba(255,255,255,.98)', backdropFilter:'blur(16px)', borderBottom:`1px solid ${scrolled ? C.gray200 : 'transparent'}`, boxShadow:scrolled?'0 1px 12px rgba(0,0,0,.06)':'none', transition:'all .25s', height:64, display:'flex', alignItems:'center', padding:'0 clamp(16px,4vw,56px)' }}>
+      <div style={{ maxWidth:1200, margin:'0 auto', width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        {/* Logo */}
+        <a href="/" style={{ display:'flex', alignItems:'center', gap:9, textDecoration:'none', flexShrink:0 }}>
+          <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
+          </div>
+          <div>
+            <div style={{ fontSize:17, fontWeight:900, color:C.gray900, letterSpacing:'-.3px', lineHeight:1 }}>fundo<span style={{ color:C.purple }}>ai</span><sup style={{ fontSize:8, color:C.gray500, fontWeight:700, letterSpacing:'.3px' }}>®</sup></div>
+          </div>
         </a>
-        <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
-          style={{ display:'flex', alignItems:'center', gap:7, background:'#7c3aed', color:'#fff', textDecoration:'none', padding:'8px 20px', borderRadius:9, fontSize:14, fontWeight:700, boxShadow:'0 3px 12px rgba(124,58,237,.28)', transition:'all .15s' }}
-          onMouseEnter={e=>e.currentTarget.style.background='#6d28d9'} onMouseLeave={e=>e.currentTarget.style.background='#7c3aed'}>
-          <MessageCircle size={15}/> Start on WhatsApp
-        </a>
-      </div>
 
-      {/* Mobile hamburger */}
-      <button onClick={()=>setOpen(p=>!p)} style={{ display:'none', background:'none', border:'1.5px solid var(--gray-200)', borderRadius:8, padding:'7px', cursor:'pointer', color:'var(--gray-700)' }} className="hide-desktop">
-        {open ? <X size={18}/> : <Menu size={18}/>}
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }}
-            style={{ position:'absolute', top:68, left:0, right:0, background:'#fff', border:'1px solid var(--gray-200)', boxShadow:'var(--shadow-lg)', padding:20, display:'flex', flexDirection:'column', gap:6 }} className="hide-desktop">
-            {links.map(([label, href]) => (
-              <a key={href} href={href} onClick={()=>setOpen(false)}
-                style={{ fontSize:15, fontWeight:600, color:'var(--gray-700)', padding:'10px 12px', borderRadius:9, textDecoration:'none', background:'var(--gray-50)' }}>
-                {label}
-              </a>
-            ))}
-            <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
-              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:7, background:'#7c3aed', color:'#fff', textDecoration:'none', padding:'12px', borderRadius:9, fontSize:15, fontWeight:700, marginTop:8 }}>
-              <MessageCircle size={16}/> Start on WhatsApp
+        {/* Desktop links */}
+        <div style={{ display:'flex', alignItems:'center', gap:0 }} className="hide-mobile">
+          {[['Features','#features'],['How It Works','#how'],['Pricing','#pricing'],['Upload','#upload-cta']].map(([l,h]) => (
+            <a key={h} href={h} style={{ fontSize:14, fontWeight:500, color:C.gray500, padding:'8px 16px', textDecoration:'none', borderRadius:8, transition:'all .15s' }}
+              onMouseEnter={e=>{e.target.style.color=C.gray900;e.target.style.background=C.gray100;}}
+              onMouseLeave={e=>{e.target.style.color=C.gray500;e.target.style.background='none';}}>
+              {l}
             </a>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          ))}
+        </div>
+
+        <div style={{ display:'flex', alignItems:'center', gap:10 }} className="hide-mobile">
+          <a href="/admin" style={{ fontSize:14, fontWeight:500, color:C.gray500, textDecoration:'none', padding:'7px 16px', borderRadius:8, transition:'all .15s' }}
+            onMouseEnter={e=>e.target.style.color=C.gray900} onMouseLeave={e=>e.target.style.color=C.gray500}>
+            Sign in
+          </a>
+          <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
+            style={{ background:C.purple, color:'#fff', textDecoration:'none', padding:'8px 20px', borderRadius:8, fontSize:14, fontWeight:700, boxShadow:`0 2px 8px rgba(124,58,237,.25)`, transition:'all .15s' }}
+            onMouseEnter={e=>{e.currentTarget.style.background=C.purpleDk;e.currentTarget.style.transform='translateY(-1px)';}}
+            onMouseLeave={e=>{e.currentTarget.style.background=C.purple;e.currentTarget.style.transform='none';}}>
+            Try for Free
+          </a>
+        </div>
+
+        <button onClick={()=>setOpen(p=>!p)} style={{ display:'none', background:'none', border:'1px solid '+C.gray200, borderRadius:8, padding:8, cursor:'pointer' }} className="hide-desktop">
+          {open?<X size={17}/>:<Menu size={17}/>}
+        </button>
+
+        <AnimatePresence>
+          {open && (
+            <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
+              style={{ position:'absolute', top:64, left:0, right:0, background:'#fff', borderBottom:`1px solid ${C.gray200}`, boxShadow:'0 8px 24px rgba(0,0,0,.08)', padding:'16px clamp(16px,4vw,56px)', display:'flex', flexDirection:'column', gap:4 }} className="hide-desktop">
+              {[['Features','#features'],['How It Works','#how'],['Pricing','#pricing'],['Upload Materials','/upload'],['Admin','/admin']].map(([l,h])=>(
+                <a key={h} href={h} onClick={()=>setOpen(false)} style={{ fontSize:15, fontWeight:600, color:C.gray700, padding:'10px 12px', borderRadius:8, textDecoration:'none', background:C.gray50 }}>{l}</a>
+              ))}
+              <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
+                style={{ background:C.purple, color:'#fff', textDecoration:'none', padding:'12px', borderRadius:9, fontSize:15, fontWeight:700, textAlign:'center', marginTop:8 }}>
+                Try for Free
+              </a>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </nav>
   );
 }
 
-/* ──────────────────────────── HERO ──────────────────────────────── */
-function HeroSection() {
+/* ─────────────── HERO ─────────────── */
+function Hero() {
   return (
-    <section style={{ minHeight:'100vh', paddingTop:68, background:'linear-gradient(160deg, #faf5ff 0%, #eff6ff 40%, #ecfdf5 80%, #fff 100%)', position:'relative', overflow:'hidden', display:'flex', alignItems:'center' }}>
-      {/* Decorative blobs */}
-      <div style={{ position:'absolute', top:-120, right:-160, width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(124,58,237,.10) 0%, transparent 70%)', pointerEvents:'none' }} />
-      <div style={{ position:'absolute', bottom:-80, left:-100, width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(37,99,235,.08) 0%, transparent 70%)', pointerEvents:'none' }} />
-      <div style={{ position:'absolute', top:'40%', left:'40%', width:300, height:300, borderRadius:'50%', background:'radial-gradient(circle, rgba(5,150,105,.06) 0%, transparent 70%)', pointerEvents:'none' }} />
-
-      <div style={{ maxWidth:1180, margin:'0 auto', padding:'72px clamp(16px,4vw,56px) 80px', width:'100%', display:'grid', gridTemplateColumns:'1fr 1fr', gap:64, alignItems:'center' }}>
-        {/* Left */}
-        <div>
-          <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} transition={{ duration:.4 }}>
-            <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'linear-gradient(135deg,#f5f3ff,#eff6ff)', border:'1.5px solid #ddd6fe', borderRadius:99, padding:'7px 18px', fontSize:13, fontWeight:700, color:'#5b21b6', marginBottom:24 }}>
-              <Sparkles size={13} style={{ color:'#7c3aed' }}/>
-              Introducing Fundo AI 2.0 — Upgraded. Unstoppable.
-            </div>
-          </motion.div>
-
-          <motion.h1 initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ duration:.55, delay:.07, ease:[.4,0,.2,1] }}
-            style={{ fontSize:'clamp(2.4rem,5vw,3.8rem)', fontWeight:900, color:'var(--gray-900)', lineHeight:1.08, letterSpacing:'-.05em', marginBottom:20 }}>
-            Academic <span className="italic-purple">Excellence</span><br />
-            <span style={{ color:'var(--gray-900)' }}>Powered by AI</span>
-          </motion.h1>
-
-          <motion.p initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }} transition={{ duration:.5, delay:.15 }}
-            style={{ fontSize:'clamp(1rem,2vw,1.15rem)', color:'var(--gray-600)', lineHeight:1.75, maxWidth:520, marginBottom:32 }}>
-            Smarter AI. Stronger you. Better results. — Fundo AI gives every Zimbabwean student access to world-class academic support, 24/7 on WhatsApp.
-          </motion.p>
-
-          <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ duration:.5, delay:.22 }}
-            style={{ display:'flex', flexWrap:'wrap', gap:12, marginBottom:48 }}>
-            <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
-              style={{ display:'inline-flex', alignItems:'center', gap:9, background:'#7c3aed', color:'#fff', textDecoration:'none', padding:'13px 28px', borderRadius:10, fontSize:15.5, fontWeight:800, boxShadow:'0 6px 24px rgba(124,58,237,.32)', transition:'all .18s' }}
-              onMouseEnter={e=>{e.currentTarget.style.background='#6d28d9';e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 32px rgba(124,58,237,.38)';}}
-              onMouseLeave={e=>{e.currentTarget.style.background='#7c3aed';e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 6px 24px rgba(124,58,237,.32)';}}>
-              <MessageCircle size={17}/> Start for Free on WhatsApp
-            </a>
-            <a href="#pricing"
-              style={{ display:'inline-flex', alignItems:'center', gap:9, background:'#fff', color:'var(--gray-900)', textDecoration:'none', padding:'13px 24px', borderRadius:10, fontSize:15, fontWeight:700, border:'1.5px solid var(--gray-200)', boxShadow:'var(--shadow-sm)', transition:'all .18s' }}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor='#7c3aed';e.currentTarget.style.color='#7c3aed';}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--gray-200)';e.currentTarget.style.color='var(--gray-900)';}}>
-              View Pricing <ArrowRight size={15}/>
-            </a>
-          </motion.div>
-
-          {/* Quick badges */}
-          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:.35, duration:.5 }}
-            style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-            {[
-              { label:'ZIMSEC Aligned', color:'#7c3aed', bg:'#f5f3ff', border:'#ddd6fe' },
-              { label:'Cambridge Support', color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe' },
-              { label:'No App Needed', color:'#059669', bg:'#ecfdf5', border:'#a7f3d0' },
-              { label:'All Levels', color:'#d97706', bg:'#fffbeb', border:'#fde68a' },
-            ].map(b=>(
-              <div key={b.label} style={{ padding:'5px 13px', borderRadius:99, background:b.bg, border:`1px solid ${b.border}`, fontSize:12.5, fontWeight:700, color:b.color }}>
-                {b.label}
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Right — visual card stack */}
-        <div style={{ position:'relative', display:'flex', justifyContent:'center', alignItems:'center' }}>
-          {/* Main glow orb */}
-          <div style={{ position:'absolute', width:360, height:360, borderRadius:'50%', background:'radial-gradient(circle, rgba(124,58,237,.12) 0%, transparent 70%)' }} />
-
-          {/* Center card */}
-          <motion.div initial={{ opacity:0, scale:.92 }} animate={{ opacity:1, scale:1 }} transition={{ duration:.7, delay:.2, ease:[.4,0,.2,1] }}
-            style={{ width:320, background:'#fff', border:'1.5px solid #ddd6fe', borderRadius:24, padding:32, boxShadow:'0 24px 64px rgba(124,58,237,.14), 0 4px 16px rgba(0,0,0,.06)', position:'relative', zIndex:2 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
-              <div style={{ width:52, height:52, borderRadius:14, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden', boxShadow:'0 4px 16px rgba(124,58,237,.28)', flexShrink:0 }}>
-                <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo AI" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
-              </div>
-              <div>
-                <div style={{ fontSize:16, fontWeight:900, color:'var(--gray-900)' }}>Fundo AI</div>
-                <div style={{ fontSize:11.5, color:'var(--gray-500)', marginTop:1 }}>Your 24/7 Study Partner</div>
-              </div>
-              <div style={{ marginLeft:'auto', background:'#ecfdf5', border:'1px solid #a7f3d0', color:'#059669', borderRadius:99, padding:'3px 9px', fontSize:11, fontWeight:700 }}>● Live</div>
-            </div>
-            {[
-              { q:'Can you help with O Level Maths?', a:'Absolutely! I can solve equations step-by-step, explain concepts, and give you past paper questions. What topic shall we start with?', delay:0 },
-              { q:'Summarise this PDF for me', a:'Sure! Upload your PDF and I\'ll give you a clear summary with key points highlighted.', delay:.15 },
-            ].map((item, i) => (
-              <div key={i} style={{ marginBottom:12 }}>
-                <motion.div initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} transition={{ delay:.5 + i*.3, duration:.4 }}
-                  style={{ background:'var(--purple-bg)', borderRadius:'12px 12px 4px 12px', padding:'9px 13px', fontSize:12.5, color:'var(--purple-text)', fontWeight:600, marginBottom:7, display:'inline-block', maxWidth:'85%', float:'right', clear:'both' }}>
-                  {item.q}
-                </motion.div>
-                <div style={{ clear:'both' }} />
-                <motion.div initial={{ opacity:0, x:-20 }} animate={{ opacity:1, x:0 }} transition={{ delay:.7 + i*.3, duration:.4 }}
-                  style={{ background:'var(--gray-50)', border:'1px solid var(--gray-200)', borderRadius:'4px 12px 12px 12px', padding:'9px 13px', fontSize:12, color:'var(--gray-700)', marginBottom:4, display:'inline-block', maxWidth:'90%' }}>
-                  {item.a}
-                </motion.div>
-                <div style={{ clear:'both' }} />
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Floating cards */}
-          {[
-            { top:-28, left:-40, icon:Bot,    bg:'#f5f3ff', color:'#7c3aed', text:'AI Tutor',    sub:'24/7 help', delay:.4 },
-            { top:40,  right:-52, icon:Zap,   bg:'#fffbeb', color:'#d97706', text:'Instant',     sub:'Answers', delay:.5 },
-            { bottom:20, left:-50, icon:Award, bg:'#ecfdf5', color:'#059669', text:'All Levels',  sub:'P–University', delay:.6 },
-            { bottom:-24, right:-24, icon:Shield, bg:'#eff6ff', color:'#2563eb', text:'ZIMSEC', sub:'Aligned', delay:.7 },
-          ].map((c, i) => (
-            <motion.div key={i} initial={{ opacity:0, scale:.8 }} animate={{ opacity:1, scale:1 }} transition={{ delay:c.delay, duration:.4, type:'spring', stiffness:220, damping:14 }}
-              style={{
-                position:'absolute', top:c.top, bottom:c.bottom, left:c.left, right:c.right,
-                background:'#fff', border:`1.5px solid ${c.bg}`, borderRadius:14,
-                padding:'10px 14px', boxShadow:'0 8px 24px rgba(0,0,0,.10)',
-                display:'flex', alignItems:'center', gap:8, minWidth:130, zIndex:3,
-              }}>
-              <div style={{ width:34, height:34, borderRadius:9, background:c.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                <c.icon size={15} style={{ color:c.color }} />
-              </div>
-              <div>
-                <div style={{ fontSize:12, fontWeight:800, color:'var(--gray-900)' }}>{c.text}</div>
-                <div style={{ fontSize:10.5, color:'var(--gray-500)' }}>{c.sub}</div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Stats bar */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(255,255,255,.85)', backdropFilter:'blur(12px)', borderTop:'1px solid var(--gray-200)', padding:'24px clamp(16px,4vw,56px)' }}>
-        <div style={{ maxWidth:1180, margin:'0 auto', display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:24 }}>
-          <CountStat value={2040}  suffix="+" label="Active Students"   delay={0} />
-          <CountStat value={274}   suffix="+" label="Resources Shared"  delay={.08} />
-          <CountStat value={24}    suffix="/7" label="Always Available"  delay={.16} />
-          <CountStat value={5}     suffix=""  label="Education Levels"   delay={.24} />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ──────────────────────────── FEATURES ─────────────────────────── */
-function FeaturesSection() {
-  return (
-    <section id="features" style={{ padding:'100px clamp(16px,4vw,56px) 96px', background:'#fff' }}>
-      <div style={{ maxWidth:1180, margin:'0 auto' }}>
-        <motion.div initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:.5 }}
-          style={{ textAlign:'center', marginBottom:64 }}>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--purple-bg)', border:'1px solid var(--purple-border)', borderRadius:99, padding:'6px 18px', fontSize:12.5, fontWeight:700, color:'var(--purple-text)', marginBottom:18 }}>
-            <Sparkles size={12}/> All academic help — one smart app
-          </div>
-          <h2 style={{ fontSize:'clamp(1.9rem,4vw,3rem)', fontWeight:900, color:'var(--gray-900)', letterSpacing:'-.05em', lineHeight:1.15, marginBottom:16 }}>
-            Everything you need to <span className="italic-purple">excel academically</span>
-          </h2>
-          <p style={{ fontSize:16, color:'var(--gray-500)', lineHeight:1.75, maxWidth:580, margin:'0 auto' }}>
-            24 powerful academic tools, all accessible from WhatsApp. No downloads. No logins. Just results.
-          </p>
+    <section style={{ background:`linear-gradient(180deg, ${C.hero} 0%, #ffffff 85%)`, paddingTop:64, minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ maxWidth:760, margin:'0 auto', padding:'72px clamp(16px,4vw,32px) 0', textAlign:'center' }}>
+        {/* Badge */}
+        <motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} transition={{duration:.4}}
+          style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#ede8ff', border:'none', borderRadius:99, padding:'5px 16px', marginBottom:20 }}>
+          <span style={{ fontSize:12.5, fontWeight:700, color:C.purple }}>#1 AI Study Tool for Zimbabwe</span>
         </motion.div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:14 }}>
-          {FEATURES.map((f, i) => (
-            <motion.div key={f.title} initial={{ opacity:0, y:16 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true, margin:'-40px' }} transition={{ duration:.4, delay:(i%6)*.04, ease:[.4,0,.2,1] }}>
-              <div
-                className="card"
-                style={{ padding:'20px', cursor:'default', transition:'all .2s', display:'flex', alignItems:'flex-start', gap:13 }}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor=f.color+'50';e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow=`0 8px 28px ${f.color}18`;}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--gray-200)';e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='var(--shadow-sm)';}}
-              >
-                <div style={{ width:38, height:38, borderRadius:10, background:f.bg, border:`1px solid ${f.color}25`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:1 }}>
-                  <f.icon size={16} style={{ color:f.color }} />
-                </div>
-                <span style={{ fontSize:13.5, fontWeight:700, color:'var(--gray-800)', lineHeight:1.45 }}>{f.title}</span>
+        {/* Avatars + social proof */}
+        <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:.4,delay:.06}}
+          style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, marginBottom:28 }}>
+          <div style={{ display:'flex' }}>
+            {['#7c3aed','#059669','#2563eb','#d97706'].map((c,i)=>(
+              <div key={i} style={{ width:30, height:30, borderRadius:'50%', background:c, border:'2.5px solid #fff', marginLeft:i?-10:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'#fff', flexShrink:0 }}>
+                {['Z','T','K','R'][i]}
               </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ──────────────────────────── NEW UPDATES ───────────────────────── */
-function UpdatesSection() {
-  return (
-    <section id="updates" style={{ padding:'96px clamp(16px,4vw,56px)', background:'var(--gray-50)' }}>
-      <div style={{ maxWidth:1180, margin:'0 auto' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:72, alignItems:'center' }}>
-          {/* Left */}
-          <motion.div initial={{ opacity:0, x:-24 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} transition={{ duration:.55, ease:[.4,0,.2,1] }}>
-            <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'linear-gradient(135deg,#ecfdf5,#d1fae5)', border:'1px solid #a7f3d0', borderRadius:99, padding:'6px 18px', fontSize:12.5, fontWeight:700, color:'#065f46', marginBottom:20 }}>
-              <Rocket size={12}/> New Update!
-            </div>
-            <h2 style={{ fontSize:'clamp(1.8rem,3.5vw,2.8rem)', fontWeight:900, color:'var(--gray-900)', letterSpacing:'-.05em', lineHeight:1.15, marginBottom:18 }}>
-              Things have got a<br /><span className="italic-purple">little bit smarter now</span>
-            </h2>
-            <p style={{ fontSize:15.5, color:'var(--gray-600)', lineHeight:1.75, marginBottom:32 }}>
-              Fundo AI 2.0 ships with powerful new capabilities that make studying faster, more interactive, and more rewarding than ever before.
-            </p>
-            <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
-              style={{ display:'inline-flex', alignItems:'center', gap:8, background:'#7c3aed', color:'#fff', textDecoration:'none', padding:'11px 24px', borderRadius:10, fontSize:14.5, fontWeight:700, boxShadow:'0 4px 16px rgba(124,58,237,.28)', transition:'all .15s' }}
-              onMouseEnter={e=>e.currentTarget.style.background='#6d28d9'} onMouseLeave={e=>e.currentTarget.style.background='#7c3aed'}>
-              Try These Features <ArrowRight size={14}/>
-            </a>
-          </motion.div>
-
-          {/* Right — update cards */}
-          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-            {NEW_UPDATES.map((u, i) => (
-              <motion.div key={u.title} initial={{ opacity:0, x:24 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} transition={{ duration:.45, delay:i*.08, ease:[.4,0,.2,1] }}>
-                <div className="card" style={{ padding:'18px 22px', display:'flex', gap:16, alignItems:'flex-start', cursor:'default', transition:'all .2s' }}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor=u.color+'40';e.currentTarget.style.boxShadow=`0 6px 20px ${u.color}18`;e.currentTarget.style.transform='translateX(4px)';}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--gray-200)';e.currentTarget.style.boxShadow='var(--shadow-sm)';e.currentTarget.style.transform='none';}}>
-                  <div style={{ width:42, height:42, borderRadius:12, background:u.bg, border:`1.5px solid ${u.color}25`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <u.icon size={18} style={{ color:u.color }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize:14.5, fontWeight:800, color:'var(--gray-900)', marginBottom:4 }}>{u.title}</div>
-                    <div style={{ fontSize:13, color:'var(--gray-500)', lineHeight:1.6 }}>{u.desc}</div>
-                  </div>
-                </div>
-              </motion.div>
             ))}
           </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ──────────────────────────── LEVELS ────────────────────────────── */
-function LevelsSection() {
-  return (
-    <section style={{ padding:'96px clamp(16px,4vw,56px)', background:'#fff' }}>
-      <div style={{ maxWidth:1180, margin:'0 auto' }}>
-        <motion.div initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:.5 }}
-          style={{ textAlign:'center', marginBottom:56 }}>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--purple-bg)', border:'1px solid var(--purple-border)', borderRadius:99, padding:'6px 18px', fontSize:12.5, fontWeight:700, color:'var(--purple-text)', marginBottom:18 }}>
-            <GraduationCap size={12}/> Supporting all levels
-          </div>
-          <h2 style={{ fontSize:'clamp(1.9rem,4vw,2.8rem)', fontWeight:900, color:'var(--gray-900)', letterSpacing:'-.05em', marginBottom:12 }}>
-            From classroom to career,<br /><span className="italic-purple">we've got you covered</span>
-          </h2>
-          <p style={{ fontSize:15.5, color:'var(--gray-500)', lineHeight:1.7, maxWidth:540, margin:'0 auto' }}>
-            Whether you're in Grade 1 or preparing for university, Fundo AI adapts to your level and curriculum.
-          </p>
+          <span style={{ fontSize:14, color:C.gray500 }}>Used by <strong style={{ color:C.gray900 }}>2,000+</strong> students to study smarter, not longer.</span>
         </motion.div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:16 }}>
-          {LEVELS.map((lv, i) => (
-            <motion.div key={lv.label} initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:.45, delay:i*.08, ease:[.4,0,.2,1] }}>
-              <div className="card card-hover" style={{ padding:'28px 20px', textAlign:'center' }}>
-                <div style={{ width:52, height:52, borderRadius:14, background:lv.bg, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px' }}>
-                  <lv.icon size={22} style={{ color:lv.color }} />
-                </div>
-                <div style={{ fontSize:16, fontWeight:800, color:'var(--gray-900)', marginBottom:7 }}>{lv.label}</div>
-                <div style={{ fontSize:12.5, color:'var(--gray-500)', lineHeight:1.5 }}>{lv.desc}</div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+        {/* Headline */}
+        <motion.h1 initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{duration:.55,delay:.1,ease:[.4,0,.2,1]}}
+          style={{ fontSize:'clamp(2.8rem,6vw,4.2rem)', fontWeight:900, color:C.gray900, lineHeight:1.08, letterSpacing:'-.05em', marginBottom:22 }}>
+          Study Smarter with AI.<br />
+          Remember More.{' '}
+          <span style={{ ...serif, fontSize:'clamp(2.8rem,6vw,4.2rem)', fontWeight:900 }}>Stress Less</span>
+        </motion.h1>
 
-/* ──────────────────────────── PRICING ───────────────────────────── */
-function PricingSection() {
-  return (
-    <section id="pricing" style={{ padding:'100px clamp(16px,4vw,56px) 96px', background:'var(--gray-50)' }}>
-      <div style={{ maxWidth:1180, margin:'0 auto' }}>
-        <motion.div initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:.5 }}
-          style={{ textAlign:'center', marginBottom:60 }}>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--purple-bg)', border:'1px solid var(--purple-border)', borderRadius:99, padding:'6px 18px', fontSize:12.5, fontWeight:700, color:'var(--purple-text)', marginBottom:18 }}>
-            <Star size={12} fill="currentColor"/> Simple, affordable pricing
-          </div>
-          <h2 style={{ fontSize:'clamp(1.9rem,4vw,3rem)', fontWeight:900, color:'var(--gray-900)', letterSpacing:'-.05em', lineHeight:1.15, marginBottom:14 }}>
-            Invest in your <span className="italic-purple">academic future</span>
-          </h2>
-          <p style={{ fontSize:15.5, color:'var(--gray-500)', lineHeight:1.7, maxWidth:480, margin:'0 auto' }}>
-            All plans include WhatsApp access — no app downloads, no complicated setup. Just open WhatsApp and start learning.
-          </p>
-        </motion.div>
+        {/* Subheading */}
+        <motion.p initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:.5,delay:.18}}
+          style={{ fontSize:'clamp(1rem,2vw,1.15rem)', color:C.gray500, lineHeight:1.75, maxWidth:560, margin:'0 auto 36px' }}>
+          Turn any question, past paper, or topic into a complete AI study session — so you understand more, remember longer, and stress less.
+        </motion.p>
 
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20, alignItems:'start' }}>
-          {PRICING.map((plan, i) => {
-            const isPro = plan.name === 'Pro';
-            return (
-              <motion.div key={plan.name} initial={{ opacity:0, y:24 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:.5, delay:i*.1, ease:[.4,0,.2,1] }}>
-                <div style={{
-                  background:'#fff', border:`2px solid ${isPro ? plan.color : plan.border}`,
-                  borderRadius:20, padding:isPro?'36px 28px':'28px',
-                  boxShadow: isPro ? `0 20px 56px ${plan.color}25, 0 4px 16px rgba(0,0,0,.06)` : 'var(--shadow)',
-                  transform: isPro ? 'scale(1.04)' : 'none',
-                  position:'relative', overflow:'hidden',
-                }}>
-                  {/* Top accent */}
-                  <div style={{ position:'absolute', top:0, left:0, right:0, height:4, background:`linear-gradient(90deg, ${plan.color}, ${plan.color}80)` }} />
-
-                  {plan.badge && (
-                    <div style={{ position:'absolute', top:18, right:18, background:plan.color, color:'#fff', borderRadius:99, padding:'3px 12px', fontSize:11, fontWeight:800 }}>
-                      {plan.badge}
-                    </div>
-                  )}
-
-                  <div style={{ marginBottom:20 }}>
-                    <div style={{ fontSize:13.5, fontWeight:700, color:plan.color, letterSpacing:'.5px', textTransform:'uppercase', marginBottom:8 }}>{plan.name}</div>
-                    <div style={{ display:'flex', alignItems:'flex-end', gap:4, marginBottom:8 }}>
-                      <span style={{ fontSize:'clamp(3rem,5vw,4rem)', fontWeight:900, letterSpacing:'-3px', color:'var(--gray-900)', lineHeight:1 }}>${plan.price}</span>
-                      <span style={{ fontSize:14, color:'var(--gray-400)', fontWeight:500, paddingBottom:8 }}>/month</span>
-                    </div>
-                    <p style={{ fontSize:13, color:'var(--gray-500)', lineHeight:1.55 }}>{plan.tagline}</p>
-                  </div>
-
-                  <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:28 }}>
-                    {plan.features.map(f => (
-                      <div key={f} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ width:20, height:20, borderRadius:'50%', background:plan.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                          <Check size={11} style={{ color:plan.color }} strokeWidth={3} />
-                        </div>
-                        <span style={{ fontSize:13.5, color:'var(--gray-700)', fontWeight:500 }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
-                    style={{
-                      display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                      background: isPro ? plan.color : 'transparent',
-                      color: isPro ? '#fff' : plan.color,
-                      border: `2px solid ${plan.color}`,
-                      textDecoration:'none', padding:'12px', borderRadius:11,
-                      fontSize:14, fontWeight:800, transition:'all .18s',
-                      boxShadow: isPro ? `0 4px 16px ${plan.color}35` : 'none',
-                    }}
-                    onMouseEnter={e=>{e.currentTarget.style.background=plan.color;e.currentTarget.style.color='#fff';e.currentTarget.style.transform='translateY(-1px)';}}
-                    onMouseLeave={e=>{e.currentTarget.style.background=isPro?plan.color:'transparent';e.currentTarget.style.color=isPro?'#fff':plan.color;e.currentTarget.style.transform='none';}}>
-                    {plan.cta} <ArrowRight size={14}/>
-                  </a>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* "Study Anytime" callout */}
-        <motion.div initial={{ opacity:0, y:20 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:.5, delay:.3 }}
-          style={{ marginTop:40, background:'linear-gradient(135deg,#7c3aed,#6d28d9)', borderRadius:20, padding:'36px 40px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:20, boxShadow:'0 12px 40px rgba(124,58,237,.3)' }}>
-          <div>
-            <div style={{ fontSize:'clamp(1.3rem,2.5vw,1.8rem)', fontWeight:900, color:'#fff', marginBottom:6, letterSpacing:'-.02em' }}>Study Anytime. Anywhere. On Any Device.</div>
-            <p style={{ fontSize:14.5, color:'rgba(255,255,255,.75)', lineHeight:1.6 }}>WhatsApp on phone, tablet, or desktop — Fundo AI works everywhere.</p>
-          </div>
+        {/* CTAs */}
+        <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:.45,delay:.24}}
+          style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap', marginBottom:56 }}>
           <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
-            style={{ display:'inline-flex', alignItems:'center', gap:9, background:'#fff', color:'#7c3aed', textDecoration:'none', padding:'13px 28px', borderRadius:11, fontSize:15, fontWeight:800, boxShadow:'0 4px 16px rgba(0,0,0,.15)', flexShrink:0, transition:'all .15s' }}
-            onMouseEnter={e=>e.currentTarget.style.transform='translateY(-2px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>
-            <MessageCircle size={16}/> Start Now — It's Free
+            style={{ display:'inline-flex', alignItems:'center', gap:9, background:C.purple, color:'#fff', textDecoration:'none', padding:'13px 28px', borderRadius:9, fontSize:15.5, fontWeight:700, boxShadow:`0 4px 20px rgba(124,58,237,.30)`, transition:'all .18s' }}
+            onMouseEnter={e=>{e.currentTarget.style.background=C.purpleDk;e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 28px rgba(124,58,237,.36)';}}
+            onMouseLeave={e=>{e.currentTarget.style.background=C.purple;e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow=`0 4px 20px rgba(124,58,237,.30)`;}}>
+            Start My Free Study Session <ArrowRight size={16}/>
+          </a>
+          <a href="#how"
+            style={{ display:'inline-flex', alignItems:'center', gap:9, background:'#fff', color:C.gray700, textDecoration:'none', padding:'13px 24px', borderRadius:9, fontSize:15, fontWeight:600, border:`1.5px solid ${C.gray200}`, boxShadow:'0 1px 4px rgba(0,0,0,.06)', transition:'all .15s' }}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=C.purple;e.currentTarget.style.color=C.purple;}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=C.gray200;e.currentTarget.style.color=C.gray700;}}>
+            <Play size={14} fill="currentColor"/> Watch How It Works
+          </a>
+        </motion.div>
+      </div>
+
+      {/* App preview */}
+      <motion.div initial={{opacity:0,y:32}} animate={{opacity:1,y:0}} transition={{duration:.65,delay:.32,ease:[.4,0,.2,1]}}
+        style={{ width:'100%', maxWidth:940, margin:'0 auto', padding:'0 clamp(16px,4vw,40px) 0' }}>
+        <div style={{ background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:'20px 20px 0 0', boxShadow:'0 -4px 40px rgba(124,58,237,.10), 0 0 0 1px rgba(0,0,0,.05)', overflow:'hidden' }}>
+          {/* Browser chrome */}
+          <div style={{ background:'#f9fafb', borderBottom:`1px solid ${C.gray200}`, padding:'10px 16px', display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ display:'flex', gap:6 }}>
+              {['#ff5f57','#ffbd2e','#28c840'].map(c=><div key={c} style={{ width:11, height:11, borderRadius:'50%', background:c }}/>)}
+            </div>
+            <div style={{ flex:1, background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:6, padding:'4px 12px', display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ width:8, height:8, borderRadius:'50%', background:C.purple }}/>
+              <span style={{ fontSize:12, color:C.gray500, fontWeight:500 }}>fundo.ai — Your AI Study Partner</span>
+            </div>
+          </div>
+          {/* App body */}
+          <div style={{ display:'grid', gridTemplateColumns:'220px 1fr', minHeight:340 }}>
+            {/* Sidebar */}
+            <div style={{ background:'#faf9fe', borderRight:`1px solid ${C.gray200}`, padding:'16px 12px' }}>
+              <div style={{ fontSize:10.5, fontWeight:700, color:C.gray500, letterSpacing:'.8px', textTransform:'uppercase', marginBottom:10, paddingLeft:8 }}>My Study Sessions</div>
+              {['O-Level Maths 2024','ZIMSEC Biology','English Literature','Physics Past Papers','Chemistry Notes'].map((s,i)=>(
+                <div key={s} style={{ padding:'8px 10px', borderRadius:8, marginBottom:2, background:i===0?'#ede8ff':'transparent', cursor:'pointer' }}>
+                  <div style={{ fontSize:12.5, fontWeight:i===0?700:500, color:i===0?C.purple:C.gray700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{s}</div>
+                </div>
+              ))}
+              <div style={{ marginTop:16, padding:'8px 10px', borderRadius:8, border:`1px dashed ${C.gray200}`, display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
+                <span style={{ fontSize:18, color:C.purple, lineHeight:1 }}>+</span>
+                <span style={{ fontSize:12.5, color:C.purple, fontWeight:600 }}>New Session</span>
+              </div>
+            </div>
+            {/* Main chat area */}
+            <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:12 }}>
+              <div style={{ display:'flex', gap:8, alignItems:'center', borderBottom:`1px solid ${C.gray200}`, paddingBottom:12, marginBottom:4 }}>
+                {['AI Chat','AI Notes','Past Papers','Quiz','AI Tutor'].map((t,i)=>(
+                  <div key={t} style={{ padding:'5px 14px', borderRadius:99, fontSize:12.5, fontWeight:600, background:i===0?C.purple:'transparent', color:i===0?'#fff':C.gray500, border:`1px solid ${i===0?C.purple:C.gray200}`, cursor:'pointer' }}>{t}</div>
+                ))}
+              </div>
+              {[
+                { from:'user', text:'Can you help me with O-Level Maths, specifically surds and indices?' },
+                { from:'ai', text:'Absolutely! Let me break down surds and indices for you.\n\n**Surds** are irrational numbers that can\'t be simplified to remove a square root. For example, √2, √3, √5.\n\n**Key rules:**\n• √a × √b = √(ab)\n• √a ÷ √b = √(a/b)\n\nShall I give you some practice questions from the 2023 ZIMSEC paper?' },
+                { from:'user', text:'Yes please!' },
+              ].map((m,i)=>(
+                <div key={i} style={{ display:'flex', justifyContent:m.from==='user'?'flex-end':'flex-start' }}>
+                  <div style={{ maxWidth:'70%', padding:'10px 14px', borderRadius:m.from==='user'?'18px 18px 4px 18px':'18px 18px 18px 4px', background:m.from==='user'?C.purple:'#f3f4f6', color:m.from==='user'?'#fff':C.gray900, fontSize:13, lineHeight:1.55, whiteSpace:'pre-line', fontWeight:m.from==='user'?500:400 }}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ─────────────── TRUSTED BY ─────────────── */
+function TrustedBy() {
+  return (
+    <section style={{ background:'#fff', padding:'52px clamp(16px,4vw,56px)', borderTop:`1px solid ${C.gray200}` }}>
+      <div style={{ maxWidth:1100, margin:'0 auto', textAlign:'center' }}>
+        <p style={{ fontSize:11.5, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:C.gray500, marginBottom:32 }}>
+          Trusted by Students Across Zimbabwe's Top Institutions
+        </p>
+        <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'center', alignItems:'center', gap:'28px 48px', opacity:.55 }}>
+          {SCHOOLS.map(s => (
+            <span key={s} style={{ fontSize:14, fontWeight:800, color:C.gray700, letterSpacing:'-.2px', whiteSpace:'nowrap' }}>{s}</span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────── PAIN SECTION ─────────────── */
+function PainSection() {
+  return (
+    <section style={{ background:'#fff', padding:'96px clamp(16px,4vw,56px)' }}>
+      <div style={{ maxWidth:1100, margin:'0 auto' }}>
+        <motion.div initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5}}
+          style={{ textAlign:'center', marginBottom:56 }}>
+          <p style={{ fontSize:15, color:C.gray500, marginBottom:14 }}>Sound familiar?</p>
+          <h2 style={{ fontSize:'clamp(2rem,4vw,3rem)', fontWeight:900, color:C.gray900, letterSpacing:'-.05em', lineHeight:1.15 }}>
+            Studying feels <span style={serif}>harder</span><br/>
+            <span style={serif}>than it should</span>
+          </h2>
+        </motion.div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:20, marginBottom:28 }}>
+          {PAIN_CARDS.map((c, i) => (
+            <motion.div key={c.title} initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.4,delay:i*.08}}>
+              <div style={{ background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:20, padding:'28px 24px', height:'100%', boxShadow:'0 1px 4px rgba(0,0,0,.04)' }}>
+                <div style={{ width:52, height:52, borderRadius:14, background:'#f5f3ff', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:18 }}>
+                  <c.icon size={22} style={{ color:C.purple }} strokeWidth={1.5} />
+                </div>
+                <div style={{ fontSize:15.5, fontWeight:700, color:C.gray900, marginBottom:10 }}>{c.title}</div>
+                <p style={{ fontSize:13.5, color:C.gray500, lineHeight:1.65, fontStyle:'italic' }}>{c.quote}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Better way banner */}
+        <motion.div initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5,delay:.2}}
+          style={{ background:C.gray50, border:`1px solid ${C.gray200}`, borderRadius:20, padding:'28px 36px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:20 }}>
+          <p style={{ fontSize:17, color:C.gray700, maxWidth:600 }}>
+            <strong style={{ color:C.gray900 }}>There's a better way.</strong> Fundo AI turns chaos into a structured study system — automatically, on WhatsApp.
+          </p>
+          <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
+            style={{ display:'inline-flex', alignItems:'center', gap:8, background:C.purple, color:'#fff', textDecoration:'none', padding:'12px 24px', borderRadius:8, fontSize:14.5, fontWeight:700, boxShadow:`0 3px 12px rgba(124,58,237,.28)`, flexShrink:0, transition:'all .15s' }}
+            onMouseEnter={e=>e.currentTarget.style.background=C.purpleDk} onMouseLeave={e=>e.currentTarget.style.background=C.purple}>
+            Start My Free Study Session <ArrowRight size={15}/>
           </a>
         </motion.div>
       </div>
@@ -554,66 +336,482 @@ function PricingSection() {
   );
 }
 
-/* ──────────────────────────── BOTTOM FEATURES ───────────────────── */
-function BottomFeaturesSection() {
+/* ─────────────── FEATURES ─────────────── */
+function FeaturesSection() {
+  const [active, setActive] = useState(0);
+  const f = FEATURES[active];
+
+  const mockups = {
+    notes: (
+      <div style={{ background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:16, padding:24, boxShadow:'0 4px 20px rgba(0,0,0,.06)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
+          <span style={{ fontSize:14, fontWeight:700, color:C.gray900 }}>AI Notes</span>
+          <div style={{ display:'flex', gap:8, fontSize:11 }}>
+            {['A−','A','A+','↓'].map(b=><div key={b} style={{ padding:'3px 8px', borderRadius:4, background:C.gray100, color:C.gray600, fontWeight:600, cursor:'pointer' }}>{b}</div>)}
+          </div>
+        </div>
+        {['Introduction to Photosynthesis','Key Reactants & Products','The Light-Dependent Stage','The Calvin Cycle','Summary'].map((t,i)=>(
+          <div key={t} style={{ marginBottom:14 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:C.gray900, marginBottom:5 }}>{t}</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+              {[1,2].map(j=><div key={j} style={{ height:8, borderRadius:4, background:i===0&&j===1?'#ddd6fe':C.gray200, width:j===2?'65%':'100%' }}/>)}
+            </div>
+            {i===0&&<div style={{ marginTop:8, fontSize:11, color:C.purple, fontWeight:600, cursor:'pointer' }}>› Explain More — Page 1.2</div>}
+          </div>
+        ))}
+      </div>
+    ),
+    voice: (
+      <div style={{ background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:16, padding:28, textAlign:'center', boxShadow:'0 4px 20px rgba(0,0,0,.06)' }}>
+        <div style={{ width:80, height:80, borderRadius:'50%', background:'linear-gradient(135deg,#ecfdf5,#d1fae5)', border:'2px solid #a7f3d0', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px' }}>
+          <Mic size={32} style={{ color:'#059669' }} />
+        </div>
+        <div style={{ fontSize:15, fontWeight:700, color:C.gray900, marginBottom:8 }}>Voice Note Received</div>
+        <div style={{ background:C.gray50, borderRadius:12, padding:'12px 16px', marginBottom:16 }}>
+          <div style={{ fontSize:12, color:C.gray500, marginBottom:8 }}>Transcription</div>
+          <div style={{ fontSize:13, color:C.gray900, fontStyle:'italic' }}>"Explain the water cycle for me in simple terms"</div>
+        </div>
+        <div style={{ display:'flex', gap:4, justifyContent:'center', marginBottom:12 }}>
+          {[40,60,80,50,70,45,65,55,75,50].map((h,i)=><div key={i} style={{ width:5, height:h*0.4, borderRadius:3, background:C.purple }}/>)}
+        </div>
+        <div style={{ fontSize:12, color:C.gray500 }}>Fundo AI is preparing your voice reply...</div>
+      </div>
+    ),
+    papers: (
+      <div style={{ background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:16, padding:24, boxShadow:'0 4px 20px rgba(0,0,0,.06)' }}>
+        <div style={{ fontSize:14, fontWeight:700, color:C.gray900, marginBottom:16 }}>Past Papers Library</div>
+        {[['O-Level Maths','2023','ZIMSEC','#7c3aed'],['A-Level Biology','2022','ZIMSEC','#059669'],['O-Level Physics','2023','Cambridge','#2563eb'],['A-Level Chem','2021','ZIMSEC','#d97706']].map(([sub,yr,bd,c])=>(
+          <div key={sub} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 0', borderBottom:`1px solid ${C.gray200}` }}>
+            <div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.gray900 }}>{sub} — {yr}</div>
+              <div style={{ fontSize:11.5, color:C.gray500 }}>{bd} · With Marking Scheme</div>
+            </div>
+            <div style={{ padding:'3px 10px', borderRadius:99, background:c+'15', fontSize:11, fontWeight:700, color:c }}>Download</div>
+          </div>
+        ))}
+        <div style={{ textAlign:'center', paddingTop:12 }}>
+          <span style={{ fontSize:12.5, color:C.purple, fontWeight:600 }}>+ 270 more past papers</span>
+        </div>
+      </div>
+    ),
+    image: (
+      <div style={{ background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:16, overflow:'hidden', boxShadow:'0 4px 20px rgba(0,0,0,.06)' }}>
+        <div style={{ background:'#fffbeb', padding:'20px 24px', borderBottom:`1px solid ${C.gray200}`, display:'flex', gap:12, alignItems:'center' }}>
+          <div style={{ width:44, height:44, borderRadius:10, background:'#fde68a', display:'flex', alignItems:'center', justifyContent:'center' }}><Img size={20} style={{ color:'#d97706' }}/></div>
+          <div><div style={{ fontSize:13, fontWeight:700, color:C.gray900 }}>Image Uploaded</div><div style={{ fontSize:12, color:C.gray500 }}>Maths exam question — photo</div></div>
+        </div>
+        <div style={{ padding:'16px 24px' }}>
+          <div style={{ fontSize:12.5, color:C.gray500, marginBottom:8 }}>AI Analysis</div>
+          <div style={{ fontSize:13, color:C.gray900, lineHeight:1.65 }}>I can see this is a quadratic equation problem. The equation is <strong>2x² + 5x − 3 = 0</strong>. Let me solve it step by step using factorisation...</div>
+          <div style={{ marginTop:12, height:8, borderRadius:4, background:'#ddd6fe', width:'80%' }}/>
+          <div style={{ marginTop:6, height:8, borderRadius:4, background:C.gray200, width:'60%' }}/>
+        </div>
+      </div>
+    ),
+  };
+
   return (
-    <section style={{ padding:'80px clamp(16px,4vw,56px)', background:'#fff', borderTop:'1px solid var(--gray-200)' }}>
-      <div style={{ maxWidth:1180, margin:'0 auto' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:20 }}>
-          {BOTTOM_FEATURES.map((f, i) => (
-            <motion.div key={f.title} initial={{ opacity:0, y:16 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:.4, delay:i*.07, ease:[.4,0,.2,1] }}>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ width:52, height:52, borderRadius:14, background:f.bg, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px' }}>
-                  <f.icon size={22} style={{ color:f.color }} />
+    <section id="features" style={{ background:C.gray50, padding:'100px clamp(16px,4vw,56px)' }}>
+      <div style={{ maxWidth:1100, margin:'0 auto' }}>
+        <motion.div initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5}}
+          style={{ textAlign:'center', marginBottom:56 }}>
+          <h2 style={{ fontSize:'clamp(1.9rem,4vw,3rem)', fontWeight:900, color:C.gray900, letterSpacing:'-.05em', lineHeight:1.15 }}>
+            We turn your WhatsApp into a<br/>
+            <span style={serif}>complete AI study system</span>
+          </h2>
+          <p style={{ fontSize:16, color:C.gray500, lineHeight:1.75, maxWidth:540, margin:'20px auto 0' }}>
+            Send any question, past paper, topic, or file — Fundo AI builds your entire study session with notes, quizzes, summaries, and AI tutor included.
+          </p>
+        </motion.div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:52, alignItems:'start' }}>
+          {/* Feature tabs */}
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            {FEATURES.map((f, i) => (
+              <motion.div key={f.title} initial={{opacity:0,x:-16}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.4,delay:i*.07}}
+                onClick={()=>setActive(i)}
+                style={{ padding:'20px 24px', borderRadius:14, cursor:'pointer', border:`1px solid ${active===i?f.color+'40':C.gray200}`, background:active===i?'#fff':'transparent', borderLeft:`${active===i?'4px':'1px'} solid ${active===i?f.color:C.gray200}`, transition:'all .2s', boxShadow:active===i?`0 2px 16px rgba(0,0,0,.06)`:'none' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                  <div style={{ width:44, height:44, borderRadius:12, background:f.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <f.icon size={20} style={{ color:f.color }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize:16, fontWeight:700, color:active===i?C.gray900:C.gray700 }}>{f.title}</div>
+                    <div style={{ fontSize:13, color:active===i?f.color:C.gray500, fontWeight:500 }}>{f.sub}</div>
+                  </div>
                 </div>
-                <div style={{ fontSize:14.5, fontWeight:800, color:'var(--gray-900)', marginBottom:5 }}>{f.title}</div>
-                <div style={{ fontSize:13, color:'var(--gray-500)', lineHeight:1.5 }}>{f.desc}</div>
-              </div>
-            </motion.div>
-          ))}
+                <AnimatePresence>
+                  {active===i && (
+                    <motion.p initial={{height:0,opacity:0,marginTop:0}} animate={{height:'auto',opacity:1,marginTop:14}} exit={{height:0,opacity:0,marginTop:0}} transition={{duration:.25}}
+                      style={{ fontSize:14, color:C.gray500, lineHeight:1.65, overflow:'hidden' }}>
+                      {f.desc}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Mockup */}
+          <motion.div key={active} initial={{opacity:0,scale:.97}} animate={{opacity:1,scale:1}} transition={{duration:.3}}
+            style={{ position:'sticky', top:96 }}>
+            <div style={{ background:'linear-gradient(135deg,#f5f3ff,#ede8ff)', borderRadius:24, padding:24 }}>
+              {mockups[FEATURES[active].mockup]}
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>
   );
 }
 
-/* ──────────────────────────── CTA SECTION ───────────────────────── */
-function CTASection() {
-  return (
-    <section id="upload" style={{ padding:'100px clamp(16px,4vw,56px)', background:'linear-gradient(160deg,#1e1b4b 0%,#3730a3 50%,#7c3aed 100%)', position:'relative', overflow:'hidden' }}>
-      <div style={{ position:'absolute', top:-100, right:-100, width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(255,255,255,.06) 0%, transparent 70%)', pointerEvents:'none' }} />
-      <div style={{ position:'absolute', bottom:-80, left:-80, width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(167,243,208,.08) 0%, transparent 70%)', pointerEvents:'none' }} />
+/* ─────────────── HOW IT WORKS ─────────────── */
+function HowItWorks() {
+  const [active, setActive] = useState(0);
 
-      <div style={{ maxWidth:860, margin:'0 auto', textAlign:'center', position:'relative', zIndex:1 }}>
-        <motion.div initial={{ opacity:0, y:24 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ duration:.55 }}>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(255,255,255,.12)', border:'1px solid rgba(255,255,255,.2)', borderRadius:99, padding:'7px 18px', fontSize:13, fontWeight:700, color:'rgba(255,255,255,.9)', marginBottom:28 }}>
-            <Star size={13} fill="currentColor" style={{ color:'#fbbf24' }}/> Join thousands of students already winning with Fundo AI
+  const visuals = [
+    <div style={{ background:'linear-gradient(135deg,#f5f3ff,#ede8ff)', borderRadius:20, padding:40, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:280 }}>
+      <div style={{ background:'#fff', borderRadius:14, padding:'16px 28px', boxShadow:'0 4px 16px rgba(124,58,237,.12)', fontSize:20, fontWeight:800, color:C.gray900, display:'flex', alignItems:'center', gap:14 }}>
+        <MessageCircle size={26} style={{ color:C.purple }}/> New Session <span style={{ color:C.purple, fontSize:28 }}>+</span>
+      </div>
+      <div style={{ marginTop:20, fontSize:13, color:C.gray500 }}>One session per subject or exam topic</div>
+    </div>,
+    <div style={{ background:'linear-gradient(135deg,#ecfdf5,#d1fae5)', borderRadius:20, padding:28, minHeight:280 }}>
+      <div style={{ fontSize:13, fontWeight:700, color:'#065f46', marginBottom:16 }}>Upload Options</div>
+      {[['📄','PDF Past Paper'],['🖼','Photo of textbook'],['🎤','Voice question'],['🔗','YouTube video link'],['💬','Text question']].map(([e,l])=>(
+        <div key={l} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'#fff', borderRadius:10, marginBottom:8, boxShadow:'0 1px 4px rgba(0,0,0,.05)', fontSize:13.5, fontWeight:500, color:C.gray700 }}>
+          <span style={{ fontSize:20 }}>{e}</span>{l}
+        </div>
+      ))}
+    </div>,
+    <div style={{ background:'linear-gradient(135deg,#eff6ff,#dbeafe)', borderRadius:20, padding:28, minHeight:280 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
+        <div style={{ width:10, height:10, borderRadius:'50%', background:'#2563eb', animation:'pulse 1.5s infinite' }}/>
+        <span style={{ fontSize:13, fontWeight:700, color:'#1e40af' }}>AI Processing...</span>
+      </div>
+      {['Analysing subject & level','Generating structured notes','Building quiz questions','Creating marking guide','Preparing voice reply'].map((t,i)=>(
+        <div key={t} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:i<4?`1px solid #bfdbfe`:'none' }}>
+          <div style={{ width:18, height:18, borderRadius:'50%', background:i<3?'#2563eb':'#bfdbfe', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            {i<3 && <Check size={10} style={{ color:'#fff' }} strokeWidth={3}/>}
           </div>
-          <h2 style={{ fontSize:'clamp(2rem,4.5vw,3.4rem)', fontWeight:900, color:'#fff', letterSpacing:'-.05em', lineHeight:1.1, marginBottom:20 }}>
-            Ready to level up your<br />academic game?
-          </h2>
-          <p style={{ fontSize:16.5, color:'rgba(255,255,255,.75)', lineHeight:1.7, marginBottom:40, maxWidth:540, margin:'0 auto 40px' }}>
-            Contact us on WhatsApp and start your AI-powered study journey today. No downloads. No logins. Just results.
-          </p>
+          <span style={{ fontSize:13, color:i<3?C.gray900:C.gray500 }}>{t}</span>
+        </div>
+      ))}
+    </div>,
+    <div style={{ background:'linear-gradient(135deg,#fffbeb,#fef3c7)', borderRadius:20, padding:28, minHeight:280 }}>
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:20 }}>
+        {['AI Notes','Past Papers','Quiz','Flash Cards','Mock Exam','AI Tutor'].map(t=>(
+          <div key={t} style={{ padding:'6px 14px', borderRadius:99, background:t==='Quiz'?'#d97706':'#fff', color:t==='Quiz'?'#fff':'#92400e', border:'1px solid #fde68a', fontSize:12, fontWeight:700 }}>{t}</div>
+        ))}
+      </div>
+      {[['📊','Progress: 78% of syllabus covered'],['🏆','Quiz score: 8/10 — Great job!'],['📅','Next: Past paper 2022 Section B']].map(([e,t])=>(
+        <div key={t} style={{ display:'flex', gap:10, alignItems:'center', background:'#fff', borderRadius:10, padding:'10px 14px', marginBottom:8, fontSize:13, color:C.gray700, boxShadow:'0 1px 4px rgba(0,0,0,.05)' }}>
+          <span>{e}</span><span>{t}</span>
+        </div>
+      ))}
+    </div>,
+  ];
 
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
-            <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
-              style={{ display:'inline-flex', alignItems:'center', gap:11, background:'#fff', color:'#7c3aed', textDecoration:'none', padding:'16px 36px', borderRadius:12, fontSize:17, fontWeight:900, boxShadow:'0 8px 32px rgba(0,0,0,.2)', transition:'all .2s' }}
-              onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 14px 40px rgba(0,0,0,.25)';}}
-              onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 8px 32px rgba(0,0,0,.2)';}}>
-              <MessageCircle size={20} style={{ color:'#25D366' }}/>
-              wa.me/263719647303
-            </a>
-            <div style={{ display:'flex', gap:28, flexWrap:'wrap', justifyContent:'center', marginTop:8 }}>
-              {['WhatsApp Channel','Upload Materials','Admin Portal'].map((l, i) => (
-                <a key={l} href={i===0?'https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X':i===1?'/upload':'/admin'}
-                  target={i===0?'_blank':undefined} rel={i===0?'noopener noreferrer':undefined}
-                  style={{ fontSize:14, color:'rgba(255,255,255,.65)', textDecoration:'none', transition:'color .15s' }}
-                  onMouseEnter={e=>e.target.style.color='#fff'} onMouseLeave={e=>e.target.style.color='rgba(255,255,255,.65)'}>
-                  {l}
-                </a>
+  return (
+    <section id="how" style={{ background:'#fff', padding:'100px clamp(16px,4vw,56px)' }}>
+      <div style={{ maxWidth:1100, margin:'0 auto' }}>
+        <motion.div initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5}}
+          style={{ textAlign:'center', marginBottom:60 }}>
+          <h2 style={{ fontSize:'clamp(1.9rem,4vw,2.8rem)', fontWeight:900, color:C.gray900, letterSpacing:'-.05em' }}>
+            Upload anything.{' '}
+            <span style={serif}>Learn everything</span>
+          </h2>
+          <p style={{ fontSize:15.5, color:C.gray500, lineHeight:1.7, maxWidth:500, margin:'16px auto 0' }}>
+            Send any message on WhatsApp and Fundo AI instantly turns it into a complete, structured study system.
+          </p>
+        </motion.div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:56, alignItems:'start' }}>
+          {/* Steps list */}
+          <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+            {STEPS.map((s, i) => (
+              <motion.div key={s.n} initial={{opacity:0,x:-16}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.4,delay:i*.07}}
+                onClick={()=>setActive(i)}
+                style={{ display:'flex', gap:16, padding:'20px 0', borderLeft:`3px solid ${active===i?C.purple:'#e5e7eb'}`, paddingLeft:20, cursor:'pointer', transition:'all .2s' }}>
+                <div style={{ width:32, height:32, borderRadius:'50%', background:active===i?C.purple:C.gray200, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'background .2s' }}>
+                  <span style={{ fontSize:14, fontWeight:800, color:active===i?'#fff':C.gray500 }}>{s.n}</span>
+                </div>
+                <div>
+                  <div style={{ fontSize:16, fontWeight:700, color:active===i?C.gray900:C.gray500, marginBottom:active===i?6:0, transition:'all .2s' }}>{s.title}</div>
+                  <AnimatePresence>
+                    {active===i && (
+                      <motion.p initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} transition={{duration:.25}}
+                        style={{ fontSize:14, color:C.gray500, lineHeight:1.65, overflow:'hidden' }}>
+                        {s.desc}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Visual */}
+          <motion.div key={active} initial={{opacity:0,scale:.97}} animate={{opacity:1,scale:1}} transition={{duration:.3}}
+            style={{ position:'sticky', top:96 }}>
+            {visuals[active]}
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────── COMPARISON ─────────────── */
+function Comparison() {
+  return (
+    <section style={{ background:'#fff', padding:'96px clamp(16px,4vw,56px)', borderTop:`1px solid ${C.gray200}` }}>
+      <div style={{ maxWidth:1000, margin:'0 auto' }}>
+        <motion.div initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5}}
+          style={{ textAlign:'center', marginBottom:52 }}>
+          <h2 style={{ fontSize:'clamp(1.9rem,4vw,2.8rem)', fontWeight:900, color:C.gray900, letterSpacing:'-.05em', lineHeight:1.15 }}>
+            Study smarter.{' '}
+            <span style={serif}>Learn faster</span>
+          </h2>
+          <p style={{ fontSize:15.5, color:C.gray500, lineHeight:1.7, maxWidth:480, margin:'16px auto 0' }}>
+            Fundo AI turns your WhatsApp into a structured study system, so you can stop spinning and start learning.
+          </p>
+        </motion.div>
+
+        <div style={{ position:'relative', display:'grid', gridTemplateColumns:'1fr 1fr', gap:0 }}>
+          {/* Old way */}
+          <motion.div initial={{opacity:0,x:-24}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.5}}
+            style={{ background:'#fff5f5', borderRadius:'20px 0 0 20px', padding:'32px 36px', borderRight:'none' }}>
+            <div style={{ fontSize:18, fontWeight:800, color:C.gray900, marginBottom:28 }}>The Old Way</div>
+            {OLD_WAY.map(item => (
+              <div key={item} style={{ display:'flex', alignItems:'center', gap:14, marginBottom:16 }}>
+                <div style={{ width:28, height:28, borderRadius:'50%', background:'#fee2e2', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <XIcon size={13} style={{ color:'#ef4444' }} strokeWidth={3}/>
+                </div>
+                <div style={{ fontSize:14.5, color:C.gray700, background:'#fff', borderRadius:99, padding:'8px 18px', boxShadow:'0 1px 4px rgba(0,0,0,.06)', flex:1, textAlign:'center' }}>
+                  {item}
+                </div>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Centre brain */}
+          <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:2 }}>
+            <div style={{ width:52, height:52, borderRadius:'50%', background:'#fff', border:`3px solid ${C.gray200}`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(0,0,0,.10)' }}>
+              <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:32, height:32, objectFit:'cover', borderRadius:'50%' }} onError={e=>{e.target.style.display='none';}}/>
+            </div>
+          </div>
+
+          {/* New way */}
+          <motion.div initial={{opacity:0,x:24}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.5,delay:.08}}
+            style={{ background:'#f0fdf4', borderRadius:'0 20px 20px 0', padding:'32px 36px' }}>
+            <div style={{ fontSize:18, fontWeight:800, color:C.gray900, marginBottom:28 }}>The Fundo AI Way</div>
+            {NEW_WAY.map(item => (
+              <div key={item} style={{ display:'flex', alignItems:'center', gap:14, marginBottom:16 }}>
+                <div style={{ width:28, height:28, borderRadius:'50%', background:'#dcfce7', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <Check size={13} style={{ color:'#16a34a' }} strokeWidth={3}/>
+                </div>
+                <div style={{ fontSize:14.5, color:C.gray700, background:'#fff', borderRadius:99, padding:'8px 18px', boxShadow:'0 1px 4px rgba(0,0,0,.06)', flex:1, textAlign:'center' }}>
+                  {item}
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────── WHO IS IT FOR ─────────────── */
+function WhoSection() {
+  const [tab, setTab] = useState(0);
+  const t = WHO_TABS[tab];
+  return (
+    <section style={{ background:C.gray50, padding:'96px clamp(16px,4vw,56px)' }}>
+      <div style={{ maxWidth:1100, margin:'0 auto' }}>
+        <motion.div initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5}}
+          style={{ textAlign:'center', marginBottom:52 }}>
+          <h2 style={{ fontSize:'clamp(1.9rem,4vw,2.8rem)', fontWeight:900, color:C.gray900, letterSpacing:'-.05em' }}>
+            Built for <span style={serif}>every student</span>
+          </h2>
+        </motion.div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:0, background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:20, overflow:'hidden', boxShadow:'0 4px 20px rgba(0,0,0,.05)' }}>
+          {/* Tabs */}
+          <div style={{ borderRight:`1px solid ${C.gray200}`, padding:8 }}>
+            {WHO_TABS.map((w, i) => (
+              <button key={w.label} onClick={()=>setTab(i)}
+                style={{ width:'100%', display:'block', padding:'16px 20px', border:'none', borderRadius:12, background:tab===i?'#f5f3ff':'transparent', cursor:'pointer', textAlign:'left', transition:'all .15s', marginBottom:2 }}>
+                <div style={{ fontSize:15, fontWeight:700, color:tab===i?C.purple:C.gray900 }}>{w.label}</div>
+                <div style={{ fontSize:12.5, color:tab===i?C.purple:C.gray500, marginTop:2 }}>{w.sub}</div>
+              </button>
+            ))}
+          </div>
+          {/* Content */}
+          <motion.div key={tab} initial={{opacity:0,x:10}} animate={{opacity:1,x:0}} transition={{duration:.3}}
+            style={{ padding:36, borderLeft:`4px solid ${t.color}` }}>
+            <div style={{ width:56, height:56, borderRadius:14, background:t.color+'15', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20 }}>
+              <t.icon size={24} style={{ color:t.color }} />
+            </div>
+            <div style={{ fontSize:24, fontWeight:900, color:C.gray900, marginBottom:16, letterSpacing:'-.03em' }}>{t.label}</div>
+            <p style={{ fontSize:14.5, color:C.gray500, lineHeight:1.75, marginBottom:24 }}>
+              Fundo AI gives {t.label.toLowerCase()} everything they need to succeed — from comprehensive curriculum support to real-time AI guidance, available 24/7 on WhatsApp.
+            </p>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              {t.features.map(f => (
+                <div key={f} style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <div style={{ width:22, height:22, borderRadius:'50%', background:t.color+'20', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <Check size={11} style={{ color:t.color }} strokeWidth={3}/>
+                  </div>
+                  <span style={{ fontSize:14.5, color:C.gray700 }}>{f}</span>
+                </div>
               ))}
             </div>
+            <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
+              style={{ display:'inline-flex', alignItems:'center', gap:8, marginTop:28, background:t.color, color:'#fff', textDecoration:'none', padding:'11px 22px', borderRadius:8, fontSize:14, fontWeight:700, boxShadow:`0 3px 12px ${t.color}35`, transition:'all .15s' }}
+              onMouseEnter={e=>e.currentTarget.style.opacity='.9'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+              Get Started as {t.label.split(' ')[0]} <ArrowRight size={14}/>
+            </a>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────── TOOL GRID ─────────────── */
+function ToolGrid() {
+  return (
+    <section id="features-grid" style={{ background:C.gray50, padding:'0 clamp(16px,4vw,56px) 96px' }}>
+      <div style={{ maxWidth:1100, margin:'0 auto' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+          {TOOLS.map((t, i) => (
+            <motion.div key={t.label} initial={{opacity:0,y:12}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.35,delay:i*.04}}>
+              <div style={{ background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:14, padding:'16px 18px', display:'flex', alignItems:'center', gap:12, boxShadow:'0 1px 4px rgba(0,0,0,.04)', transition:'all .2s', cursor:'default' }}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=t.color+'40';e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow=`0 6px 20px ${t.color}15`;}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=C.gray200;e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 1px 4px rgba(0,0,0,.04)';}}>
+                <div style={{ width:36, height:36, borderRadius:9, background:t.color+'15', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <t.icon size={16} style={{ color:t.color }} />
+                </div>
+                <span style={{ fontSize:13, fontWeight:600, color:C.gray800 }}>{t.label}</span>
+              </div>
+            </motion.div>
+          ))}
+          <motion.div initial={{opacity:0,y:12}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.35,delay:.48}}>
+            <a href="/#features" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'transparent', border:`1px solid ${C.gray200}`, borderRadius:14, padding:'16px 18px', textDecoration:'none', transition:'all .2s' }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=C.purple;e.currentTarget.style.color=C.purple;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=C.gray200;e.currentTarget.style.color=C.gray700;}}>
+              <span style={{ fontSize:13, fontWeight:700, color:'inherit' }}>View All</span> <ArrowRight size={13}/>
+            </a>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────── PRICING ─────────────── */
+const PLANS = [
+  { name:'Starter', price:2, color:'#2563eb', border:'#bfdbfe', bg:'#eff6ff', badge:null, features:['Basic AI chat & help','Homework support','Study resources access','5 PDF analyses/month','10 downloads/month'] },
+  { name:'Pro', price:5, color:C.purple, border:'#ddd6fe', bg:'#f5f3ff', badge:'Most Popular', features:['All Starter features','Advanced AI explanations','Full past paper library','Priority support','50 AI image credits'] },
+  { name:'Premium', price:10, color:'#d97706', border:'#fde68a', bg:'#fffbeb', badge:'Best Value', features:['All Pro features','AI mock exams','Personalised study plan','24/7 priority support','Unlimited downloads'] },
+];
+
+function Pricing() {
+  return (
+    <section id="pricing" style={{ background:'#fff', padding:'100px clamp(16px,4vw,56px)', borderTop:`1px solid ${C.gray200}` }}>
+      <div style={{ maxWidth:1000, margin:'0 auto' }}>
+        <motion.div initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5}}
+          style={{ textAlign:'center', marginBottom:56 }}>
+          <h2 style={{ fontSize:'clamp(1.9rem,4vw,2.8rem)', fontWeight:900, color:C.gray900, letterSpacing:'-.05em', lineHeight:1.15 }}>
+            Simple, affordable pricing<br/>
+            <span style={serif}>for every student</span>
+          </h2>
+          <p style={{ fontSize:15.5, color:C.gray500, lineHeight:1.7, maxWidth:440, margin:'16px auto 0' }}>
+            All plans work directly on WhatsApp. No downloads, no logins — just open WhatsApp and start learning.
+          </p>
+        </motion.div>
+
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, alignItems:'start' }}>
+          {PLANS.map((p, i) => {
+            const isPro = p.name==='Pro';
+            return (
+              <motion.div key={p.name} initial={{opacity:0,y:24}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.5,delay:i*.09}}>
+                <div style={{ background:'#fff', border:`2px solid ${isPro?p.color:p.border}`, borderRadius:20, padding:isPro?'36px 28px':'28px', position:'relative', transform:isPro?'scale(1.04)':'none', boxShadow:isPro?`0 20px 56px rgba(124,58,237,.18)`:'0 2px 8px rgba(0,0,0,.04)', overflow:'hidden' }}>
+                  {isPro && <div style={{ position:'absolute', top:0, left:0, right:0, height:4, background:`linear-gradient(90deg,${p.color},#8b5cf6)` }}/>}
+                  {p.badge && <div style={{ position:'absolute', top:isPro?20:14, right:16, background:p.color, color:'#fff', borderRadius:99, padding:'3px 12px', fontSize:11.5, fontWeight:800 }}>{p.badge}</div>}
+                  <div style={{ fontSize:12.5, fontWeight:700, color:p.color, letterSpacing:'.5px', textTransform:'uppercase', marginBottom:10 }}>{p.name}</div>
+                  <div style={{ display:'flex', alignItems:'flex-end', gap:4, marginBottom:20 }}>
+                    <span style={{ fontSize:'clamp(3rem,4vw,3.6rem)', fontWeight:900, letterSpacing:'-3px', color:C.gray900, lineHeight:1 }}>${p.price}</span>
+                    <span style={{ fontSize:14, color:C.gray500, paddingBottom:8 }}>/month</span>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:24 }}>
+                    {p.features.map(f=>(
+                      <div key={f} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <div style={{ width:20, height:20, borderRadius:'50%', background:p.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                          <Check size={11} style={{ color:p.color }} strokeWidth={3}/>
+                        </div>
+                        <span style={{ fontSize:13.5, color:C.gray700 }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
+                    style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:isPro?p.color:'transparent', color:isPro?'#fff':p.color, border:`2px solid ${p.color}`, textDecoration:'none', padding:'12px', borderRadius:10, fontSize:14.5, fontWeight:700, transition:'all .18s' }}
+                    onMouseEnter={e=>{e.currentTarget.style.background=p.color;e.currentTarget.style.color='#fff';}}
+                    onMouseLeave={e=>{e.currentTarget.style.background=isPro?p.color:'transparent';e.currentTarget.style.color=isPro?'#fff':p.color;}}>
+                    Get {p.name} <ArrowRight size={14}/>
+                  </a>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────── DARK CTA ─────────────── */
+function DarkCTA() {
+  return (
+    <section id="upload-cta" style={{ background:C.dark, padding:'96px clamp(16px,4vw,56px)', overflow:'hidden', position:'relative' }}>
+      <div style={{ position:'absolute', top:-80, right:-80, width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,.18) 0%,transparent 70%)', pointerEvents:'none' }}/>
+      <div style={{ maxWidth:1100, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 1fr', gap:56, alignItems:'center' }}>
+        <motion.div initial={{opacity:0,x:-20}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.55}}>
+          <h2 style={{ fontSize:'clamp(1.9rem,4vw,3rem)', fontWeight:900, color:'#fff', lineHeight:1.15, letterSpacing:'-.04em', marginBottom:20 }}>
+            Your next study session<br />can be smarter.
+          </h2>
+          <p style={{ fontSize:15.5, color:'rgba(255,255,255,.65)', lineHeight:1.75, marginBottom:32 }}>
+            Turn lectures, readings, and past papers into a complete AI study system in minutes — right inside WhatsApp.
+          </p>
+          <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
+            style={{ display:'inline-flex', alignItems:'center', gap:9, background:C.purple, color:'#fff', textDecoration:'none', padding:'13px 28px', borderRadius:9, fontSize:15.5, fontWeight:700, boxShadow:'0 4px 24px rgba(124,58,237,.4)', transition:'all .18s' }}
+            onMouseEnter={e=>{e.currentTarget.style.background=C.purpleDk;e.currentTarget.style.transform='translateY(-2px)';}}
+            onMouseLeave={e=>{e.currentTarget.style.background=C.purple;e.currentTarget.style.transform='none';}}>
+            <MessageCircle size={17}/> Create Free Study Session <ArrowRight size={15}/>
+          </a>
+        </motion.div>
+
+        {/* Mockup */}
+        <motion.div initial={{opacity:0,x:20}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.55,delay:.1}}>
+          <div style={{ background:'rgba(255,255,255,.07)', border:'1px solid rgba(255,255,255,.12)', borderRadius:20, padding:24, backdropFilter:'blur(10px)' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div style={{ width:28, height:28, borderRadius:8, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden' }}>
+                  <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
+                </div>
+                <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,.9)' }}>fundoai</span>
+              </div>
+              <div style={{ background:C.purple, color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:12, fontWeight:700 }}>New Session +</div>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap' }}>
+              {['Original Content','AI Notes','AI Summary','AI Quizzes','AI Tutor'].map((t,i)=>(
+                <div key={t} style={{ padding:'5px 12px', borderRadius:99, background:i===0?C.purple:'rgba(255,255,255,.08)', border:`1px solid ${i===0?C.purple:'rgba(255,255,255,.12)'}`, color:i===0?'#fff':'rgba(255,255,255,.6)', fontSize:12, fontWeight:600 }}>{t}</div>
+              ))}
+            </div>
+            {[85,60,75,45,90,55,70,40].map((w,i)=>(
+              <div key={i} style={{ height:8, borderRadius:4, background:'rgba(255,255,255,.12)', marginBottom:8, width:`${w}%` }}/>
+            ))}
           </div>
         </motion.div>
       </div>
@@ -621,45 +819,72 @@ function CTASection() {
   );
 }
 
-/* ──────────────────────────── FOOTER ────────────────────────────── */
+/* ─────────────── FOOTER ─────────────── */
 function Footer() {
+  const cols = [
+    { title:'Useful Links', links:[['Contact Us','/contact'],['Privacy Policy','/privacy'],['Terms of Service','/terms'],['Help Centre','/help']] },
+    { title:'Features', links:[['AI Past Papers','#features'],['AI Quiz Generator','#features'],['Voice Learning','#features'],['AI Tutor','#features'],['Image Solver','#features']] },
+    { title:'Subjects', links:[['O-Level Maths','#features'],['A-Level Biology','#features'],['English Literature','#features'],['ZIMSEC Sciences','#features'],['Computer Science','#features']] },
+    { title:'Support', links:[['Help Centre','/help'],['Contact Us','/contact'],['FAQs','/help'],['WhatsApp Us','https://wa.me/263719647303'],['Community','/upload']] },
+    { title:'Company', links:[['About FundoAI','/contact'],['Upload Materials','/upload'],['Admin Portal','/admin'],['WhatsApp Channel','https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X'],['fundoai.gleeze.com','https://fundoai.gleeze.com']] },
+  ];
+
   return (
-    <footer style={{ background:'var(--gray-900)', color:'#fff', padding:'56px clamp(16px,4vw,56px) 32px' }}>
-      <div style={{ maxWidth:1180, margin:'0 auto' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'2.5fr 1fr 1fr 1fr', gap:48, marginBottom:48 }}>
+    <footer style={{ background:'#fff', borderTop:`1px solid ${C.gray200}`, padding:'56px clamp(16px,4vw,56px) 32px' }}>
+      <div style={{ maxWidth:1200, margin:'0 auto' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1.8fr repeat(5,1fr)', gap:32, marginBottom:48 }}>
+          {/* Brand col */}
           <div>
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
-              <div style={{ width:38, height:38, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <a href="/" style={{ display:'flex', alignItems:'center', gap:9, textDecoration:'none', marginBottom:16 }}>
+              <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
               </div>
-              <span style={{ fontSize:17, fontWeight:900 }}>Fundo<span style={{ color:'#8b5cf6' }}>AI</span></span>
-            </div>
-            <p style={{ fontSize:13.5, color:'#9ca3af', lineHeight:1.75, maxWidth:300, marginBottom:20 }}>
-              Zimbabwe's #1 AI-powered academic platform. Supporting every student from primary through to university via WhatsApp.
+              <span style={{ fontSize:17, fontWeight:900, color:C.gray900 }}>fundo<span style={{ color:C.purple }}>ai</span></span>
+            </a>
+            <p style={{ fontSize:13.5, color:C.gray500, lineHeight:1.7, maxWidth:260, marginBottom:20 }}>
+              The AI study tool for faster, more effective learning across Zimbabwe.
             </p>
-            <div style={{ fontSize:12.5, color:'#6b7280' }}>support.fundo.ai@gmail.com</div>
+            {/* Social icons */}
+            <div style={{ display:'flex', gap:10 }}>
+              {[
+                { label:'WA', href:'https://wa.me/263719647303', bg:'#25D366' },
+                { label:'CH', href:'https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X', bg:C.purple },
+                { label:'EM', href:'mailto:support.fundo.ai@gmail.com', bg:'#ea4335' },
+              ].map(s => (
+                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
+                  style={{ width:34, height:34, borderRadius:9, background:C.gray100, display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none', fontSize:11, fontWeight:800, color:C.gray600, transition:'all .15s' }}
+                  onMouseEnter={e=>{e.currentTarget.style.background=s.bg;e.currentTarget.style.color='#fff';}}
+                  onMouseLeave={e=>{e.currentTarget.style.background=C.gray100;e.currentTarget.style.color=C.gray600;}}>
+                  {s.label}
+                </a>
+              ))}
+            </div>
           </div>
-          {[
-            { title:'Product', links:['Features','Pricing','Upload','WhatsApp Bot'] },
-            { title:'Support', links:['Help Centre','Contact Us','Community','Privacy Policy'] },
-            { title:'Company', links:['About','Blog','Careers','Press Kit'] },
-          ].map(col => (
+
+          {/* Link columns */}
+          {cols.map(col => (
             <div key={col.title}>
-              <div style={{ fontSize:11.5, fontWeight:700, letterSpacing:'.6px', textTransform:'uppercase', color:'#6b7280', marginBottom:16 }}>{col.title}</div>
-              {col.links.map(l => (
-                <div key={l} style={{ marginBottom:10 }}>
-                  <a href="#" style={{ fontSize:13.5, color:'#d1d5db', textDecoration:'none', transition:'color .15s' }}
-                    onMouseEnter={e=>e.target.style.color='#fff'} onMouseLeave={e=>e.target.style.color='#d1d5db'}>{l}</a>
+              <div style={{ fontSize:11.5, fontWeight:700, letterSpacing:'.5px', textTransform:'uppercase', color:C.gray500, marginBottom:14 }}>{col.title}</div>
+              {col.links.map(([label, href]) => (
+                <div key={label} style={{ marginBottom:10 }}>
+                  <a href={href} target={href.startsWith('http')?'_blank':undefined}
+                    rel={href.startsWith('http')?'noopener noreferrer':undefined}
+                    style={{ fontSize:13.5, color:C.gray700, textDecoration:'none', transition:'color .15s' }}
+                    onMouseEnter={e=>e.target.style.color=C.purple} onMouseLeave={e=>e.target.style.color=C.gray700}>
+                    {label}
+                  </a>
                 </div>
               ))}
             </div>
           ))}
         </div>
-        <div style={{ borderTop:'1px solid #374151', paddingTop:28, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
-          <p style={{ fontSize:12.5, color:'#6b7280' }}>© 2026 Fundo AI. Created by Darrell Mucheri. All rights reserved.</p>
-          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-            {['LEARN','INNOVATE','EXCEL'].map((w, i) => (
-              <span key={w} style={{ fontSize:11.5, fontWeight:800, letterSpacing:'1.5px', color: i===1?'#8b5cf6':'#6b7280' }}>{w}</span>
+
+        <div style={{ borderTop:`1px solid ${C.gray200}`, paddingTop:24, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+          <p style={{ fontSize:12.5, color:C.gray500 }}>© Copyright 2026 Fundo AI. All Rights Reserved. Created by Darrell Mucheri.</p>
+          <div style={{ display:'flex', gap:16 }}>
+            {[['Privacy Policy','/privacy'],['Terms','/terms'],['Contact','/contact']].map(([l,h])=>(
+              <a key={l} href={h} style={{ fontSize:12.5, color:C.gray500, textDecoration:'none' }}
+                onMouseEnter={e=>e.target.style.color=C.purple} onMouseLeave={e=>e.target.style.color=C.gray500}>{l}</a>
             ))}
           </div>
         </div>
@@ -668,18 +893,21 @@ function Footer() {
   );
 }
 
-/* ──────────────────────────── PAGE ──────────────────────────────── */
+/* ─────────────── PAGE ─────────────── */
 export default function LandingPage() {
   return (
-    <div style={{ minHeight:'100vh', background:'#fff' }}>
+    <div style={{ minHeight:'100vh', fontFamily:"'Inter', system-ui, sans-serif" }}>
       <Navbar />
-      <HeroSection />
+      <Hero />
+      <TrustedBy />
+      <PainSection />
       <FeaturesSection />
-      <UpdatesSection />
-      <LevelsSection />
-      <PricingSection />
-      <BottomFeaturesSection />
-      <CTASection />
+      <HowItWorks />
+      <Comparison />
+      <WhoSection />
+      <ToolGrid />
+      <Pricing />
+      <DarkCTA />
       <Footer />
     </div>
   );
