@@ -126,16 +126,16 @@ function Navbar() {
           ))}
         </div>
 
-        <div style={{ display:'flex', alignItems:'center', gap:10 }} className="hide-mobile">
-          <a href="/admin" style={{ fontSize:14, fontWeight:500, color:C.gray500, textDecoration:'none', padding:'7px 16px', borderRadius:8, transition:'all .15s' }}
+        <div style={{ display:'flex', alignItems:'center', gap:8 }} className="hide-mobile">
+          <a href="/student" style={{ fontSize:14, fontWeight:500, color:C.gray500, textDecoration:'none', padding:'7px 14px', borderRadius:8, transition:'all .15s' }}
             onMouseEnter={e=>e.target.style.color=C.gray900} onMouseLeave={e=>e.target.style.color=C.gray500}>
-            Sign in
+            Student Login
           </a>
-          <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
+          <a href="/student"
             style={{ background:C.purple, color:'#fff', textDecoration:'none', padding:'8px 20px', borderRadius:8, fontSize:14, fontWeight:700, boxShadow:`0 2px 8px rgba(124,58,237,.25)`, transition:'all .15s' }}
             onMouseEnter={e=>{e.currentTarget.style.background=C.purpleDk;e.currentTarget.style.transform='translateY(-1px)';}}
             onMouseLeave={e=>{e.currentTarget.style.background=C.purple;e.currentTarget.style.transform='none';}}>
-            Try for Free
+            Try Web App Free
           </a>
         </div>
 
@@ -822,11 +822,11 @@ function DarkCTA() {
 /* ─────────────── FOOTER ─────────────── */
 function Footer() {
   const cols = [
-    { title:'Useful Links', links:[['Contact Us','/contact'],['Privacy Policy','/privacy'],['Terms of Service','/terms'],['Help Centre','/help']] },
-    { title:'Features', links:[['AI Past Papers','#features'],['AI Quiz Generator','#features'],['Voice Learning','#features'],['AI Tutor','#features'],['Image Solver','#features']] },
-    { title:'Subjects', links:[['O-Level Maths','#features'],['A-Level Biology','#features'],['English Literature','#features'],['ZIMSEC Sciences','#features'],['Computer Science','#features']] },
-    { title:'Support', links:[['Help Centre','/help'],['Contact Us','/contact'],['FAQs','/help'],['WhatsApp Us','https://wa.me/263719647303'],['Community','/upload']] },
-    { title:'Company', links:[['About FundoAI','/contact'],['Upload Materials','/upload'],['Admin Portal','/admin'],['WhatsApp Channel','https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X'],['fundoai.gleeze.com','https://fundoai.gleeze.com']] },
+    { title:'Student Portal', links:[['Sign Up Free','/student'],['Log In','/student'],['AI Chat','/student/app'],['Study Notes','/student/app'],['Materials Library','/student/app']] },
+    { title:'Features', links:[['AI Chat Tutor','#features'],['AI Image Generator','#features'],['Past Papers','#features'],['Voice Learning','#features'],['Study Notes','#features']] },
+    { title:'Subjects (ZIMSEC)', links:[['Mathematics','#features'],['Biology','#features'],['Chemistry','#features'],['Physics','#features'],['History & Geography','#features'],['English Language','#features'],['Commerce & Accounts','#features']] },
+    { title:'Subjects (Cambridge)', links:[['IGCSE Sciences','#features'],['O-Level Maths','#features'],['A-Level Biology','#features'],['A-Level Chemistry','#features'],['English Literature','#features']] },
+    { title:'Support', links:[['Help Centre','/help'],['Contact Us','/contact'],['Upload Materials','/upload'],['WhatsApp Us','https://wa.me/263719647303'],['Admin Portal','/admin'],['WA Channel','https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X']] },
   ];
 
   return (
