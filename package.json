@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@tavily/core": "^0.7.2",
-    "@whiskeysockets/baileys": "latest",
+    "@whiskeysockets/baileys": "6.7.23",
     "axios": "^1.7.9",
     "dotenv": "^16.6.1",
     "gifted-btns": "^1.0.2",
@@ -19,5 +19,8 @@
     "pdf-parse": "^1.1.1",
     "pdfkit": "^0.15.0",
     "pino": "^9.6.0"
+  },
+  "overrides": {
+    "protobufjs": "^7.2.5"
   }
 }
