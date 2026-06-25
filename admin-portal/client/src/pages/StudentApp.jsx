@@ -1,36 +1,58 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageCircle, Image, FileText, BookOpen, Send, Plus, LogOut, Sparkles,
-  Download, Search, X, ChevronDown, Loader, User, Zap, Crown, ArrowUpRight,
-  AlertCircle, ChevronRight, RefreshCw, Copy, Check,
+  MessageSquare, Image, FileText, BookOpen, ClipboardCheck, User,
+  Send, Plus, LogOut, Sparkles, Download, Search, Loader,
+  Zap, Crown, ArrowUpRight, AlertCircle, RefreshCw, Copy, Check,
+  ChevronRight, Brain, Trophy, Target, RotateCcw, PlayCircle,
+  Smartphone, School, GraduationCap, Star, BarChart3, Flame,
+  Menu, X, Moon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 
-const C = {
-  purple: '#7c3aed', purpleDk: '#6d28d9', purpleLt: '#f5f3ff',
-  gray900: '#111827', gray800: '#1f2937', gray700: '#374151',
-  gray600: '#4b5563', gray500: '#6b7280', gray400: '#9ca3af',
-  gray300: '#d1d5db', gray200: '#e5e7eb', gray100: '#f3f4f6', gray50: '#f9fafb',
-  green: '#059669', greenLt: '#ecfdf5',
+/* ─── Design tokens ─────────────────────────────────────────────────────────── */
+const BG = 'linear-gradient(135deg, #0c0521 0%, #150b35 40%, #0a1830 100%)';
+
+const glass = (extra = {}) => ({
+  background: 'rgba(255,255,255,0.06)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  ...extra,
+});
+
+const glassActive = (extra = {}) => ({
+  background: 'rgba(124,58,237,0.2)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(124,58,237,0.45)',
+  boxShadow: '0 0 20px rgba(124,58,237,0.25)',
+  ...extra,
+});
+
+const T = {
+  hi:   '#f0e9ff',
+  mid:  'rgba(240,233,255,0.65)',
+  lo:   'rgba(240,233,255,0.38)',
+  pur:  '#a78bfa',
+  purDk:'#7c3aed',
+  glow: 'rgba(124,58,237,0.4)',
 };
 
-const PLAN_COLOR = { FREE: '#6b7280', STARTER: '#2563eb', BASIC: '#059669', PRO: C.purple, PREMIUM: '#d97706' };
-const PLAN_ICON  = { FREE: '🆓', STARTER: '⚡', BASIC: '📘', PRO: '🚀', PREMIUM: '👑' };
+const PLAN_COLOR = { FREE: '#6b7280', STARTER: '#3b82f6', BASIC: '#10b981', PRO: '#a78bfa', PREMIUM: '#f59e0b' };
 
-const SUBJECTS_BY_LEVEL = {
-  primary: ['Mathematics','English','Shona','Ndebele','Science','Social Studies','Environmental Science'],
-  olevel:  ['Mathematics','English Language','English Literature','History','Geography','Biology','Chemistry','Physics','Combined Science','Agriculture','Commerce','Accounting','Economics','Business Studies','Computer Science','Food & Nutrition','Fashion & Fabrics','Art','Shona','Ndebele'],
-  alevel:  ['Mathematics','Pure Mathematics','Statistics','Further Mathematics','Physics','Chemistry','Biology','History','Geography','Economics','Business Studies','Accounting','Computer Science','English Literature'],
+const SUBJECTS = {
+  primary: ['Mathematics','English','Shona','Ndebele','Science','Social Studies'],
+  olevel:  ['Mathematics','English Language','Biology','Chemistry','Physics','Combined Science','History','Geography','Commerce','Accounting','Computer Science','Agriculture','Food & Nutrition'],
+  alevel:  ['Mathematics','Pure Mathematics','Further Mathematics','Physics','Chemistry','Biology','History','Geography','Economics','Business Studies','Accounting','Computer Science'],
 };
 
 function token() { return localStorage.getItem('fundo_token') || ''; }
-
 async function api(path, opts = {}) {
   const r = await fetch(path, {
     ...opts,
-    headers: { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json', ...(opts.headers || {}) },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
   const d = await r.json().catch(() => ({}));
@@ -38,115 +60,59 @@ async function api(path, opts = {}) {
   return d;
 }
 
-// ─── Usage progress bar ───────────────────────────────────────────────────────
-function UsageBar({ label, used, limit, color }) {
-  const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 100;
+/* ─── Usage bar ──────────────────────────────────────────────────────────────── */
+function UsageBar({ label, used, limit, icon: Icon }) {
+  const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   const isNear = pct >= 80;
+  const barColor = isNear ? '#ef4444' : '#7c3aed';
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-        <span style={{ fontSize: 11.5, color: C.gray500, fontWeight: 600 }}>{label}</span>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: isNear ? '#dc2626' : C.gray600 }}>
-          {used}/{limit === 9999 ? '∞' : limit}
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {Icon && <Icon size={11} style={{ color: T.lo }} />}
+          <span style={{ fontSize: 11.5, color: T.lo, fontWeight: 600 }}>{label}</span>
+        </div>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: isNear ? '#fca5a5' : T.mid }}>
+          {used} / {limit >= 9999 ? '∞' : limit}
         </span>
       </div>
-      <div style={{ height: 6, borderRadius: 99, background: C.gray200, overflow: 'hidden' }}>
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: .7, ease: 'easeOut' }}
-          style={{ height: '100%', borderRadius: 99, background: isNear ? '#dc2626' : color }}
-        />
+      <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.08)' }}>
+        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: .8, ease: 'easeOut' }}
+          style={{ height: '100%', borderRadius: 99, background: `linear-gradient(90deg, ${barColor}, ${isNear ? '#f87171' : '#a78bfa'})`,
+            boxShadow: pct > 0 ? `0 0 8px ${barColor}80` : 'none' }} />
       </div>
     </div>
   );
 }
 
-// ─── Message bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg, onCopy }) {
-  const [copied, setCopied] = useState(false);
-  const isUser = msg.role === 'user';
-
-  function handleCopy() {
-    navigator.clipboard.writeText(msg.content).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: .25 }}
-      style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 16 }}
-    >
-      {!isUser && (
-        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 10, marginTop: 4, overflow: 'hidden' }}>
-          <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
-        </div>
-      )}
-      <div style={{ maxWidth: '76%' }}>
-        <div style={{
-          padding: isUser ? '10px 16px' : '14px 18px',
-          borderRadius: isUser ? '18px 18px 4px 18px' : '4px 18px 18px 18px',
-          background: isUser ? C.purple : '#fff',
-          color: isUser ? '#fff' : C.gray900,
-          fontSize: 14, lineHeight: 1.65,
-          border: isUser ? 'none' : `1px solid ${C.gray200}`,
-          boxShadow: isUser ? '0 2px 12px rgba(124,58,237,.25)' : '0 1px 4px rgba(0,0,0,.05)',
-        }}>
-          {isUser ? (
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
-          ) : (
-            <div className="markdown-body">
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
-            </div>
-          )}
-        </div>
-        {!isUser && (
-          <button onClick={handleCopy}
-            style={{ marginTop: 4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: C.gray400, padding: '3px 6px', borderRadius: 6 }}>
-            {copied ? <><Check size={11} style={{ color: C.green }}/> Copied</> : <><Copy size={11}/> Copy</>}
-          </button>
-        )}
-      </div>
-      {isUser && (
-        <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.gray200, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 10, marginTop: 4 }}>
-          <User size={15} style={{ color: C.gray600 }} />
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
+/* ─── Tab definitions ────────────────────────────────────────────────────────── */
 const TABS = [
-  { id: 'chat',      icon: MessageCircle, label: 'AI Chat'       },
-  { id: 'image',     icon: Image,         label: 'Image Gen'     },
-  { id: 'notes',     icon: FileText,      label: 'Study Notes'   },
-  { id: 'materials', icon: BookOpen,      label: 'Materials'     },
+  { id: 'chat',      icon: MessageSquare,  label: 'AI Chat'       },
+  { id: 'image',     icon: Image,          label: 'Image Creator' },
+  { id: 'notes',     icon: FileText,       label: 'Study Notes'   },
+  { id: 'exam',      icon: ClipboardCheck, label: 'Mock Exam'     },
+  { id: 'materials', icon: BookOpen,       label: 'Materials'     },
+  { id: 'profile',   icon: User,           label: 'My Profile'    },
 ];
 
-// ─── Chat Tab ─────────────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════════════════════
+   AI CHAT TAB
+══════════════════════════════════════════════════════════════════════════════ */
 function ChatTab({ profile }) {
-  const [sessions, setSessions] = useState([{ id: 1, title: 'New Chat', messages: [] }]);
-  const [activeSession, setActiveSession] = useState(1);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [sessions, setSessions]     = useState([{ id: 1, title: 'New Chat', messages: [] }]);
+  const [active, setActive]         = useState(1);
+  const [input, setInput]           = useState('');
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
   const bottomRef = useRef();
+  const session = sessions.find(s => s.id === active) || sessions[0];
 
-  const session = sessions.find(s => s.id === activeSession);
-  const messages = session?.messages || [];
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [session?.messages, loading]);
 
   function newChat() {
     const id = Date.now();
     setSessions(s => [...s, { id, title: 'New Chat', messages: [] }]);
-    setActiveSession(id);
+    setActive(id);
     setError('');
   }
 
@@ -154,667 +120,975 @@ function ChatTab({ profile }) {
     const msg = input.trim();
     if (!msg || loading) return;
     setInput(''); setError('');
-
     const userMsg = { role: 'user', content: msg };
-    setSessions(s => s.map(sess => sess.id === activeSession
-      ? { ...sess, messages: [...sess.messages, userMsg], title: sess.messages.length === 0 ? msg.slice(0, 40) : sess.title }
-      : sess
-    ));
-
+    setSessions(s => s.map(sess => sess.id === active
+      ? { ...sess, messages: [...sess.messages, userMsg], title: sess.messages.length === 0 ? msg.slice(0, 38) : sess.title }
+      : sess));
     setLoading(true);
     try {
-      const history = messages.slice(-10);
+      const history = session.messages.slice(-10);
       const d = await api('/api/student/chat', { method: 'POST', body: { message: msg, history } });
-      const aiMsg = { role: 'assistant', content: d.reply };
-      setSessions(s => s.map(sess => sess.id === activeSession
-        ? { ...sess, messages: [...sess.messages, userMsg, aiMsg] }
-        : sess
-      ));
+      setSessions(s => s.map(sess => sess.id === active
+        ? { ...sess, messages: [...sess.messages, userMsg, { role: 'assistant', content: d.reply }] }
+        : sess));
     } catch (e) {
       setError(e.message);
-      setSessions(s => s.map(sess => sess.id === activeSession
-        ? { ...sess, messages: [...sess.messages, userMsg] }
-        : sess
-      ));
+      setSessions(s => s.map(sess => sess.id === active ? { ...sess, messages: [...sess.messages, userMsg] } : sess));
     } finally { setLoading(false); }
   }
 
   const STARTERS = [
-    '📐 Explain surds and indices for O-Level Maths',
-    '🧬 What is photosynthesis? (Form 3 Biology)',
-    '📝 Help me write an essay introduction',
-    '⚛️ Explain atomic structure for A-Level Chemistry',
-    '🗺️ Key causes of World War 1 (History)',
-    '💻 Write a simple Python program for me',
+    'Explain surds and indices for O-Level Maths',
+    'Photosynthesis step by step (Form 3 Biology)',
+    'How do I write a strong essay introduction?',
+    'Explain atomic structure for A-Level Chemistry',
+    'Key causes of World War 1 (Zimbabwe History)',
+    'Solve quadratic equations by completing the square',
   ];
 
   return (
     <div style={{ display: 'flex', height: '100%' }}>
-      {/* Sessions sidebar */}
-      <div style={{ width: 220, borderRight: `1px solid ${C.gray200}`, display: 'flex', flexDirection: 'column', background: C.gray50 }}>
-        <div style={{ padding: '12px 12px 8px' }}>
-          <button onClick={newChat} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 9, border: `1.5px dashed ${C.gray300}`, background: 'transparent', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: C.purple, transition: 'all .15s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = C.purpleLt; e.currentTarget.style.borderColor = C.purple; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.gray300; }}>
-            <Plus size={15}/> New Chat
-          </button>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
+      {/* Session list */}
+      <div style={{ width: 210, borderRight: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', padding: '12px 8px', gap: 4, flexShrink: 0 }}>
+        <button onClick={newChat} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 10, border: '1px dashed rgba(167,139,250,0.4)', background: 'transparent', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: T.pur, marginBottom: 8, transition: 'all .18s', width: '100%' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.12)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+          <Plus size={14} /> New Chat
+        </button>
+        <div style={{ overflowY: 'auto', flex: 1 }}>
           {sessions.map(s => (
-            <button key={s.id} onClick={() => setActiveSession(s.id)}
-              style={{ width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', marginBottom: 2, fontSize: 12.5, fontWeight: activeSession === s.id ? 700 : 500, color: activeSession === s.id ? C.purple : C.gray700, background: activeSession === s.id ? C.purpleLt : 'transparent', transition: 'all .15s', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {s.title}
+            <button key={s.id} onClick={() => setActive(s.id)} style={{ width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 9, border: 'none', cursor: 'pointer', marginBottom: 2, fontSize: 12, fontWeight: active === s.id ? 700 : 500, transition: 'all .15s', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              background: active === s.id ? 'rgba(124,58,237,0.2)' : 'transparent', color: active === s.id ? T.pur : T.lo }}>
+              <MessageSquare size={12} style={{ marginRight: 6 }} />{s.title}
             </button>
           ))}
         </div>
       </div>
 
       {/* Chat area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-          {messages.length === 0 ? (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'hidden', boxShadow: '0 8px 32px rgba(124,58,237,.3)' }}>
+          {session.messages.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
+              <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200 }}
+                style={{ width: 70, height: 70, borderRadius: '50%', background: 'linear-gradient(135deg,#7c3aed,#a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, boxShadow: '0 0 40px rgba(124,58,237,0.5)', overflow: 'hidden' }}>
                 <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
-              </div>
-              <h3 style={{ fontSize: 22, fontWeight: 900, color: C.gray900, marginBottom: 8 }}>
-                Hi {profile?.name?.split(' ')[0] || 'there'}! 👋
+              </motion.div>
+              <h3 style={{ fontSize: 22, fontWeight: 900, color: T.hi, marginBottom: 8 }}>
+                Hi {profile?.name?.split(' ')[0] || 'there'}!
               </h3>
-              <p style={{ fontSize: 15, color: C.gray500, lineHeight: 1.6, maxWidth: 420, marginBottom: 28 }}>
-                I'm Fundo AI — your personal study assistant for ZIMSEC and Cambridge. Ask me anything!
+              <p style={{ fontSize: 14, color: T.mid, lineHeight: 1.7, maxWidth: 400, marginBottom: 32 }}>
+                Ask me anything — maths, sciences, history, essays — I'm tuned for ZIMSEC and Cambridge.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, maxWidth: 560 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, maxWidth: 540 }}>
                 {STARTERS.map(s => (
-                  <button key={s} onClick={() => { setInput(s.slice(2).trim()); }}
-                    style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.gray200}`, background: '#fff', cursor: 'pointer', fontSize: 12.5, color: C.gray700, textAlign: 'left', transition: 'all .15s', lineHeight: 1.5 }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = C.purple; e.currentTarget.style.background = C.purpleLt; e.currentTarget.style.color = C.purple; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = C.gray200; e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = C.gray700; }}>
+                  <motion.button key={s} onClick={() => setInput(s)} whileHover={{ scale: 1.02 }} whileTap={{ scale: .98 }}
+                    style={{ padding: '11px 14px', borderRadius: 12, ...glass(), cursor: 'pointer', fontSize: 12.5, color: T.mid, textAlign: 'left', lineHeight: 1.5, fontFamily: 'inherit', transition: 'all .15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.2)'; e.currentTarget.style.color = T.pur; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = T.mid; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}>
                     {s}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
           ) : (
             <>
-              {messages.map((m, i) => <MessageBubble key={i} msg={m} />)}
-              {loading && (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', background: '#fff', borderRadius: '4px 18px 18px 18px', border: `1px solid ${C.gray200}`, width: 'fit-content', boxShadow: '0 1px 4px rgba(0,0,0,.05)' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                    <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
-                  </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {[0,1,2].map(i => (
-                      <motion.div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: C.purple }}
-                        animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: .8, delay: i * .15 }} />
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-              {error && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, fontSize: 13, color: '#dc2626', marginTop: 8 }}>
-                  <AlertCircle size={14}/> {error}
-                </div>
-              )}
+              {session.messages.map((m, i) => <ChatBubble key={i} msg={m} />)}
+              {loading && <TypingIndicator />}
+              {error && <ErrorRow msg={error} />}
               <div ref={bottomRef} />
             </>
           )}
         </div>
 
-        {/* Input */}
-        <div style={{ padding: '16px 24px', borderTop: `1px solid ${C.gray200}`, background: '#fff' }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: C.gray50, border: `1.5px solid ${C.gray200}`, borderRadius: 14, padding: '10px 14px', transition: 'border .15s' }}
-            onFocus={() => {}} >
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
+        {/* Input bar */}
+        <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', ...glass(), borderRadius: 14, padding: '10px 14px', transition: 'border .18s', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <textarea value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder="Ask anything — maths, science, history, essays…"
-              rows={1}
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: C.gray900, resize: 'none', lineHeight: 1.6, maxHeight: 120, fontFamily: 'inherit' }}
-              onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }}
-            />
-            <button onClick={send} disabled={!input.trim() || loading}
-              style={{ width: 38, height: 38, borderRadius: 10, background: input.trim() && !loading ? C.purple : C.gray300, border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background .15s' }}>
-              <Send size={16} style={{ color: '#fff' }} />
-            </button>
+              placeholder="Ask anything — Shift+Enter for new line…"
+              rows={1} style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: T.hi, resize: 'none', maxHeight: 120, fontFamily: 'inherit', lineHeight: 1.6 }}
+              onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }} />
+            <motion.button onClick={send} disabled={!input.trim() || loading} whileTap={{ scale: .92 }}
+              style={{ width: 38, height: 38, borderRadius: 10, border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s',
+                background: input.trim() && !loading ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'rgba(255,255,255,0.08)',
+                boxShadow: input.trim() && !loading ? '0 0 14px rgba(124,58,237,0.4)' : 'none' }}>
+              <Send size={15} style={{ color: '#fff' }} />
+            </motion.button>
           </div>
-          <p style={{ fontSize: 11, color: C.gray400, textAlign: 'center', marginTop: 8 }}>
-            Fundo AI is specialized for ZIMSEC & Cambridge. Press Enter to send, Shift+Enter for new line.
-          </p>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Image Generator Tab ──────────────────────────────────────────────────────
+function ChatBubble({ msg }) {
+  const isUser = msg.role === 'user';
+  const [copied, setCopied] = useState(false);
+  function copy() { navigator.clipboard.writeText(msg.content).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .22 }}
+      style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 18, gap: 10 }}>
+      {!isUser && (
+        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#7c3aed,#a78bfa)', flexShrink: 0, marginTop: 4, overflow: 'hidden', boxShadow: '0 0 12px rgba(124,58,237,0.4)' }}>
+          <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+        </div>
+      )}
+      <div style={{ maxWidth: '76%' }}>
+        <div style={{ padding: isUser ? '10px 16px' : '14px 18px', borderRadius: isUser ? '18px 18px 4px 18px' : '4px 18px 18px 18px', fontSize: 14, lineHeight: 1.7,
+          background: isUser ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'rgba(255,255,255,0.07)',
+          border: isUser ? 'none' : '1px solid rgba(255,255,255,0.1)',
+          color: T.hi, boxShadow: isUser ? '0 4px 16px rgba(124,58,237,0.3)' : '0 2px 8px rgba(0,0,0,0.2)' }}>
+          {isUser ? <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+            : <div className="md-body"><ReactMarkdown>{msg.content}</ReactMarkdown></div>}
+        </div>
+        {!isUser && (
+          <button onClick={copy} style={{ marginTop: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: T.lo, display: 'flex', alignItems: 'center', gap: 4, padding: '3px 6px' }}>
+            {copied ? <><Check size={10} style={{ color: '#4ade80' }} /> Copied</> : <><Copy size={10} /> Copy</>}
+          </button>
+        )}
+      </div>
+      {isUser && <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(124,58,237,0.3)', border: '1px solid rgba(124,58,237,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 4, fontSize: 12, fontWeight: 700, color: T.pur }}>
+        U
+      </div>}
+    </motion.div>
+  );
+}
+
+function TypingIndicator() {
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#7c3aed,#a78bfa)', overflow: 'hidden', boxShadow: '0 0 12px rgba(124,58,237,0.4)' }}>
+        <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+      </div>
+      <div style={{ ...glass(), padding: '12px 18px', borderRadius: '4px 18px 18px 18px', display: 'flex', gap: 5 }}>
+        {[0, 1, 2].map(i => (
+          <motion.div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: T.pur }}
+            animate={{ y: [0, -7, 0], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: .9, delay: i * .18 }} />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function ErrorRow({ msg }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, fontSize: 13, color: '#fca5a5', marginBottom: 12 }}>
+      <AlertCircle size={14} style={{ flexShrink: 0 }} /> {msg}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   IMAGE CREATOR TAB
+══════════════════════════════════════════════════════════════════════════════ */
 function ImageTab() {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
+  const [style, setStyle] = useState('ultra realistic');
 
+  const STYLES = ['Ultra Realistic', 'Digital Art', 'Anime Style', '3D Render', 'Watercolor', 'Pencil Sketch', 'Cinematic'];
   const EXAMPLES = [
-    'A Zimbabwean student studying under a mango tree',
-    'Diagram showing the water cycle for science class',
-    'Beautiful sunset over Victoria Falls',
-    'An atom model showing electrons orbiting the nucleus',
-    'A vibrant classroom in Zimbabwe',
-    'DNA double helix structure in bright colors',
+    'Diagram of the water cycle with labels',
+    'Human heart anatomy cross-section',
+    'A student studying under a mango tree',
+    'Atom model with electron shells',
+    'Map of Zimbabwe showing major cities',
+    'Photosynthesis process diagram',
   ];
 
   async function generate() {
     if (!prompt.trim() || loading) return;
     setError(''); setLoading(true); setResult(null);
     try {
-      const d = await api(`/api/student/generate-image?prompt=${encodeURIComponent(prompt)}`);
+      const d = await api(`/api/student/generate-image?prompt=${encodeURIComponent(prompt + ', ' + style)}`);
       setResult(d);
-      setHistory(h => [{ prompt, imageUrl: d.imageUrl }, ...h.slice(0, 7)]);
-    } catch (e) {
-      setError(e.message);
-    } finally { setLoading(false); }
+      setHistory(h => [{ prompt, imageUrl: d.imageUrl, style }, ...h.slice(0, 7)]);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
   }
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 860, margin: '0 auto' }}>
+    <div style={{ padding: '28px 32px', maxWidth: 900, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 900, color: C.gray900, marginBottom: 6 }}>🎨 AI Image Generator</h2>
-        <p style={{ fontSize: 14, color: C.gray500 }}>Create any image for your projects, study materials, or just for fun!</p>
+        <h2 style={{ fontSize: 22, fontWeight: 900, color: T.hi, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Image size={22} style={{ color: T.pur }} /> AI Image Creator
+        </h2>
+        <p style={{ fontSize: 14, color: T.mid }}>Generate diagrams, illustrations, and concept visuals for your studies.</p>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-        <input
-          value={prompt} onChange={e => setPrompt(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && generate()}
-          placeholder="Describe the image you want to create…"
-          style={{ flex: 1, padding: '12px 16px', borderRadius: 10, border: `1.5px solid ${C.gray300}`, fontSize: 14, outline: 'none', fontFamily: 'inherit' }}
-          onFocus={e => e.target.style.borderColor = C.purple}
-          onBlur={e => e.target.style.borderColor = C.gray300}
-        />
-        <button onClick={generate} disabled={!prompt.trim() || loading}
-          style={{ padding: '12px 24px', background: prompt.trim() && !loading ? C.purple : C.gray300, color: '#fff', border: 'none', borderRadius: 10, fontSize: 14.5, fontWeight: 700, cursor: prompt.trim() && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, transition: 'background .15s' }}>
-          {loading ? <><Loader size={15} style={{ animation: 'spin .7s linear infinite' }}/> Generating…</> : <><Sparkles size={15}/> Generate</>}
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-        {EXAMPLES.map(e => (
-          <button key={e} onClick={() => setPrompt(e)}
-            style={{ padding: '6px 12px', borderRadius: 99, border: `1px solid ${C.gray200}`, background: '#fff', fontSize: 12.5, color: C.gray600, cursor: 'pointer', transition: 'all .15s' }}
-            onMouseEnter={e2 => { e2.currentTarget.style.borderColor = C.purple; e2.currentTarget.style.color = C.purple; e2.currentTarget.style.background = C.purpleLt; }}
-            onMouseLeave={e2 => { e2.currentTarget.style.borderColor = C.gray200; e2.currentTarget.style.color = C.gray600; e2.currentTarget.style.background = '#fff'; }}>
-            {e}
+      {/* Style selector */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+        {STYLES.map(s => (
+          <button key={s} onClick={() => setStyle(s.toLowerCase())}
+            style={{ padding: '6px 14px', borderRadius: 99, border: `1px solid ${style === s.toLowerCase() ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.1)'}`, background: style === s.toLowerCase() ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.04)', color: style === s.toLowerCase() ? T.pur : T.lo, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', transition: 'all .15s',
+              boxShadow: style === s.toLowerCase() ? '0 0 10px rgba(124,58,237,0.2)' : 'none' }}>
+            {s}
           </button>
         ))}
       </div>
 
-      {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, fontSize: 13.5, color: '#dc2626', marginBottom: 20 }}>
-          <AlertCircle size={15}/> {error}
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <input value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={e => e.key === 'Enter' && generate()}
+          placeholder="Describe what you want to create…"
+          style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', fontSize: 14, color: T.hi, outline: 'none', fontFamily: 'inherit' }}
+          onFocus={e => e.target.style.borderColor = 'rgba(167,139,250,0.5)'}
+          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'} />
+        <motion.button onClick={generate} disabled={!prompt.trim() || loading} whileTap={{ scale: .95 }}
+          style={{ padding: '12px 22px', background: prompt.trim() && !loading ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: prompt.trim() && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, transition: 'all .18s',
+            boxShadow: prompt.trim() && !loading ? '0 4px 16px rgba(124,58,237,0.4)' : 'none' }}>
+          {loading ? <Loader size={15} style={{ animation: 'spin .7s linear infinite' }} /> : <Sparkles size={15} />}
+          {loading ? 'Generating…' : 'Generate'}
+        </motion.button>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 24 }}>
+        {EXAMPLES.map(ex => (
+          <button key={ex} onClick={() => setPrompt(ex)} style={{ padding: '5px 12px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: T.lo, fontSize: 12, cursor: 'pointer', transition: 'all .15s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'; e.currentTarget.style.color = T.pur; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = T.lo; }}>
+            {ex}
+          </button>
+        ))}
+      </div>
+
+      {error && <ErrorRow msg={error} />}
 
       {loading && (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
-            style={{ width: 52, height: 52, borderRadius: '50%', border: `3px solid ${C.purpleLt}`, borderTopColor: C.purple, margin: '0 auto 16px' }} />
-          <p style={{ fontSize: 14.5, color: C.gray500, fontWeight: 500 }}>Creating your image with AI…</p>
-          <p style={{ fontSize: 12.5, color: C.gray400, marginTop: 6 }}>This usually takes 10–20 seconds</p>
+          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.8, ease: 'linear' }}
+            style={{ width: 56, height: 56, borderRadius: '50%', border: '3px solid rgba(124,58,237,0.2)', borderTopColor: T.pur, margin: '0 auto 16px' }} />
+          <p style={{ fontSize: 15, color: T.mid }}>Creating your image with AI…</p>
+          <p style={{ fontSize: 12.5, color: T.lo, marginTop: 6 }}>Usually takes 10–20 seconds</p>
         </div>
       )}
 
       {result && !loading && (
-        <motion.div initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} style={{ marginBottom: 28 }}>
-          <div style={{ border: `1px solid ${C.gray200}`, borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,.08)' }}>
-            <img src={result.imageUrl} alt={prompt} style={{ width: '100%', maxHeight: 520, objectFit: 'contain', background: '#000', display: 'block' }} />
-            <div style={{ padding: '14px 18px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, color: C.gray600, flex: 1, marginRight: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prompt}</span>
-              <a href={result.imageUrl} download target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: C.purpleLt, color: C.purple, borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
-                <Download size={14}/> Download
-              </a>
-            </div>
+        <motion.div initial={{ opacity: 0, scale: .97 }} animate={{ opacity: 1, scale: 1 }} style={{ marginBottom: 28, borderRadius: 16, overflow: 'hidden', ...glass(), boxShadow: '0 8px 40px rgba(0,0,0,0.4)' }}>
+          <img src={result.imageUrl} alt={prompt} style={{ width: '100%', maxHeight: 500, objectFit: 'contain', background: '#000', display: 'block' }} />
+          <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, color: T.mid, flex: 1, marginRight: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prompt}</span>
+            <a href={result.imageUrl} download target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.35)', color: T.pur, borderRadius: 9, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+              <Download size={13} /> Download
+            </a>
           </div>
         </motion.div>
       )}
 
       {history.length > 0 && (
         <div>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: C.gray700, marginBottom: 12 }}>Recent Images</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
+          <p style={{ fontSize: 12, color: T.lo, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 12 }}>Recent Images</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 10 }}>
             {history.map((h, i) => (
-              <div key={i} style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid ${C.gray200}`, cursor: 'pointer' }}
-                onClick={() => { setResult(h); setPrompt(h.prompt); }}>
-                <img src={h.imageUrl} alt="" style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
-                <div style={{ padding: '6px 8px', fontSize: 11, color: C.gray500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.prompt}</div>
-              </div>
+              <motion.div key={i} whileHover={{ scale: 1.03 }} onClick={() => { setResult(h); setPrompt(h.prompt); }}
+                style={{ borderRadius: 10, overflow: 'hidden', ...glass(), cursor: 'pointer' }}>
+                <img src={h.imageUrl} alt="" style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }} />
+                <div style={{ padding: '6px 8px', fontSize: 11, color: T.lo, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.prompt}</div>
+              </motion.div>
             ))}
           </div>
         </div>
       )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
 
-// ─── Study Notes Tab ──────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════════════════════
+   STUDY NOTES TAB
+══════════════════════════════════════════════════════════════════════════════ */
 function NotesTab({ profile }) {
   const [form, setForm] = useState({ topic: '', subject: '', level: profile?.levelType || 'olevel', grade: profile?.grade || '' });
   const [loading, setLoading] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
-
+  const [notes, setNotes]     = useState('');
+  const [error, setError]     = useState('');
+  const [copied, setCopied]   = useState(false);
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
   async function generate(e) {
     e.preventDefault();
     if (!form.topic.trim() || loading) return;
     setError(''); setLoading(true); setNotes('');
-    try {
-      const d = await api('/api/student/generate-notes', { method: 'POST', body: form });
-      setNotes(d.notes);
-    } catch (e) {
-      setError(e.message);
-    } finally { setLoading(false); }
+    try { const d = await api('/api/student/generate-notes', { method: 'POST', body: form }); setNotes(d.notes); }
+    catch (e) { setError(e.message); }
+    finally { setLoading(false); }
   }
 
-  function copyNotes() {
-    navigator.clipboard.writeText(notes).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  function copy() { navigator.clipboard.writeText(notes).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2200); }
+  function download() {
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([notes], { type: 'text/plain' })), download: `${form.topic || 'notes'}.txt` });
+    a.click();
   }
 
-  function downloadNotes() {
-    const blob = new Blob([notes], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `${form.topic || 'notes'}.txt`; a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  const subjects = SUBJECTS_BY_LEVEL[form.level] || SUBJECTS_BY_LEVEL.olevel;
+  const subjects = SUBJECTS[form.level] || SUBJECTS.olevel;
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ padding: '28px 32px', maxWidth: 1000, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 900, color: C.gray900, marginBottom: 6 }}>📝 AI Study Notes Generator</h2>
-        <p style={{ fontSize: 14, color: C.gray500 }}>Get comprehensive, curriculum-aligned notes on any topic instantly.</p>
+        <h2 style={{ fontSize: 22, fontWeight: 900, color: T.hi, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <FileText size={22} style={{ color: T.pur }} /> AI Study Notes
+        </h2>
+        <p style={{ fontSize: 14, color: T.mid }}>Comprehensive, curriculum-aligned notes on any topic — instantly generated.</p>
       </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: notes ? '340px 1fr' : '1fr', gap: 24, alignItems: 'start' }}>
-        <form onSubmit={generate} style={{ background: '#fff', border: `1px solid ${C.gray200}`, borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.gray700, display: 'block', marginBottom: 6 }}>Topic *</label>
-            <input value={form.topic} onChange={e => set('topic', e.target.value)}
-              placeholder="e.g. Photosynthesis, Quadratic Equations, World War 1…"
-              required style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${C.gray300}`, fontSize: 13.5, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-              onFocus={e => e.target.style.borderColor = C.purple}
-              onBlur={e => e.target.style.borderColor = C.gray300} />
-          </div>
-
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.gray700, display: 'block', marginBottom: 6 }}>Level</label>
-            <select value={form.level} onChange={e => set('level', e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${C.gray300}`, fontSize: 13.5, outline: 'none', background: '#fff', boxSizing: 'border-box' }}>
-              <option value="primary">Primary School</option>
-              <option value="olevel">O-Level</option>
-              <option value="alevel">A-Level</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.gray700, display: 'block', marginBottom: 6 }}>Subject</label>
-            <select value={form.subject} onChange={e => set('subject', e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${C.gray300}`, fontSize: 13.5, outline: 'none', background: '#fff', boxSizing: 'border-box' }}>
-              <option value="">— Select subject —</option>
-              {subjects.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.gray700, display: 'block', marginBottom: 6 }}>Grade / Form</label>
-            <input value={form.grade} onChange={e => set('grade', e.target.value)}
-              placeholder="e.g. Form 4, Grade 7, A-Level"
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${C.gray300}`, fontSize: 13.5, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-              onFocus={e => e.target.style.borderColor = C.purple}
-              onBlur={e => e.target.style.borderColor = C.gray300} />
-          </div>
-
-          <button type="submit" disabled={!form.topic.trim() || loading}
-            style={{ padding: '12px', background: form.topic.trim() && !loading ? C.purple : C.gray300, color: '#fff', border: 'none', borderRadius: 10, fontSize: 14.5, fontWeight: 700, cursor: form.topic.trim() && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            {loading ? <><Loader size={15} style={{ animation: 'spin .7s linear infinite' }}/> Generating…</> : <><Sparkles size={15}/> Generate Notes</>}
-          </button>
-
-          {error && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#dc2626' }}>
-              <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }}/> {error}
-            </div>
-          )}
+      <div style={{ display: 'grid', gridTemplateColumns: notes ? '300px 1fr' : '1fr', gap: 20 }}>
+        <form onSubmit={generate} style={{ ...glass(), borderRadius: 16, padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <FormField label="Topic *">
+            <input value={form.topic} onChange={e => set('topic', e.target.value)} placeholder="e.g. Photosynthesis, Quadratic Equations…" required
+              style={inputStyle} onFocus={e => e.target.style.borderColor = 'rgba(167,139,250,0.5)'} onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
+          </FormField>
+          <FormField label="Level">
+            <GlassSelect value={form.level} onChange={v => set('level', v)} options={[['primary','Primary School'],['olevel','O-Level'],['alevel','A-Level']]} />
+          </FormField>
+          <FormField label="Subject">
+            <GlassSelect value={form.subject} onChange={v => set('subject', v)} options={[['','— Select subject —'], ...subjects.map(s => [s, s])]} />
+          </FormField>
+          <FormField label="Grade / Form">
+            <input value={form.grade} onChange={e => set('grade', e.target.value)} placeholder="e.g. Form 4, Grade 7"
+              style={inputStyle} onFocus={e => e.target.style.borderColor = 'rgba(167,139,250,0.5)'} onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
+          </FormField>
+          {error && <ErrorRow msg={error} />}
+          <motion.button type="submit" disabled={!form.topic.trim() || loading} whileTap={{ scale: .97 }}
+            style={{ padding: '12px', background: form.topic.trim() && !loading ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 14.5, fontWeight: 700, cursor: form.topic.trim() && !loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              boxShadow: form.topic.trim() && !loading ? '0 4px 16px rgba(124,58,237,0.4)' : 'none' }}>
+            {loading ? <><Loader size={14} style={{ animation: 'spin .7s linear infinite' }} /> Generating…</> : <><Sparkles size={14} /> Generate Notes</>}
+          </motion.button>
         </form>
 
         {(loading || notes) && (
-          <div style={{ background: '#fff', border: `1px solid ${C.gray200}`, borderRadius: 14, overflow: 'hidden' }}>
-            <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.gray200}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: C.gray900 }}>
-                {form.topic ? `Notes: ${form.topic}` : 'Study Notes'}
-              </span>
+          <div style={{ ...glass(), borderRadius: 16, overflow: 'hidden' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: T.hi }}>{form.topic || 'Study Notes'}</span>
               {notes && (
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={copyNotes} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: C.gray100, color: C.gray700, border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
-                    {copied ? <><Check size={12}/> Copied!</> : <><Copy size={12}/> Copy</>}
-                  </button>
-                  <button onClick={downloadNotes} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: C.purpleLt, color: C.purple, border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
-                    <Download size={12}/> Download
-                  </button>
+                  <GlassIconBtn onClick={copy} icon={copied ? Check : Copy} label={copied ? 'Copied!' : 'Copy'} />
+                  <GlassIconBtn onClick={download} icon={Download} label="Download" />
                 </div>
               )}
             </div>
-            <div style={{ padding: '20px 24px', maxHeight: 600, overflowY: 'auto' }}>
+            <div style={{ padding: '20px 24px', maxHeight: 560, overflowY: 'auto' }}>
               {loading ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
-                    style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.purpleLt}`, borderTopColor: C.purple, margin: '0 auto 14px' }} />
-                  <p style={{ fontSize: 14, color: C.gray500 }}>Generating your study notes…</p>
+                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.4, ease: 'linear' }}
+                    style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid rgba(124,58,237,0.2)', borderTopColor: T.pur, margin: '0 auto 14px' }} />
+                  <p style={{ fontSize: 14, color: T.mid }}>Generating your notes…</p>
                 </div>
-              ) : (
-                <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.75 }}>
-                  <ReactMarkdown>{notes}</ReactMarkdown>
-                </div>
-              )}
+              ) : <div className="md-body" style={{ fontSize: 13.5, lineHeight: 1.8 }}><ReactMarkdown>{notes}</ReactMarkdown></div>}
             </div>
           </div>
         )}
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
 
-// ─── Materials Tab ────────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════════════════════
+   MOCK EXAM TAB
+══════════════════════════════════════════════════════════════════════════════ */
+function ExamTab({ profile }) {
+  const [phase, setPhase] = useState('setup'); // setup | loading | quiz | result
+  const [form, setForm]   = useState({ subject: '', level: profile?.levelType || 'olevel', grade: profile?.grade || '', topic: '', count: 10, difficulty: 'medium' });
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers]     = useState({});
+  const [current, setCurrent]     = useState(0);
+  const [error, setError]         = useState('');
+  const [showExpl, setShowExpl]   = useState({});
+  function setF(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
+  async function startExam(e) {
+    e.preventDefault();
+    if (!form.subject) return setError('Please select a subject');
+    setError(''); setPhase('loading');
+    try {
+      const d = await api('/api/student/generate-mock-exam', { method: 'POST', body: form });
+      setQuestions(d.questions || []);
+      setAnswers({}); setCurrent(0); setShowExpl({});
+      setPhase('quiz');
+    } catch (e) { setError(e.message); setPhase('setup'); }
+  }
+
+  function answer(qId, letter) {
+    if (answers[qId]) return;
+    setAnswers(a => ({ ...a, [qId]: letter }));
+  }
+
+  function finish() { setPhase('result'); }
+  function restart() { setPhase('setup'); setQuestions([]); setAnswers({}); }
+
+  const answered = Object.keys(answers).length;
+  const correct  = questions.filter(q => answers[q.id] === q.answer).length;
+  const pct      = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
+  const subjects  = SUBJECTS[form.level] || SUBJECTS.olevel;
+
+  if (phase === 'loading') return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 20 }}>
+      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.6, ease: 'linear' }}
+        style={{ width: 64, height: 64, borderRadius: '50%', border: '3px solid rgba(124,58,237,0.15)', borderTopColor: T.pur }} />
+      <p style={{ fontSize: 16, color: T.mid, fontWeight: 600 }}>Generating your mock exam…</p>
+      <p style={{ fontSize: 13, color: T.lo }}>AI is creating {form.count} questions for {form.subject}</p>
+    </div>
+  );
+
+  if (phase === 'result') {
+    const grade = pct >= 80 ? 'A' : pct >= 60 ? 'B' : pct >= 50 ? 'C' : pct >= 40 ? 'D' : 'F';
+    const gradeColor = { A: '#4ade80', B: '#60a5fa', C: '#fbbf24', D: '#fb923c', F: '#f87171' }[grade];
+    return (
+      <div style={{ padding: '32px', maxWidth: 700, margin: '0 auto' }}>
+        <motion.div initial={{ scale: .9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ ...glass(), borderRadius: 20, padding: '36px', textAlign: 'center', marginBottom: 24 }}>
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: .2 }}
+            style={{ width: 100, height: 100, borderRadius: '50%', border: `3px solid ${gradeColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', background: `${gradeColor}15`, boxShadow: `0 0 30px ${gradeColor}40` }}>
+            <span style={{ fontSize: 48, fontWeight: 900, color: gradeColor }}>{grade}</span>
+          </motion.div>
+          <h2 style={{ fontSize: 28, fontWeight: 900, color: T.hi, marginBottom: 8 }}>{correct} / {questions.length}</h2>
+          <p style={{ fontSize: 18, color: T.mid, marginBottom: 4 }}>{pct}% — {pct >= 70 ? 'Excellent work!' : pct >= 50 ? 'Good effort, keep studying!' : 'More revision needed.'}</p>
+          <p style={{ fontSize: 13, color: T.lo }}>{form.subject} · {form.level.toUpperCase()}</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 24 }}>
+            <motion.button onClick={restart} whileTap={{ scale: .97 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', ...glass(), color: T.mid, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 11, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+              <RotateCcw size={14} /> New Exam
+            </motion.button>
+            <motion.button onClick={() => setPhase('quiz')} whileTap={{ scale: .97 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', color: '#fff', border: 'none', borderRadius: 11, cursor: 'pointer', fontWeight: 700, fontSize: 14, boxShadow: '0 4px 16px rgba(124,58,237,0.4)' }}>
+              <BookOpen size={14} /> Review Answers
+            </motion.button>
+          </div>
+        </motion.div>
+
+        {/* Answer review */}
+        {questions.map((q, i) => {
+          const userAns = answers[q.id];
+          const isCorrect = userAns === q.answer;
+          return (
+            <motion.div key={q.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .04 }}
+              style={{ ...glass(), borderRadius: 14, padding: '16px 20px', marginBottom: 10, borderColor: isCorrect ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)', background: isCorrect ? 'rgba(74,222,128,0.06)' : 'rgba(248,113,113,0.06)' }}>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: isCorrect ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)', border: `1px solid ${isCorrect ? '#4ade80' : '#f87171'}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 11, fontWeight: 800, color: isCorrect ? '#4ade80' : '#f87171' }}>
+                  {isCorrect ? '✓' : '✗'}
+                </div>
+                <p style={{ fontSize: 13.5, color: T.hi, fontWeight: 600, lineHeight: 1.5 }}>{i + 1}. {q.q}</p>
+              </div>
+              <div style={{ paddingLeft: 36, fontSize: 12.5, color: T.lo, lineHeight: 1.6 }}>
+                {!isCorrect && <p>Your answer: <span style={{ color: '#f87171', fontWeight: 700 }}>{userAns || 'Not answered'}</span></p>}
+                <p>Correct: <span style={{ color: '#4ade80', fontWeight: 700 }}>{q.answer}</span></p>
+                <button onClick={() => setShowExpl(s => ({ ...s, [q.id]: !s[q.id] }))} style={{ background: 'none', border: 'none', color: T.pur, cursor: 'pointer', fontSize: 12, fontWeight: 600, marginTop: 4 }}>
+                  {showExpl[q.id] ? '▲ Hide' : '▼ Explanation'}
+                </button>
+                {showExpl[q.id] && <p style={{ marginTop: 6, color: T.mid, fontStyle: 'italic' }}>{q.explanation}</p>}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (phase === 'quiz') {
+    const q = questions[current];
+    const userAns = answers[q?.id];
+    const LETTERS = ['A', 'B', 'C', 'D'];
+    const optColor = (opt) => {
+      const letter = opt.charAt(0);
+      if (!userAns) return { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.1)', color: T.mid };
+      if (letter === q.answer) return { bg: 'rgba(74,222,128,0.15)', border: 'rgba(74,222,128,0.4)', color: '#4ade80' };
+      if (letter === userAns && letter !== q.answer) return { bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)', color: '#f87171' };
+      return { bg: 'rgba(255,255,255,0.02)', border: 'rgba(255,255,255,0.06)', color: T.lo };
+    };
+
+    return (
+      <div style={{ padding: '28px 32px', maxWidth: 700, margin: '0 auto' }}>
+        {/* Progress */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: 13, color: T.lo, fontWeight: 600 }}>Question {current + 1} of {questions.length}</span>
+          <span style={{ fontSize: 13, color: T.lo }}>{answered} answered</span>
+        </div>
+        <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.08)', marginBottom: 24 }}>
+          <motion.div style={{ height: '100%', borderRadius: 99, background: 'linear-gradient(90deg,#7c3aed,#a78bfa)', boxShadow: '0 0 8px rgba(124,58,237,0.5)' }}
+            animate={{ width: `${((current + 1) / questions.length) * 100}%` }} transition={{ duration: .3 }} />
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div key={q.id} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: .22 }}
+            style={{ ...glass(), borderRadius: 18, padding: '28px', marginBottom: 20 }}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: T.hi, lineHeight: 1.6, marginBottom: 24 }}>{q.q}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {q.options.map(opt => {
+                const c = optColor(opt);
+                return (
+                  <motion.button key={opt} onClick={() => answer(q.id, opt.charAt(0))} whileHover={!userAns ? { scale: 1.01 } : {}} whileTap={!userAns ? { scale: .99 } : {}}
+                    style={{ padding: '13px 16px', borderRadius: 12, border: `1.5px solid ${c.border}`, background: c.bg, color: c.color, cursor: userAns ? 'default' : 'pointer', fontSize: 14, fontWeight: 500, textAlign: 'left', transition: 'all .18s', fontFamily: 'inherit' }}>
+                    {opt}
+                  </motion.button>
+                );
+              })}
+            </div>
+            {userAns && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p style={{ fontSize: 13, color: T.mid, fontStyle: 'italic' }}><span style={{ color: T.pur, fontWeight: 700 }}>Explanation:</span> {q.explanation}</p>
+              </motion.div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <button onClick={() => setCurrent(c => Math.max(0, c - 1))} disabled={current === 0}
+            style={{ padding: '10px 20px', ...glass(), color: current === 0 ? T.lo : T.mid, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, cursor: current === 0 ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13.5 }}>
+            Previous
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {current < questions.length - 1 ? (
+              <motion.button onClick={() => setCurrent(c => c + 1)} disabled={!userAns} whileTap={{ scale: .97 }}
+                style={{ padding: '10px 20px', background: userAns ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'rgba(255,255,255,0.06)', color: '#fff', border: 'none', borderRadius: 10, cursor: userAns ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: 13.5, boxShadow: userAns ? '0 4px 16px rgba(124,58,237,0.35)' : 'none' }}>
+                Next <ChevronRight size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
+              </motion.button>
+            ) : (
+              <motion.button onClick={finish} whileTap={{ scale: .97 }}
+                style={{ padding: '10px 22px', background: 'linear-gradient(135deg,#059669,#047857)', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 16px rgba(5,150,105,0.3)' }}>
+                <Trophy size={15} /> Finish Exam
+              </motion.button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Setup
+  return (
+    <div style={{ padding: '28px 32px', maxWidth: 600, margin: '0 auto' }}>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 900, color: T.hi, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ClipboardCheck size={22} style={{ color: T.pur }} /> Mock Exam Generator
+        </h2>
+        <p style={{ fontSize: 14, color: T.mid }}>AI-generated MCQ exams in ZIMSEC/Cambridge style. Get instant feedback and explanations.</p>
+      </div>
+
+      <form onSubmit={startExam} style={{ ...glass(), borderRadius: 18, padding: '28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <FormField label="Level">
+          <GlassSelect value={form.level} onChange={v => setF('level', v)} options={[['primary','Primary School'],['olevel','O-Level'],['alevel','A-Level']]} />
+        </FormField>
+        <FormField label="Subject *">
+          <GlassSelect value={form.subject} onChange={v => setF('subject', v)} options={[['','— Select subject —'], ...subjects.map(s => [s, s])]} />
+        </FormField>
+        <FormField label="Grade / Form">
+          <input value={form.grade} onChange={e => setF('grade', e.target.value)} placeholder="e.g. Form 4, Grade 7" style={inputStyle}
+            onFocus={e => e.target.style.borderColor = 'rgba(167,139,250,0.5)'} onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
+        </FormField>
+        <FormField label="Topic (optional)">
+          <input value={form.topic} onChange={e => setF('topic', e.target.value)} placeholder="e.g. Photosynthesis, World War 1…" style={inputStyle}
+            onFocus={e => e.target.style.borderColor = 'rgba(167,139,250,0.5)'} onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
+        </FormField>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <FormField label="Questions">
+            <GlassSelect value={form.count} onChange={v => setF('count', Number(v))} options={[[5,'5 Questions'],[10,'10 Questions'],[15,'15 Questions'],[20,'20 Questions']]} />
+          </FormField>
+          <FormField label="Difficulty">
+            <GlassSelect value={form.difficulty} onChange={v => setF('difficulty', v)} options={[['easy','Easy'],['medium','Medium'],['hard','Hard'],['mixed','Mixed']]} />
+          </FormField>
+        </div>
+
+        {error && <ErrorRow msg={error} />}
+
+        <motion.button type="submit" whileTap={{ scale: .97 }}
+          style={{ padding: '14px', background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 6px 24px rgba(124,58,237,0.45)', letterSpacing: '.2px' }}>
+          <PlayCircle size={18} /> Start Mock Exam
+        </motion.button>
+      </form>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MATERIALS TAB
+══════════════════════════════════════════════════════════════════════════════ */
 function MaterialsTab({ profile }) {
-  const [items, setItems] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
+  const [items, setItems]     = useState([]);
+  const [total, setTotal]     = useState(0);
+  const [page, setPage]       = useState(1);
+  const [pages, setPages]     = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
   const [canDownload, setCanDownload] = useState(true);
-
   const [filters, setFilters] = useState({ level: '', category: '', subject: '', search: '' });
-
   function setF(k, v) { setFilters(f => ({ ...f, [k]: v })); setPage(1); }
 
-  const fetchMaterials = useCallback(async () => {
+  const fetch = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const params = new URLSearchParams({ page, limit: 16 });
-      if (filters.level) params.set('level', filters.level);
-      if (filters.category) params.set('category', filters.category);
-      if (filters.subject) params.set('subject', filters.subject);
-      if (filters.search) params.set('search', filters.search);
-      const d = await api(`/api/student/materials?${params}`);
+      const p = new URLSearchParams({ page, limit: 15 });
+      if (filters.level) p.set('level', filters.level);
+      if (filters.category) p.set('category', filters.category);
+      if (filters.subject) p.set('subject', filters.subject);
+      if (filters.search) p.set('search', filters.search);
+      const d = await api(`/api/student/materials?${p}`);
       setItems(d.items || []); setTotal(d.total || 0); setPages(d.pages || 1);
       setCanDownload(d.canDownload !== false);
-    } catch (e) {
-      setError(e.message);
-    } finally { setLoading(false); }
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
   }, [page, filters]);
 
-  useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
+  useEffect(() => { fetch(); }, [fetch]);
 
-  const CAT_LABEL = { paper: '📄 Past Paper', textbook: '📗 Textbook', syllabus: '📋 Syllabus', marking_scheme: '✅ Marking Scheme' };
-  const CAT_COLOR = { paper: '#2563eb', textbook: '#059669', syllabus: '#7c3aed', marking_scheme: '#d97706' };
+  const CAT_LABEL = { paper: 'Past Paper', textbook: 'Textbook', syllabus: 'Syllabus', marking_scheme: 'Mark Scheme' };
+  const CAT_COLOR = { paper: '#3b82f6', textbook: '#10b981', syllabus: '#a78bfa', marking_scheme: '#f59e0b' };
   const LEVEL_LABEL = { primary: 'Primary', olevel: 'O-Level', alevel: 'A-Level' };
-  const subjects = profile?.levelType ? SUBJECTS_BY_LEVEL[profile.levelType] : [];
 
   return (
-    <div style={{ padding: '20px 24px' }}>
-      <div style={{ marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+    <div style={{ padding: '20px 24px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 900, color: C.gray900, marginBottom: 4 }}>📚 Study Materials Library</h2>
-          <p style={{ fontSize: 13, color: C.gray500 }}>{total} resources · ZIMSEC & Cambridge</p>
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: T.hi, marginBottom: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BookOpen size={20} style={{ color: T.pur }} /> Materials Library
+          </h2>
+          <p style={{ fontSize: 12.5, color: T.lo }}>{total} resources · ZIMSEC & Cambridge · WhatsApp usage shared</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative' }}>
-            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.gray400 }}/>
-            <input value={filters.search} onChange={e => setF('search', e.target.value)}
-              placeholder="Search materials…"
-              style={{ paddingLeft: 32, paddingRight: 12, paddingTop: 8, paddingBottom: 8, borderRadius: 8, border: `1.5px solid ${C.gray300}`, fontSize: 13, outline: 'none', width: 200 }}
-              onFocus={e => e.target.style.borderColor = C.purple}
-              onBlur={e => e.target.style.borderColor = C.gray300} />
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: T.lo }} />
+            <input value={filters.search} onChange={e => setF('search', e.target.value)} placeholder="Search…"
+              style={{ ...inputStyle, paddingLeft: 30, width: 160 }} />
           </div>
           {[
             ['level', [['','All Levels'],['primary','Primary'],['olevel','O-Level'],['alevel','A-Level']]],
-            ['category', [['','All Types'],['paper','Past Papers'],['textbook','Textbooks'],['syllabus','Syllabuses'],['marking_scheme','Marking Schemes']]],
+            ['category', [['','All Types'],['paper','Past Papers'],['textbook','Textbooks'],['syllabus','Syllabuses'],['marking_scheme','Mark Schemes']]],
           ].map(([key, opts]) => (
             <select key={key} value={filters[key]} onChange={e => setF(key, e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 8, border: `1.5px solid ${C.gray300}`, fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}>
-              {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              style={{ ...inputStyle, width: 'auto', paddingRight: 28 }}>
+              {opts.map(([v, l]) => <option key={v} value={v} style={{ background: '#150b35' }}>{l}</option>)}
             </select>
           ))}
         </div>
       </div>
 
-      {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, fontSize: 13.5, color: '#dc2626', marginBottom: 16 }}>
-          <AlertCircle size={14}/> {error}
-          <button onClick={fetchMaterials} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-            <RefreshCw size={12}/> Retry
-          </button>
-        </div>
-      )}
+      {error && <ErrorRow msg={error} />}
 
-      {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} style={{ borderRadius: 12, border: `1px solid ${C.gray200}`, padding: 16, background: '#fff' }}>
-              {[80, 60, 40].map((w, j) => (
-                <div key={j} style={{ height: j === 0 ? 16 : 12, borderRadius: 6, background: C.gray100, width: `${w}%`, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
-              ))}
-            </div>
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <BookOpen size={48} style={{ color: C.gray300, marginBottom: 12 }} />
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: C.gray700, marginBottom: 8 }}>No materials found</h3>
-          <p style={{ fontSize: 14, color: C.gray500 }}>Try adjusting your filters or search terms.</p>
-        </div>
-      ) : (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12, marginBottom: 20 }}>
-            {items.map(item => (
-              <motion.div key={item._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                style={{ background: '#fff', border: `1px solid ${C.gray200}`, borderRadius: 12, padding: '16px', transition: 'all .15s', cursor: 'default' }}
-                whileHover={{ y: -2, boxShadow: '0 4px 20px rgba(0,0,0,.08)', borderColor: C.gray300 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: (CAT_COLOR[item.category] || C.purple) + '15', color: CAT_COLOR[item.category] || C.purple }}>
-                    {CAT_LABEL[item.category] || item.category}
-                  </span>
-                  <span style={{ fontSize: 11, color: C.gray400 }}>{item.year || ''}</span>
-                </div>
-                <h4 style={{ fontSize: 13.5, fontWeight: 700, color: C.gray900, marginBottom: 6, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {item.title}
-                </h4>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: C.gray500, background: C.gray100, padding: '2px 7px', borderRadius: 99 }}>
-                    {LEVEL_LABEL[item.level] || item.level}
-                  </span>
-                  {item.grade && <span style={{ fontSize: 11, color: C.gray500, background: C.gray100, padding: '2px 7px', borderRadius: 99 }}>{item.grade}</span>}
-                  <span style={{ fontSize: 11, color: C.gray500, background: C.gray100, padding: '2px 7px', borderRadius: 99 }}>{item.subject}</span>
-                </div>
-                {canDownload ? (
-                  <a href={item.url} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', background: C.purpleLt, color: C.purple, borderRadius: 8, fontSize: 12.5, fontWeight: 700, textDecoration: 'none', transition: 'all .15s', border: `1px solid #ddd6fe` }}
-                    onMouseEnter={e => { e.currentTarget.style.background = C.purple; e.currentTarget.style.color = '#fff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = C.purpleLt; e.currentTarget.style.color = C.purple; }}>
-                    <Download size={13}/> Download
-                  </a>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', background: C.gray100, color: C.gray500, borderRadius: 8, fontSize: 12.5 }}>
-                    <Crown size={13}/> Upgrade to download
-                  </div>
-                )}
-              </motion.div>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {loading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10 }}>
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} style={{ ...glass(), borderRadius: 12, padding: 16, animation: 'pulse 1.5s infinite' }}>
+                {[80, 60, 40].map((w, j) => <div key={j} style={{ height: j === 0 ? 14 : 10, borderRadius: 6, background: 'rgba(255,255,255,0.06)', width: `${w}%`, marginBottom: 8 }} />)}
+              </div>
             ))}
           </div>
-
-          {pages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${C.gray200}`, background: '#fff', cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize: 13, color: page === 1 ? C.gray300 : C.gray700 }}>
-                Previous
-              </button>
-              <span style={{ fontSize: 13, color: C.gray600 }}>Page {page} of {pages}</span>
-              <button onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages}
-                style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${C.gray200}`, background: '#fff', cursor: page === pages ? 'not-allowed' : 'pointer', fontSize: 13, color: page === pages ? C.gray300 : C.gray700 }}>
-                Next
-              </button>
+        ) : items.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <BookOpen size={44} style={{ color: 'rgba(167,139,250,0.3)', marginBottom: 12 }} />
+            <p style={{ fontSize: 16, fontWeight: 700, color: T.mid, marginBottom: 6 }}>No materials found</p>
+            <p style={{ fontSize: 13.5, color: T.lo }}>Try adjusting your filters or search.</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10, marginBottom: 16 }}>
+              {items.map(item => (
+                <motion.div key={item._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}
+                  style={{ ...glass(), borderRadius: 12, padding: '14px', transition: 'all .18s' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: `${CAT_COLOR[item.category] || '#7c3aed'}20`, color: CAT_COLOR[item.category] || '#7c3aed', border: `1px solid ${CAT_COLOR[item.category] || '#7c3aed'}30` }}>
+                      {CAT_LABEL[item.category] || item.category}
+                    </span>
+                    {item.year && <span style={{ fontSize: 10.5, color: T.lo }}>{item.year}</span>}
+                  </div>
+                  <h4 style={{ fontSize: 12.5, fontWeight: 700, color: T.hi, marginBottom: 6, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</h4>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
+                    {[LEVEL_LABEL[item.level] || item.level, item.grade, item.subject].filter(Boolean).map(tag => (
+                      <span key={tag} style={{ fontSize: 10.5, color: T.lo, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.08)' }}>{tag}</span>
+                    ))}
+                  </div>
+                  {canDownload ? (
+                    <a href={item.url} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', ...glass(), color: T.pur, borderRadius: 9, fontSize: 12.5, fontWeight: 700, textDecoration: 'none', border: '1px solid rgba(124,58,237,0.25)', transition: 'all .15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.25)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.5)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.25)'; }}>
+                      <Download size={12} /> Download
+                    </a>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', background: 'rgba(255,255,255,0.03)', color: T.lo, borderRadius: 9, fontSize: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <Crown size={12} /> Upgrade to download
+                    </div>
+                  )}
+                </motion.div>
+              ))}
             </div>
-          )}
-        </>
-      )}
-
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }`}</style>
+            {pages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                  style={{ padding: '7px 14px', ...glass(), color: T.lo, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9, cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize: 13 }}>
+                  Previous
+                </button>
+                <span style={{ fontSize: 13, color: T.lo }}>Page {page} of {pages}</span>
+                <button onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages}
+                  style={{ padding: '7px 14px', ...glass(), color: T.lo, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9, cursor: page === pages ? 'not-allowed' : 'pointer', fontSize: 13 }}>
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════════════════════
+   PROFILE TAB
+══════════════════════════════════════════════════════════════════════════════ */
+function ProfileTab({ profile, usage, limits }) {
+  const plan = profile?.plan || 'FREE';
+  const planColor = PLAN_COLOR[plan] || '#6b7280';
+  const PLAN_ICONS = { FREE: Zap, STARTER: Flame, BASIC: Brain, PRO: Target, PREMIUM: Crown };
+  const PIcon = PLAN_ICONS[plan] || Zap;
+
+  const stats = [
+    { label: 'AI Chats Today', used: usage?.chatToday || 0, limit: limits?.chat || 25, icon: MessageSquare, color: '#7c3aed' },
+    { label: 'Images Today',   used: usage?.imagesToday || 0, limit: limits?.images || 3, icon: Image, color: '#3b82f6' },
+    { label: 'Notes / Exams',  used: usage?.pdfToday || 0, limit: limits?.pdf || 1, icon: FileText, color: '#10b981' },
+  ];
+
+  return (
+    <div style={{ padding: '28px 32px', maxWidth: 700, margin: '0 auto' }}>
+      {/* Profile card */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        style={{ ...glass(), borderRadius: 20, padding: '28px', marginBottom: 20, background: 'rgba(124,58,237,0.1)', borderColor: 'rgba(124,58,237,0.25)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 20 }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: `linear-gradient(135deg,${planColor},${planColor}80)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: '#fff', boxShadow: `0 0 24px ${planColor}50`, flexShrink: 0 }}>
+            {(profile?.name || 'S')[0].toUpperCase()}
+          </div>
+          <div>
+            <h2 style={{ fontSize: 22, fontWeight: 900, color: T.hi, marginBottom: 4 }}>{profile?.name || 'Student'}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 700, color: planColor, background: `${planColor}20`, border: `1px solid ${planColor}40`, padding: '3px 10px', borderRadius: 99 }}>
+                <PIcon size={11} /> {plan}
+              </span>
+              {profile?.levelLabel && <span style={{ fontSize: 12.5, color: T.lo }}>{profile.levelLabel} · {profile.grade}</span>}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+          {[
+            { icon: Smartphone, label: 'Phone', value: profile?.phone ? `+${profile.phone}` : '—' },
+            { icon: School, label: 'School', value: profile?.school || '—' },
+            { icon: GraduationCap, label: 'Level', value: profile?.levelLabel || '—' },
+          ].map(({ icon: Icon, label, value }) => (
+            <div key={label} style={{ ...glass({ background: 'rgba(255,255,255,0.04)' }), borderRadius: 12, padding: '12px 14px' }}>
+              <Icon size={13} style={{ color: T.lo, marginBottom: 5 }} />
+              <div style={{ fontSize: 10.5, color: T.lo, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>{label}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.hi, wordBreak: 'break-all' }}>{value}</div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Usage — shared WhatsApp + Web */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .08 }}
+        style={{ ...glass(), borderRadius: 20, padding: '24px 28px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <div>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: T.hi, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <BarChart3 size={15} style={{ color: T.pur }} /> Today's Usage
+            </h3>
+            <p style={{ fontSize: 12, color: T.lo }}>Combined WhatsApp + Web — resets at midnight</p>
+          </div>
+          <Smartphone size={18} style={{ color: T.lo }} />
+        </div>
+        {stats.map(s => <UsageBar key={s.label} {...s} />)}
+        <div style={{ marginTop: 16, padding: '10px 14px', background: 'rgba(167,139,250,0.08)', borderRadius: 10, border: '1px solid rgba(167,139,250,0.15)', fontSize: 12.5, color: T.lo, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Smartphone size={13} style={{ color: T.pur, flexShrink: 0 }} />
+          WhatsApp and web usage are shared — messages sent on WhatsApp count toward your daily web limits too.
+        </div>
+      </motion.div>
+
+      {/* Upgrade CTA */}
+      {plan !== 'PREMIUM' && (
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .15 }}
+          style={{ borderRadius: 20, padding: '24px', background: 'linear-gradient(135deg,rgba(124,58,237,0.25),rgba(109,40,217,0.15))', border: '1px solid rgba(124,58,237,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <h3 style={{ fontSize: 17, fontWeight: 900, color: T.hi, marginBottom: 4 }}>Upgrade your plan</h3>
+            <p style={{ fontSize: 13.5, color: T.mid, lineHeight: 1.6 }}>Get more chats, images, and mock exams. Plans from $1/month.</p>
+          </div>
+          <a href="https://wa.me/263719647303?text=upgrade" target="_blank" rel="noopener noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 22px', background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', color: '#fff', textDecoration: 'none', borderRadius: 12, fontWeight: 700, fontSize: 14, boxShadow: '0 4px 16px rgba(124,58,237,0.4)', flexShrink: 0 }}>
+            <Crown size={15} /> Upgrade on WhatsApp <ArrowUpRight size={13} />
+          </a>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Shared UI helpers ───────────────────────────────────────────────────── */
+const inputStyle = {
+  width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
+  background: 'rgba(255,255,255,0.06)', fontSize: 13.5, color: '#f0e9ff', outline: 'none',
+  fontFamily: 'inherit', transition: 'border .18s', boxSizing: 'border-box',
+};
+
+function FormField({ label, children }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(240,233,255,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.5px' }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function GlassSelect({ value, onChange, options }) {
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)}
+      style={{ ...inputStyle, appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: 32 }}>
+      {options.map(([v, l]) => <option key={v} value={v} style={{ background: '#150b35', color: '#f0e9ff' }}>{l}</option>)}
+    </select>
+  );
+}
+
+function GlassIconBtn({ onClick, icon: Icon, label }) {
+  return (
+    <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', ...glass(), color: T.lo, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+      <Icon size={12} /> {label}
+    </button>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MAIN STUDENT APP
+══════════════════════════════════════════════════════════════════════════════ */
 export default function StudentApp() {
   const nav = useNavigate();
-  const [profile, setProfile] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('fundo_user') || 'null'); } catch { return null; }
-  });
-  const [usage, setUsage] = useState(null);
-  const [limits, setLimits] = useState(null);
-  const [activeTab, setActiveTab] = useState('chat');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [profile, setProfile] = useState(() => { try { return JSON.parse(localStorage.getItem('fundo_user') || 'null'); } catch { return null; } });
+  const [usage, setUsage]     = useState(null);
+  const [limits, setLimits]   = useState(null);
+  const [tab, setTab]         = useState('chat');
+  const [sidebar, setSidebar] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!token()) { nav('/student'); return; }
     api('/api/student/me').then(d => {
-      setProfile(d);
-      setUsage(d.usage);
-      setLimits(d.limits);
+      setProfile(d); setUsage(d.usage); setLimits(d.limits);
       localStorage.setItem('fundo_user', JSON.stringify(d));
     }).catch(() => nav('/student'));
-  }, []);
+  }, [refreshKey]);
 
-  function signOut() {
-    localStorage.removeItem('fundo_token');
-    localStorage.removeItem('fundo_user');
-    nav('/student');
-  }
+  function signOut() { localStorage.removeItem('fundo_token'); localStorage.removeItem('fundo_user'); nav('/student'); }
 
   const plan = profile?.plan || 'FREE';
-  const planColor = PLAN_COLOR[plan] || C.gray500;
+  const planColor = PLAN_COLOR[plan] || '#6b7280';
+
+  // Animated background orbs
+  const orbs = [
+    { size: 500, top: -200, left: -150, color: 'rgba(124,58,237,0.2)' },
+    { size: 350, bottom: -100, right: -80, color: 'rgba(59,130,246,0.12)' },
+    { size: 250, top: '40%', left: '50%', color: 'rgba(139,92,246,0.1)' },
+  ];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: "'Inter', system-ui, sans-serif", background: '#fff', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', background: BG }}>
+      {/* Orbs */}
+      {orbs.map((o, i) => (
+        <div key={i} style={{ position: 'absolute', width: o.size, height: o.size, borderRadius: '50%', background: o.color, filter: 'blur(80px)', top: o.top, left: o.left, right: o.right, bottom: o.bottom, pointerEvents: 'none', zIndex: 0 }} />
+      ))}
+
       {/* Sidebar */}
-      <motion.div
-        animate={{ width: sidebarOpen ? 260 : 0 }}
-        style={{ borderRight: `1px solid ${C.gray200}`, background: C.gray50, display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
-        <div style={{ width: 260 }}>
+      <motion.div animate={{ width: sidebar ? 255 : 0 }} transition={{ duration: .25, ease: 'easeInOut' }}
+        style={{ position: 'relative', zIndex: 10, borderRight: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0, ...glass({ background: 'rgba(12,5,33,0.7)' }) }}>
+        <div style={{ width: 255 }}>
           {/* Logo */}
-          <div style={{ padding: '18px 20px 14px', borderBottom: `1px solid ${C.gray200}` }}>
+          <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg,#7c3aed,#a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: '0 0 16px rgba(124,58,237,0.4)', flexShrink: 0 }}>
                 <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
               </div>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 900, color: C.gray900, lineHeight: 1 }}>Fundo<span style={{ color: C.purple }}>AI</span></div>
-                <div style={{ fontSize: 10.5, color: C.gray500, marginTop: 2 }}>Study Assistant</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', lineHeight: 1 }}>Fundo<span style={{ color: T.pur }}>AI</span></div>
+                <div style={{ fontSize: 10, color: T.lo, marginTop: 2 }}>Student Portal</div>
               </div>
             </div>
           </div>
 
-          {/* User info */}
-          <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.gray200}` }}>
+          {/* User card */}
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, ${planColor}, ${planColor}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 13, fontWeight: 800, color: '#fff' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg,${planColor},${planColor}70)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff', flexShrink: 0, boxShadow: `0 0 12px ${planColor}40` }}>
                 {(profile?.name || 'S')[0].toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: C.gray900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name || 'Student'}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.hi, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name || 'Student'}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 10.5 }}>{PLAN_ICON[plan]}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: planColor }}>{plan}</span>
-                  {profile?.levelLabel && <span style={{ fontSize: 10.5, color: C.gray400 }}>· {profile.levelLabel}</span>}
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: planColor }}>{plan}</span>
+                  {profile?.grade && <span style={{ fontSize: 10, color: T.lo }}>· {profile.grade}</span>}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Navigation tabs */}
-          <div style={{ padding: '10px 10px' }}>
-            {TABS.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', marginBottom: 2, fontSize: 13.5, fontWeight: activeTab === tab.id ? 700 : 500, color: activeTab === tab.id ? C.purple : C.gray700, background: activeTab === tab.id ? C.purpleLt : 'transparent', transition: 'all .15s', textAlign: 'left' }}>
-                <tab.icon size={17} style={{ color: activeTab === tab.id ? C.purple : C.gray500, flexShrink: 0 }}/>
-                {tab.label}
-              </button>
-            ))}
+          {/* Nav */}
+          <div style={{ padding: '10px 8px' }}>
+            {TABS.map(t => {
+              const active = tab === t.id;
+              return (
+                <motion.button key={t.id} onClick={() => setTab(t.id)} whileTap={{ scale: .97 }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', borderRadius: 11, border: active ? '1px solid rgba(124,58,237,0.4)' : '1px solid transparent', cursor: 'pointer', marginBottom: 2, fontSize: 13.5, fontWeight: active ? 700 : 500, textAlign: 'left', transition: 'all .18s', fontFamily: 'inherit',
+                    background: active ? 'rgba(124,58,237,0.2)' : 'transparent', color: active ? T.pur : T.lo,
+                    boxShadow: active ? '0 0 16px rgba(124,58,237,0.2)' : 'none' }}>
+                  <t.icon size={16} style={{ color: active ? T.pur : T.lo, flexShrink: 0 }} />
+                  {t.label}
+                  {active && <motion.div layoutId="activeTab" style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: T.pur, boxShadow: `0 0 6px ${T.purDk}` }} />}
+                </motion.button>
+              );
+            })}
           </div>
 
-          {/* Usage bars */}
+          {/* Usage */}
           {usage && limits && (
-            <div style={{ margin: '8px 12px', padding: '14px', background: '#fff', border: `1px solid ${C.gray200}`, borderRadius: 12 }}>
+            <div style={{ margin: '8px 10px', padding: '14px', ...glass({ background: 'rgba(255,255,255,0.04)', borderRadius: 14 }) }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: C.gray700, textTransform: 'uppercase', letterSpacing: '.5px' }}>Today's Usage</span>
-                <Zap size={12} style={{ color: C.purple }}/>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: T.lo, textTransform: 'uppercase', letterSpacing: '.6px' }}>Daily Usage</span>
+                <button onClick={() => setRefreshKey(k => k + 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.lo, padding: 0, display: 'flex' }}><RefreshCw size={11} /></button>
               </div>
-              <UsageBar label="AI Chats" used={usage.chatToday || 0} limit={limits.chat || 25} color={C.purple} />
-              <UsageBar label="Images" used={usage.imagesToday || 0} limit={limits.images || 3} color="#2563eb" />
-              <UsageBar label="Study Notes" used={usage.pdfToday || 0} limit={limits.pdf || 1} color="#059669" />
+              <UsageBar label="Chats" used={usage.chatToday || 0} limit={limits.chat || 25} icon={MessageSquare} />
+              <UsageBar label="Images" used={usage.imagesToday || 0} limit={limits.images || 3} icon={Image} />
+              <UsageBar label="Notes & Exams" used={usage.pdfToday || 0} limit={limits.pdf || 1} icon={FileText} />
             </div>
           )}
 
-          {/* Upgrade CTA */}
+          {/* Upgrade */}
           {plan === 'FREE' && (
-            <div style={{ margin: '8px 12px' }}>
+            <div style={{ margin: '6px 10px' }}>
               <a href="https://wa.me/263719647303?text=upgrade" target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', background: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', color: '#fff', borderRadius: 10, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
-                <Crown size={14}/> Upgrade Plan
-                <ArrowUpRight size={12} style={{ marginLeft: 'auto' }}/>
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', color: '#fff', borderRadius: 12, textDecoration: 'none', fontSize: 13, fontWeight: 700, boxShadow: '0 4px 16px rgba(124,58,237,0.35)' }}>
+                <Crown size={13} /> Upgrade Plan <ArrowUpRight size={12} style={{ marginLeft: 'auto' }} />
               </a>
             </div>
           )}
 
           {/* Sign out */}
-          <div style={{ padding: '8px 10px', marginTop: 'auto' }}>
+          <div style={{ padding: '8px 10px', marginTop: 8 }}>
             <button onClick={signOut}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, color: C.gray500, background: 'transparent', transition: 'all .15s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#dc2626'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.gray500; }}>
-              <LogOut size={15}/> Sign Out
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, color: T.lo, background: 'transparent', fontFamily: 'inherit', transition: 'all .18s', textAlign: 'left' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#fca5a5'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = T.lo; }}>
+              <LogOut size={14} /> Sign Out
             </button>
           </div>
         </div>
       </motion.div>
 
       {/* Main content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', zIndex: 10 }}>
         {/* Top bar */}
-        <div style={{ height: 54, borderBottom: `1px solid ${C.gray200}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 12, flexShrink: 0, background: '#fff' }}>
-          <button onClick={() => setSidebarOpen(o => !o)}
-            style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.gray200}`, background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.gray500 }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-          <span style={{ fontSize: 15, fontWeight: 700, color: C.gray900 }}>
-            {TABS.find(t => t.id === activeTab)?.label}
+        <div style={{ height: 54, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', padding: '0 18px', gap: 12, flexShrink: 0, ...glass({ background: 'rgba(12,5,33,0.5)', borderRadius: 0, border: 'none', borderBottom: '1px solid rgba(255,255,255,0.07)' }) }}>
+          <motion.button onClick={() => setSidebar(s => !s)} whileTap={{ scale: .92 }}
+            style={{ width: 32, height: 32, borderRadius: 9, ...glass(), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+            {sidebar ? <X size={14} style={{ color: T.lo }} /> : <Menu size={14} style={{ color: T.lo }} />}
+          </motion.button>
+          <span style={{ fontSize: 15, fontWeight: 800, color: T.hi }}>
+            {TABS.find(t => t.id === tab)?.label}
           </span>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 12, color: C.gray500 }}>{profile?.school || ''}</span>
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: `linear-gradient(135deg, ${planColor}, ${planColor}80)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff' }}>
+            {profile?.school && <span style={{ fontSize: 12, color: T.lo }}>{profile.school}</span>}
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: `linear-gradient(135deg,${planColor},${planColor}70)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', boxShadow: `0 0 10px ${planColor}40` }}>
               {(profile?.name || 'S')[0].toUpperCase()}
             </div>
           </div>
@@ -823,34 +1097,45 @@ export default function StudentApp() {
         {/* Tab content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <AnimatePresence mode="wait">
-            <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .15 }}
-              style={{ height: '100%', overflow: activeTab === 'chat' ? 'hidden' : 'auto' }}>
-              {activeTab === 'chat'      && <ChatTab profile={profile} />}
-              {activeTab === 'image'     && <ImageTab />}
-              {activeTab === 'notes'     && <NotesTab profile={profile} />}
-              {activeTab === 'materials' && <MaterialsTab profile={profile} />}
+            <motion.div key={tab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .15 }}
+              style={{ height: '100%', overflowY: tab === 'chat' || tab === 'exam' ? 'hidden' : 'auto' }}>
+              {tab === 'chat'      && <ChatTab profile={profile} />}
+              {tab === 'image'     && <ImageTab />}
+              {tab === 'notes'     && <NotesTab profile={profile} />}
+              {tab === 'exam'      && <ExamTab profile={profile} />}
+              {tab === 'materials' && <MaterialsTab profile={profile} />}
+              {tab === 'profile'   && <ProfileTab profile={profile} usage={usage} limits={limits} />}
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
 
       <style>{`
-        .markdown-body p { margin: 0 0 10px; }
-        .markdown-body h1,.markdown-body h2,.markdown-body h3 { margin: 16px 0 8px; font-weight: 800; color: #111827; }
-        .markdown-body h1 { font-size: 1.3em; }
-        .markdown-body h2 { font-size: 1.15em; }
-        .markdown-body h3 { font-size: 1em; }
-        .markdown-body ul,.markdown-body ol { padding-left: 20px; margin: 8px 0; }
-        .markdown-body li { margin-bottom: 4px; }
-        .markdown-body strong { font-weight: 700; }
-        .markdown-body code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: .88em; font-family: monospace; }
-        .markdown-body pre { background: #1f2937; color: #e5e7eb; padding: 14px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
-        .markdown-body pre code { background: none; padding: 0; color: inherit; }
-        .markdown-body table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-        .markdown-body th,.markdown-body td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; }
-        .markdown-body th { background: #f9fafb; font-weight: 700; }
-        .markdown-body blockquote { border-left: 3px solid #7c3aed; padding-left: 14px; color: #6b7280; margin: 10px 0; }
+        * { box-sizing: border-box; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        .md-body p { margin: 0 0 10px; color: rgba(240,233,255,0.85); }
+        .md-body h1,.md-body h2,.md-body h3 { margin: 16px 0 8px; font-weight: 800; color: #f0e9ff; }
+        .md-body h1 { font-size: 1.25em; }
+        .md-body h2 { font-size: 1.12em; color: #a78bfa; }
+        .md-body h3 { font-size: 1em; color: #c4b5fd; }
+        .md-body ul,.md-body ol { padding-left: 20px; margin: 8px 0; }
+        .md-body li { margin-bottom: 4px; color: rgba(240,233,255,0.8); }
+        .md-body strong { font-weight: 700; color: #f0e9ff; }
+        .md-body em { color: #a78bfa; }
+        .md-body code { background: rgba(124,58,237,0.2); color: #c4b5fd; padding: 2px 6px; border-radius: 4px; font-size: .88em; font-family: monospace; border: 1px solid rgba(124,58,237,0.2); }
+        .md-body pre { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 10px; overflow-x: auto; margin: 10px 0; }
+        .md-body pre code { background: none; border: none; padding: 0; color: #c4b5fd; }
+        .md-body table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        .md-body th,.md-body td { border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; text-align: left; font-size: 13px; color: rgba(240,233,255,0.8); }
+        .md-body th { background: rgba(124,58,237,0.15); font-weight: 700; color: #f0e9ff; }
+        .md-body blockquote { border-left: 3px solid #7c3aed; padding-left: 14px; color: rgba(240,233,255,0.6); margin: 10px 0; }
+        input::placeholder, textarea::placeholder { color: rgba(240,233,255,0.25); }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.3); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.5); }
+        select option { background: #150b35; color: #f0e9ff; }
       `}</style>
     </div>
   );

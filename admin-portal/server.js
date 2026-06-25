@@ -324,6 +324,23 @@ app.post('/api/student/login', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api/student/update-profile', requireStudent, async (req, res) => {
+  try {
+    const { name, school, levelType, levelLabel, grade } = req.body;
+    const update = {};
+    if (name)       update.name       = name;
+    if (school)     update.school     = school;
+    if (levelType)  update.levelType  = levelType;
+    if (levelLabel) update.levelLabel = levelLabel;
+    if (grade)      update.grade      = grade;
+    const user = await UserModel.findOneAndUpdate(
+      { phone: req.student.phone }, update, { new: true }
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user: { phone: user.phone, name: user.name, plan: user.plan, school: user.school, levelLabel: user.levelLabel, grade: user.grade } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/student/me', requireStudent, async (req, res) => {
   try {
     let user = await UserModel.findOne({ phone: req.student.phone });
@@ -464,6 +481,66 @@ Format with clear headings, bullet points, and make it easy to study from.`;
     ).catch(() => {});
 
     res.json({ notes, topic, subject, level });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Student Mock Exam ─────────────────────────────────────────────────────────
+app.post('/api/student/generate-mock-exam', requireStudent, async (req, res) => {
+  try {
+    const { subject, level, grade, topic, count = 10, difficulty = 'medium' } = req.body;
+    if (!subject) return res.status(400).json({ error: 'Subject required' });
+
+    let user = await UserModel.findOne({ phone: req.student.phone });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
+
+    const plan = user.plan || 'FREE';
+    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const pdfUsed = user.usage?.pdfToday || 0;
+    if (pdfUsed >= limits.pdf) {
+      return res.status(429).json({ error: `Daily limit reached (${limits.pdf}). Upgrade for more!` });
+    }
+
+    const levelInfo = grade ? `${level} ${grade}` : level || 'O-Level';
+    const topicLine = topic ? ` on "${topic}"` : '';
+    const prompt = `Generate exactly ${count} multiple-choice exam questions for ${subject}${topicLine} at ${levelInfo} level (ZIMSEC/Cambridge curriculum), difficulty: ${difficulty}.
+
+Return ONLY valid JSON (no markdown, no extra text) in this exact format:
+{"questions":[{"id":1,"q":"Question text here?","options":["A. Option 1","B. Option 2","C. Option 3","D. Option 4"],"answer":"A","explanation":"Brief explanation of why A is correct."}]}
+
+Requirements:
+- Exactly ${count} questions
+- Each question has id, q, options (exactly 4 starting with A./B./C./D.), answer (just the letter), explanation
+- Questions must be curriculum-appropriate for ${levelInfo} ${subject}
+- Mix of difficulty within the ${difficulty} band
+- No duplicate questions`;
+
+    const messages = [
+      { role: 'system', content: 'You are a ZIMSEC/Cambridge exam paper generator. You output ONLY valid JSON, never markdown or extra text.' },
+      { role: 'user', content: prompt },
+    ];
+
+    let raw = '';
+    try { raw = await callNVIDIA(messages); } catch (_) {
+      raw = await callBK9('You are a ZIMSEC/Cambridge exam generator. Return ONLY valid JSON.', prompt);
+    }
+
+    // Extract JSON from response
+    const jsonMatch = raw.match(/\{[\s\S]*"questions"[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('AI did not return valid exam JSON. Please try again.');
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+      throw new Error('No questions generated. Please try again.');
+    }
+
+    await UserModel.findOneAndUpdate(
+      { phone: req.student.phone },
+      { $inc: { 'usage.pdfToday': 1 } }
+    ).catch(() => {});
+
+    res.json({ questions: parsed.questions, subject, level, topic, count: parsed.questions.length });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
