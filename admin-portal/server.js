@@ -183,15 +183,12 @@ const WEB_SYSTEM_PROMPT = `You are Fundo AI, a world-class educational AI assist
 
 Always be warm, encouraging, and educational. Sign responses with — *Fundo AI* 🤖✨`;
 
-async function callBK9(systemPrompt, userMessage) {
+async function callBK92(systemPrompt, userMessage) {
   const q = userMessage.substring(0, 4000);
   const sys = systemPrompt.substring(0, 1500);
   try {
-    const res = await axios({
-      method: 'post',
-      url: 'https://api.bk9.dev/ai/BK91',
-      data: new URLSearchParams({ BK9: sys, q, model: BK9_MODEL }).toString(),
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    const res = await axios.get('https://api.bk9.dev/ai/BK92', {
+      params: { q, BK9: sys, model: 'openai/gpt-oss-120b' },
       timeout: 35000,
     });
     if (res.data?.status && res.data?.BK9) return res.data.BK9;
@@ -202,6 +199,27 @@ async function callBK9(systemPrompt, userMessage) {
   });
   if (res2.data?.status && res2.data?.BK9) return res2.data.BK9;
   throw new Error('AI unavailable');
+}
+
+async function callVisionAPI(imageUrl, question) {
+  const res = await axios.get('https://api.bk9.dev/ai/vision', {
+    params: { q: question, image_url: imageUrl, model: 'meta-llama/llama-4-scout-17b-16e-instruct' },
+    timeout: 40000,
+  });
+  if (res.data?.status && res.data?.BK9) return res.data.BK9;
+  throw new Error('Vision API unavailable');
+}
+
+async function generateImageAI(prompt) {
+  try {
+    const res = await axios.get('https://omegatech-api.dixonomega.tech/api/ai/nano-banana-pro', {
+      params: { prompt },
+      timeout: 35000,
+    });
+    if (res.data?.image) return res.data.image;
+  } catch (_) {}
+  const seed = Date.now();
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&nologo=true&model=flux&seed=${seed}`;
 }
 
 async function callNVIDIA(messages) {
@@ -242,9 +260,8 @@ async function askAI(messages) {
 
   try {
     return await callNVIDIA(messages);
-  } catch (_) {
-    return await callBK9(sysMsg?.content || WEB_SYSTEM_PROMPT, fullQuestion);
-  }
+  } catch (_) {}
+  return await callBK92(sysMsg?.content || WEB_SYSTEM_PROMPT, fullQuestion);
 }
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
@@ -420,9 +437,8 @@ app.get('/api/student/generate-image', requireStudent, async (req, res) => {
       return res.status(429).json({ error: `Daily image limit reached (${limits.images} images). Upgrade for more!` });
     }
 
-    const enhanced = `${prompt}, high quality, detailed, educational, 4k, vibrant`;
-    const seed = Date.now();
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=768&height=768&nologo=true&model=flux&seed=${seed}`;
+    const enhanced = `${prompt}, high quality, detailed, educational, vivid`;
+    const imageUrl = await generateImageAI(enhanced);
 
     await UserModel.findOneAndUpdate(
       { phone: req.student.phone },
@@ -432,6 +448,35 @@ app.get('/api/student/generate-image', requireStudent, async (req, res) => {
     res.json({ imageUrl, prompt: enhanced });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/student/analyze-image', requireStudent, async (req, res) => {
+  try {
+    const { imageUrl, question } = req.body;
+    if (!imageUrl) return res.status(400).json({ error: 'Image URL required' });
+    const q = (question?.trim()) || 'Describe and analyse this image in detail. If it is educational content, explain it thoroughly.';
+
+    let user = await UserModel.findOne({ phone: req.student.phone });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
+    const plan = user.plan || 'FREE';
+    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const chatUsed = user.usage?.chatToday || 0;
+    const extra = user.extraMessages || 0;
+    if (chatUsed >= limits.chat + extra) {
+      return res.status(429).json({ error: `Daily limit reached. Upgrade your plan for more!` });
+    }
+
+    const reply = await callVisionAPI(imageUrl, q);
+    await UserModel.findOneAndUpdate(
+      { phone: req.student.phone },
+      { $inc: { 'usage.chatToday': 1 } }
+    ).catch(() => {});
+
+    res.json({ reply });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Vision AI error. Try again.' });
   }
 });
 

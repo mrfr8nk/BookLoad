@@ -1,0 +1,2 @@
+- [Student Portal APIs](student-portal-apis.md) — BK92 for chat, vision API for image analysis, nano-banana-pro for image gen; all with fallbacks.
+- [Student Portal Theme](student-portal-theme.md) — DARK/LIGHT palette objects passed as `p` prop; toggle stored in localStorage key `fundo_theme`.
