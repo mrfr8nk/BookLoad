@@ -6,6 +6,7 @@ import path from 'path';
 import { createHash } from 'crypto';
 import { createRequire } from 'module';
 import axios from 'axios';
+import PDFDocument from 'pdfkit';
 
 const require = createRequire(import.meta.url);
 let jwt;
@@ -407,7 +408,10 @@ app.post('/api/student/chat', requireStudent, async (req, res) => {
       { role: 'user', content: message },
     ];
 
-    const reply = await askAI(messages);
+    const sysPrompt = WEB_SYSTEM_PROMPT;
+    const historyContext = history.slice(-8).map(m => `${m.role === 'user' ? 'Student' : 'Fundo AI'}: ${m.content}`).join('\n');
+    const fullQ = historyContext ? `${historyContext}\n\nStudent: ${message}` : message;
+    const reply = await callBK92(sysPrompt, fullQ);
 
     await UserModel.findOneAndUpdate(
       { phone: req.student.phone },
@@ -569,7 +573,7 @@ Requirements:
 
     let raw = '';
     try { raw = await callNVIDIA(messages); } catch (_) {
-      raw = await callBK9('You are a ZIMSEC/Cambridge exam generator. Return ONLY valid JSON.', prompt);
+      raw = await callBK92('You are a ZIMSEC/Cambridge exam generator. Return ONLY valid JSON.', prompt);
     }
 
     // Extract JSON from response
@@ -586,6 +590,156 @@ Requirements:
     ).catch(() => {});
 
     res.json({ questions: parsed.questions, subject, level, topic, count: parsed.questions.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Project Generator ─────────────────────────────────────────────────────────
+app.post('/api/student/generate-project', requireStudent, async (req, res) => {
+  try {
+    const { topic, subject, level, grade, studentName, school, pages = 4 } = req.body;
+    if (!topic) return res.status(400).json({ error: 'Project topic required' });
+
+    let user = await UserModel.findOne({ phone: req.student.phone });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
+    const plan = user.plan || 'FREE';
+    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    if ((user.usage?.pdfToday || 0) >= limits.pdf) {
+      return res.status(429).json({ error: `Daily project limit reached. Upgrade for more!` });
+    }
+
+    const levelInfo = grade ? `${level} ${grade}` : level || 'O-Level';
+    const sName = studentName || user.name || 'Student';
+    const sSchool = school || user.school || 'School';
+
+    const prompt = `Write a comprehensive, well-structured academic project report on the topic: **"${topic}"**
+
+Student: ${sName} | School: ${sSchool} | Level: ${levelInfo} | Subject: ${subject || 'General'}
+
+The project should be approximately ${pages} pages long and include:
+
+# Title Page Content
+Title, Student Name, School, Subject, Level, Year
+
+# Table of Contents
+List all sections
+
+# 1. Introduction
+Background, objectives, and significance of the topic. Why it matters to Zimbabwe/Africa.
+
+# 2. Literature Review / Background
+Key concepts, definitions, and existing knowledge. Reference ZIMSEC/Cambridge curriculum.
+
+# 3. Main Content (3-4 detailed sections)
+In-depth analysis with subheadings, facts, examples, diagrams descriptions, and data.
+
+# 4. Case Studies / Examples
+Real-world examples relevant to Zimbabwe and Africa.
+
+# 5. Analysis & Discussion
+Critical thinking, connections, implications.
+
+# 6. Conclusion
+Summary of findings and recommendations.
+
+# 7. References
+At least 5 academic/credible references.
+
+Format beautifully with proper headings, subheadings, bullet points, and tables where appropriate.
+Write in formal academic English suitable for ${levelInfo} students.`;
+
+    const content = await callBK92(WEB_SYSTEM_PROMPT, prompt);
+
+    await UserModel.findOneAndUpdate(
+      { phone: req.student.phone },
+      { $inc: { 'usage.pdfToday': 1 } }
+    ).catch(() => {});
+
+    res.json({ content, topic, subject, level, studentName: sName, school: sSchool, plan });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Export PDF ────────────────────────────────────────────────────────────────
+app.post('/api/student/export-pdf', requireStudent, async (req, res) => {
+  try {
+    const { content, title, type = 'notes' } = req.body;
+    if (!content) return res.status(400).json({ error: 'Content required' });
+
+    const user = await UserModel.findOne({ phone: req.student.phone });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const plan = user.plan || 'FREE';
+    const isPaid = plan !== 'FREE';
+
+    const doc = new PDFDocument({ margin: 60, size: 'A4', info: { Title: title || 'Fundo AI', Author: 'Fundo AI' } });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+
+    // Header bar
+    doc.rect(0, 0, doc.page.width, 54).fill('#7c3aed');
+    doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold').text('FUNDO AI', 60, 17, { continued: true });
+    doc.fillColor('#c4b5fd').fontSize(11).font('Helvetica').text(`  ·  ${type === 'project' ? 'Academic Project' : type === 'exam' ? 'Mock Exam' : 'Study Notes'}`, { baseline: 'middle' });
+
+    // Title
+    doc.fillColor('#18063a').fontSize(20).font('Helvetica-Bold').text(title || 'Study Notes', 60, 80);
+    doc.fontSize(10).fillColor('#6b7280').font('Helvetica').text(`Generated by Fundo AI  ·  ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}  ·  ${plan} Plan`, 60, 106);
+    doc.moveTo(60, 122).lineTo(doc.page.width - 60, 122).strokeColor('#e5e7eb').lineWidth(1).stroke();
+    doc.moveDown(1.5);
+
+    // Content — parse markdown-ish formatting
+    const lines = content.split('\n');
+    doc.fillColor('#1f2937').fontSize(11).font('Helvetica');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) { doc.moveDown(0.4); continue; }
+      if (trimmed.startsWith('# ')) {
+        doc.moveDown(0.6).fillColor('#7c3aed').fontSize(15).font('Helvetica-Bold').text(trimmed.slice(2)).fillColor('#1f2937').fontSize(11).font('Helvetica').moveDown(0.3);
+      } else if (trimmed.startsWith('## ')) {
+        doc.moveDown(0.4).fillColor('#5b21b6').fontSize(13).font('Helvetica-Bold').text(trimmed.slice(3)).fillColor('#1f2937').fontSize(11).font('Helvetica').moveDown(0.2);
+      } else if (trimmed.startsWith('### ')) {
+        doc.moveDown(0.3).fillColor('#374151').fontSize(12).font('Helvetica-Bold').text(trimmed.slice(4)).fillColor('#1f2937').fontSize(11).font('Helvetica').moveDown(0.2);
+      } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        doc.fontSize(11).font('Helvetica').text(`• ${trimmed.slice(2)}`, { indent: 14, lineGap: 2 });
+      } else if (/^\d+\.\s/.test(trimmed)) {
+        doc.fontSize(11).font('Helvetica').text(trimmed, { indent: 14, lineGap: 2 });
+      } else if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+        doc.fontSize(11).font('Helvetica-Bold').text(trimmed.replace(/\*\*/g, ''));
+      } else {
+        const clean = trimmed.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`(.*?)`/g, '$1');
+        doc.fontSize(11).font('Helvetica').text(clean, { lineGap: 2 });
+      }
+    }
+
+    // Footer watermark for free users
+    if (!isPaid) {
+      const pages = doc.bufferedPageRange ? doc.bufferedPageRange().count : 1;
+      for (let i = 0; i < (pages || 1); i++) {
+        if (i > 0) doc.switchToPage(i);
+        doc.save().fillColor('#d1d5db').fontSize(8).font('Helvetica')
+          .text('Generated by Fundo AI — Free Plan · Upgrade at fundoai.gleeze.com for premium features', 60, doc.page.height - 38, { align: 'center', width: doc.page.width - 120 }).restore();
+      }
+    } else {
+      doc.save().fillColor('#d1d5db').fontSize(8).font('Helvetica')
+        .text('Generated by Fundo AI · fundoai.gleeze.com', 60, doc.page.height - 38, { align: 'center', width: doc.page.width - 120 }).restore();
+    }
+
+    await new Promise(resolve => { doc.on('end', resolve); doc.end(); });
+    const pdfBuffer = Buffer.concat(chunks);
+
+    // Upload to CDN
+    try {
+      const safeName = `${(title||'notes').replace(/[^\w]/g,'_').slice(0,30)}_${Date.now()}.pdf`;
+      const cdnUrl = await uploadToCDN(pdfBuffer, safeName, 'application/pdf', 'fundo/exports/');
+      return res.json({ url: cdnUrl, plan, isPaid });
+    } catch (_) {
+      // Fallback: serve directly
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${(title||'notes').replace(/[^\w]/g,'_')}.pdf"`);
+      return res.end(pdfBuffer);
+    }
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
