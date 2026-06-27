@@ -520,6 +520,40 @@ app.post('/api/student/analyze-image', requireStudent, async (req, res) => {
   }
 });
 
+app.post('/api/student/upload-image', requireStudent, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image file provided' });
+    const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z]/g,'');
+    const filename = `vision_${Date.now()}.${ext || 'jpg'}`;
+    const url = await uploadToCDN(req.file.buffer, filename, req.file.mimetype, 'fundo/vision/');
+    res.json({ url });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/student/my-referral', requireStudent, async (req, res) => {
+  try {
+    let user = await UserModel.findOne({ phone: req.student.phone });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.referralCode) {
+      const code = 'FUNDO' + req.student.phone.slice(-5).toUpperCase();
+      user = await UserModel.findOneAndUpdate(
+        { phone: req.student.phone }, { referralCode: code }, { new: true }
+      );
+    }
+    res.json({ referralCode: user.referralCode, referralCount: user.referralCount || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/student/my-uploads', requireStudent, async (req, res) => {
+  try {
+    const uploads = await MaterialModel.find({ uploadedBy: req.student.phone })
+      .sort({ createdAt: -1 }).limit(50).lean();
+    res.json({ uploads });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/student/generate-notes', requireStudent, async (req, res) => {
   try {
     const { topic, subject, level, grade } = req.body;

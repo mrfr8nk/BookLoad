@@ -918,7 +918,7 @@ function AboutSection() {
               Built by a Zimbabwean student, <span style={serif}>for every student</span>
             </h2>
             <p style={{ fontSize:15.5, color:C.gray500, lineHeight:1.8, marginBottom:16 }}>
-              Fundo AI was created by <strong style={{color:C.gray900}}>Darrell Mucheri</strong>, a Zimbabwean developer who saw firsthand the challenges students face — scattered resources, no 24/7 tutors, and expensive study tools that don't align with the ZIMSEC curriculum.
+              Fundo AI was created by <strong style={{color:C.gray900}}>Darrell Mucheri</strong> and <strong style={{color:C.gray900}}>Crejinai Makanyisa</strong> — a duo of Zimbabwean developers who saw firsthand the challenges students face: scattered resources, no 24/7 tutors, and expensive tools that don't align with the ZIMSEC curriculum.
             </p>
             <p style={{ fontSize:15.5, color:C.gray500, lineHeight:1.8, marginBottom:32 }}>
               Fundo AI is 100% built for Zimbabwe — aligned with ZIMSEC and Cambridge curricula, affordable, and accessible right from WhatsApp or our web app.
@@ -946,18 +946,23 @@ function AboutSection() {
               ))}
             </div>
             <div style={{ padding:'20px 22px', background:C.gray50, border:`1px solid ${C.gray200}`, borderRadius:16 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
-                <div style={{ width:42, height:42, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden', flexShrink:0 }}>
-                  <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
-                </div>
-                <div>
-                  <div style={{ fontSize:14, fontWeight:800, color:C.gray900 }}>Darrell Mucheri</div>
-                  <div style={{ fontSize:12.5, color:C.gray500 }}>Creator & Lead Developer</div>
-                </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {[
+                  { name:'Darrell Mucheri', role:'Lead Developer & Founder', quote:'"Every Zimbabwean student deserves AI tools built for their curriculum."' },
+                  { name:'Crejinai Makanyisa', role:'Co-founder & Product', quote:'"We built Fundo to close the gap between students and quality education."' },
+                ].map(m => (
+                  <div key={m.name} style={{ display:'flex', alignItems:'flex-start', gap:11 }}>
+                    <div style={{ width:38, height:38, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <span style={{ fontSize:14, fontWeight:800, color:'#fff' }}>{m.name[0]}</span>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:13.5, fontWeight:800, color:C.gray900 }}>{m.name}</div>
+                      <div style={{ fontSize:12, color:C.gray500, marginBottom:3 }}>{m.role}</div>
+                      <p style={{ fontSize:12.5, color:C.gray600, lineHeight:1.6, fontStyle:'italic', margin:0 }}>{m.quote}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <p style={{ fontSize:13.5, color:C.gray600, lineHeight:1.7, fontStyle:'italic', margin:0 }}>
-                "Every Zimbabwean student deserves access to world-class AI tools that understand their curriculum. Fundo AI is my commitment to making that possible."
-              </p>
             </div>
           </motion.div>
         </div>

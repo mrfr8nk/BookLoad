@@ -6,10 +6,12 @@ import {
   Zap, Crown, ArrowUpRight, AlertCircle, RefreshCw, Copy, Check,
   ChevronDown, Brain, Trophy, RotateCcw, PlayCircle, Star,
   Flame, Target, BarChart3, Menu, Sun, Moon, Camera, X, Eye,
-  FolderOpen, Lock, FileCheck, BookMarked,
+  FolderOpen, Lock, FileCheck, BookMarked, Gift, UploadCloud, Share2, Link2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 /* ─────────────────────────── THEME ──────────────────────────────────────── */
 const LIGHT = {
@@ -128,6 +130,8 @@ const TABS = [
   { id:'project',   icon:FolderOpen,     label:'Projects'  },
   { id:'exam',      icon:ClipboardCheck, label:'Mock Exam' },
   { id:'materials', icon:BookOpen,       label:'Library'   },
+  { id:'referral',  icon:Gift,           label:'Referral'  },
+  { id:'myuploads', icon:UploadCloud,    label:'My Uploads'},
   { id:'profile',   icon:User,           label:'Profile'   },
 ];
 
@@ -141,6 +145,18 @@ async function api(path, opts = {}) {
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || 'Request failed');
+  return d;
+}
+async function uploadFile(path, file) {
+  const fd = new FormData();
+  fd.append('image', file);
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${localStorage.getItem('fundo_token') || ''}` },
+    body: fd,
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Upload failed');
   return d;
 }
 
@@ -310,7 +326,8 @@ function ChatTab({ profile, isMobile, p }) {
   const [error, setError] = useState('');
   const [visionOpen, setVisionOpen] = useState(false);
   const [imgUrl, setImgUrl] = useState('');
-  const [imgOk, setImgOk] = useState(false);
+  const [imgUploading, setImgUploading] = useState(false);
+  const fileInputRef = useRef();
   const bottomRef = useRef();
   const session = sessions.find(s => s.id === active) || sessions[0];
 
@@ -339,7 +356,7 @@ function ChatTab({ profile, isMobile, p }) {
         const d = await api('/api/student/analyze-image', { method:'POST', body:{ imageUrl:imgUrl, question:msg } });
         setSessions(s => s.map(sess => sess.id === sid ? { ...sess, messages:[...sess.messages, { role:'assistant', content:d.reply }] } : sess));
       } catch(e) { setError(e.message); }
-      finally { setLoading(false); setImgUrl(''); setImgOk(false); }
+      finally { setLoading(false); setImgUrl(''); }
       return;
     }
 
@@ -422,19 +439,28 @@ function ChatTab({ profile, isMobile, p }) {
                 <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
                   <Camera size={14} style={{ color:p.accent }}/>
                   <span style={{ fontSize:13, fontWeight:700, color:p.text }}>Analyse an Image</span>
-                  <span style={{ fontSize:12, color:p.muted, flex:1 }}>— paste an image URL below</span>
-                  <button onClick={() => setVisionOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:p.dim }}><X size={14}/></button>
+                  <span style={{ fontSize:12, color:p.muted, flex:1 }}>— upload a photo or screenshot</span>
+                  <button onClick={() => { setVisionOpen(false); setImgUrl(''); }} style={{ background:'none', border:'none', cursor:'pointer', color:p.dim }}><X size={14}/></button>
                 </div>
+                <input ref={fileInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={async e => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setImgUploading(true);
+                  try { const d = await uploadFile('/api/student/upload-image', file); setImgUrl(d.url); }
+                  catch { setImgUrl(''); }
+                  finally { setImgUploading(false); e.target.value = ''; }
+                }}/>
                 <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                  <input value={imgUrl} onChange={e => { setImgUrl(e.target.value); setImgOk(false); }} placeholder="https://example.com/image.jpg"
-                    style={{ flex:1, padding:'9px 12px', borderRadius:9, border:`1.5px solid ${imgUrl ? p.accentBorder : p.inputBdr}`, background:p.inputBg, color:p.text, fontSize:isMobile?16:13.5, outline:'none', fontFamily:'inherit' }}/>
-                  {imgUrl && <div style={{ width:44, height:44, borderRadius:9, overflow:'hidden', border:`1px solid ${p.border}`, flexShrink:0, background:p.bg }}>
-                    <img src={imgUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:imgOk?'block':'none' }}
-                      onLoad={() => setImgOk(true)} onError={() => setImgOk(false)}/>
-                    {!imgOk && <Eye size={14} style={{ color:p.dim, display:'block', margin:'12px auto' }}/>}
+                  <button onClick={() => fileInputRef.current?.click()} disabled={imgUploading}
+                    style={{ flex:1, padding:'10px 14px', borderRadius:9, border:`1.5px dashed ${imgUrl ? p.accentBorder : p.inputBdr}`, background:imgUrl ? p.accentBg : p.inputBg, color:imgUrl?p.accent:p.muted, fontSize:13, fontFamily:'inherit', cursor:'pointer', display:'flex', alignItems:'center', gap:8, transition:'all .15s' }}>
+                    {imgUploading ? <><Loader size={13} style={{ animation:'spin .8s linear infinite' }}/> Uploading…</>
+                      : imgUrl ? <><Check size={13}/> Image ready — tap to change</>
+                      : <><Camera size={13}/> Tap to choose image from device</>}
+                  </button>
+                  {imgUrl && <div style={{ width:44, height:44, borderRadius:9, overflow:'hidden', border:`1px solid ${p.accentBorder}`, flexShrink:0 }}>
+                    <img src={imgUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
                   </div>}
                 </div>
-                <p style={{ fontSize:11.5, color:p.dim, marginTop:7 }}>Then type your question in the box below and press send.</p>
+                <p style={{ fontSize:11.5, color:p.dim, marginTop:7 }}>Then type your question below and press send.</p>
               </div>
             </motion.div>
           )}
@@ -525,7 +551,7 @@ function ChatBubble({ msg, profile, isMobile, p }) {
           color:isUser?p.chatUserText:p.chatAiText, fontSize:isMobile?14:13.5, lineHeight:1.75,
           boxShadow:isUser?'0 2px 10px rgba(124,58,237,0.2)':p.shadow }}>
           {isUser ? <p style={{ margin:0, whiteSpace:'pre-wrap' }}>{msg.content}</p>
-            : <div className="md-body"><ReactMarkdown>{cleanMath(msg.content)}</ReactMarkdown></div>}
+            : <div className="md-body"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{msg.content}</ReactMarkdown></div>}
         </div>
         {!isUser && (
           <button onClick={copy} style={{ marginTop:4, background:'none', border:'none', cursor:'pointer', fontSize:11, color:p.dim, display:'flex', alignItems:'center', gap:4, padding:'2px 5px', fontFamily:'inherit' }}>
@@ -1291,6 +1317,110 @@ function ProfileTab({ profile, usage, limits, isMobile, p }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   REFERRAL TAB
+══════════════════════════════════════════════════════════════════════════ */
+function ReferralTab({ profile, isMobile, p }) {
+  const [data, setData] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    api('/api/student/my-referral').then(d => setData(d)).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  function copy() { navigator.clipboard.writeText(data?.referralCode || '').catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+  const waLink = `https://wa.me/?text=Hey! Use my code *${data?.referralCode || ''}* to sign up on Fundo AI and get bonus study credits! 👉 https://fundoai.gleeze.com`;
+  return (
+    <div style={{ padding:isMobile?'18px 14px':'26px 32px', maxWidth:680, margin:'0 auto', overflowY:'auto', height:'100%' }}>
+      <SectionHeader title="Refer & Earn" sub="Share Fundo AI with friends and earn bonus AI credits." icon={Gift} p={p}/>
+      {loading ? (
+        <div style={{ textAlign:'center', padding:48 }}><Loader size={22} style={{ color:p.accent, animation:'spin .8s linear infinite' }}/></div>
+      ) : (
+        <>
+          <div style={{ background:p.surface, border:`1px solid ${p.border}`, borderRadius:16, padding:'22px 24px', marginBottom:14 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.6px', marginBottom:12 }}>Your Referral Code</div>
+            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              <div style={{ flex:1, padding:'14px 18px', borderRadius:12, background:p.accentBg, border:`2px solid ${p.accentBorder}`, fontSize:22, fontWeight:900, color:p.accent, letterSpacing:3, textAlign:'center', fontFamily:'monospace' }}>
+                {data?.referralCode || '—'}
+              </div>
+              <button onClick={copy} style={{ width:48, height:48, borderRadius:12, border:`1.5px solid ${p.border}`, background:copied?p.accentBg:p.surface, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all .15s', flexShrink:0 }}>
+                {copied ? <Check size={16} style={{ color:p.accent }}/> : <Copy size={16} style={{ color:p.muted }}/>}
+              </button>
+            </div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+            {[{ v: data?.referralCount||0, l:'Friends Referred', c:p.accent }, { v:(data?.referralCount||0)*50, l:'Bonus Chats Earned', c:'#10b981' }].map(s => (
+              <div key={s.l} style={{ background:p.surface, border:`1px solid ${p.border}`, borderRadius:14, padding:'18px', textAlign:'center' }}>
+                <div style={{ fontSize:28, fontWeight:900, color:s.c, marginBottom:4 }}>{s.v}</div>
+                <div style={{ fontSize:12.5, color:p.muted }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background:p.surface, border:`1px solid ${p.border}`, borderRadius:14, padding:'18px 20px', marginBottom:14 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px', marginBottom:12 }}>How It Works</div>
+            {['Share your code with a friend','They sign up using your code','You both earn 50 bonus AI chats','Keep sharing — no limit!'].map((s, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:12, marginBottom:i<3?10:0 }}>
+                <div style={{ width:24, height:24, borderRadius:'50%', background:p.accentBg, border:`1.5px solid ${p.accentBorder}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:p.accent, flexShrink:0 }}>{i+1}</div>
+                <span style={{ fontSize:13.5, color:p.text }}>{s}</span>
+              </div>
+            ))}
+          </div>
+          <a href={waLink} target="_blank" rel="noopener noreferrer"
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px 24px', borderRadius:12, background:'#25D366', color:'#fff', textDecoration:'none', fontWeight:700, fontSize:14.5 }}>
+            <Share2 size={16}/> Share via WhatsApp
+          </a>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MY UPLOADS TAB
+══════════════════════════════════════════════════════════════════════════ */
+function MyUploadsTab({ profile, isMobile, p }) {
+  const [uploads, setUploads] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    api('/api/student/my-uploads').then(d => setUploads(d.uploads || [])).catch(() => setUploads([])).finally(() => setLoading(false));
+  }, []);
+  const CAT_COLORS = { syllabus:'#7c3aed', paper:'#2563eb', textbook:'#059669', marking_scheme:'#d97706' };
+  return (
+    <div style={{ padding:isMobile?'18px 14px':'26px 32px', maxWidth:680, margin:'0 auto', overflowY:'auto', height:'100%' }}>
+      <SectionHeader title="My Uploads" sub="Resources you've contributed to the Fundo community." icon={UploadCloud} p={p}/>
+      {loading ? (
+        <div style={{ textAlign:'center', padding:48 }}><Loader size={22} style={{ color:p.accent, animation:'spin .8s linear infinite' }}/></div>
+      ) : !uploads?.length ? (
+        <div style={{ textAlign:'center', padding:'52px 20px' }}>
+          <UploadCloud size={42} style={{ color:p.border, marginBottom:14 }}/>
+          <p style={{ fontSize:14.5, color:p.muted, margin:'0 0 10px' }}>You haven't uploaded any resources yet.</p>
+          <a href="/upload" style={{ fontSize:13.5, color:p.accent, fontWeight:700, textDecoration:'none' }}>Upload your first resource →</a>
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {uploads.map((u, i) => (
+            <motion.div key={i} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*.04 }}
+              style={{ background:p.surface, border:`1px solid ${p.border}`, borderRadius:14, padding:'14px 18px', display:'flex', alignItems:'center', gap:14 }}>
+              <div style={{ width:42, height:42, borderRadius:10, background:(CAT_COLORS[u.category]||'#7c3aed')+'18', border:`1.5px solid ${(CAT_COLORS[u.category]||'#7c3aed')}33`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <FileText size={16} style={{ color:CAT_COLORS[u.category]||p.accent }}/>
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13.5, fontWeight:700, color:p.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{u.title}</div>
+                <div style={{ fontSize:12, color:p.muted, marginTop:2 }}>{u.subject} · {u.level} · {(u.category||'').replace('_',' ')}</div>
+              </div>
+              <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:99, background:u.approved?'#ecfdf5':'#fef9c3', color:u.approved?'#059669':'#d97706' }}>
+                  {u.approved ? '✓ Approved' : '⏳ Pending'}
+                </span>
+                {u.url && <a href={u.url} target="_blank" rel="noopener noreferrer" style={{ color:p.accent, fontSize:12.5, fontWeight:700, textDecoration:'none' }}>View</a>}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    SIDEBAR
 ══════════════════════════════════════════════════════════════════════════ */
 function SidebarContent({ profile, usage, limits, tab, setTab, signOut, plan, onRefresh, p, isDark, onToggleTheme }) {
@@ -1465,6 +1595,8 @@ export default function StudentApp() {
               {tab==='project'   && <ProjectTab {...tabProps}/>}
               {tab==='exam'      && <ExamTab {...tabProps}/>}
               {tab==='materials' && <MaterialsTab {...tabProps}/>}
+              {tab==='referral'  && <ReferralTab {...tabProps}/>}
+              {tab==='myuploads' && <MyUploadsTab {...tabProps}/>}
               {tab==='profile'   && <ProfileTab {...tabProps} usage={usage} limits={limits}/>}
             </motion.div>
           </AnimatePresence>
