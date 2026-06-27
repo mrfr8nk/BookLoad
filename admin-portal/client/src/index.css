@@ -217,9 +217,25 @@ input[type="checkbox"] {
 }
 
 /* ── Responsive ────────────────────────────────────────────── */
+.hide-mobile  { display: flex !important; }
+.hide-desktop { display: none !important; }
+
 @media (max-width: 768px) {
-  .hide-mobile { display: none !important; }
+  .hide-mobile  { display: none !important; }
+  .hide-desktop { display: flex !important; }
+
+  /* Landing page responsive grids */
+  .lp-2col { grid-template-columns: 1fr !important; gap: 28px !important; }
+  .lp-3col { grid-template-columns: 1fr !important; gap: 16px !important; }
+  .lp-4col { grid-template-columns: repeat(2,1fr) !important; gap: 10px !important; }
+  .lp-foot { grid-template-columns: 1fr 1fr !important; gap: 24px !important; }
+  .lp-sticky { position: static !important; }
+  .lp-app-body { grid-template-columns: 1fr !important; }
+  .lp-app-sidebar { display: none !important; }
+  .lp-comp-wrap { flex-direction: column !important; }
 }
-@media (min-width: 769px) {
-  .hide-desktop { display: none !important; }
+
+@media (max-width: 480px) {
+  .lp-3col { grid-template-columns: 1fr !important; }
+  .lp-foot { grid-template-columns: 1fr !important; }
 }

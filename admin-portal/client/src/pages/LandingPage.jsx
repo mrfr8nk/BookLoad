@@ -20,6 +20,7 @@ const C = {
   gray100:  '#f3f4f6',
   gray200:  '#e5e7eb',
   gray500:  '#6b7280',
+  gray600:  '#4b5563',
   gray700:  '#374151',
   gray900:  '#111827',
 };
@@ -139,21 +140,27 @@ function Navbar() {
           </a>
         </div>
 
-        <button onClick={()=>setOpen(p=>!p)} style={{ display:'none', background:'none', border:'1px solid '+C.gray200, borderRadius:8, padding:8, cursor:'pointer' }} className="hide-desktop">
+        <button onClick={()=>setOpen(p=>!p)} style={{ background:'none', border:'1px solid '+C.gray200, borderRadius:8, padding:8, cursor:'pointer', alignItems:'center', justifyContent:'center' }} className="hide-desktop">
           {open?<X size={17}/>:<Menu size={17}/>}
         </button>
 
         <AnimatePresence>
           {open && (
             <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
-              style={{ position:'absolute', top:64, left:0, right:0, background:'#fff', borderBottom:`1px solid ${C.gray200}`, boxShadow:'0 8px 24px rgba(0,0,0,.08)', padding:'16px clamp(16px,4vw,56px)', display:'flex', flexDirection:'column', gap:4 }} className="hide-desktop">
-              {[['Features','#features'],['How It Works','#how'],['Pricing','#pricing'],['Upload Materials','/upload'],['Admin','/admin']].map(([l,h])=>(
+              style={{ position:'absolute', top:64, left:0, right:0, background:'#fff', borderBottom:`1px solid ${C.gray200}`, boxShadow:'0 8px 24px rgba(0,0,0,.08)', padding:'16px clamp(16px,4vw,56px)', flexDirection:'column', gap:4, zIndex:500 }} className="hide-desktop">
+              {[['Features','#features'],['How It Works','#how'],['About','#about'],['Pricing','#pricing'],['Upload Materials','/upload']].map(([l,h])=>(
                 <a key={h} href={h} onClick={()=>setOpen(false)} style={{ fontSize:15, fontWeight:600, color:C.gray700, padding:'10px 12px', borderRadius:8, textDecoration:'none', background:C.gray50 }}>{l}</a>
               ))}
-              <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
-                style={{ background:C.purple, color:'#fff', textDecoration:'none', padding:'12px', borderRadius:9, fontSize:15, fontWeight:700, textAlign:'center', marginTop:8 }}>
-                Try for Free
-              </a>
+              <div style={{ borderTop:`1px solid ${C.gray200}`, marginTop:4, paddingTop:8, display:'flex', flexDirection:'column', gap:7 }}>
+                <a href="/student" onClick={()=>setOpen(false)}
+                  style={{ fontSize:15, fontWeight:700, color:C.gray700, padding:'11px 12px', borderRadius:9, textDecoration:'none', background:C.gray100, textAlign:'center', border:`1px solid ${C.gray200}` }}>
+                  Student Login
+                </a>
+                <a href="/student" onClick={()=>setOpen(false)}
+                  style={{ background:C.purple, color:'#fff', textDecoration:'none', padding:'12px', borderRadius:9, fontSize:15, fontWeight:700, textAlign:'center', boxShadow:'0 2px 8px rgba(124,58,237,.25)' }}>
+                  Try Web App Free ✨
+                </a>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -233,7 +240,7 @@ function Hero() {
             </div>
           </div>
           {/* App body */}
-          <div style={{ display:'grid', gridTemplateColumns:'220px 1fr', minHeight:340 }}>
+          <div className="lp-app-body" style={{ display:'grid', gridTemplateColumns:'220px 1fr', minHeight:340 }}>
             {/* Sidebar */}
             <div style={{ background:'#faf9fe', borderRight:`1px solid ${C.gray200}`, padding:'16px 12px' }}>
               <div style={{ fontSize:10.5, fontWeight:700, color:C.gray500, letterSpacing:'.8px', textTransform:'uppercase', marginBottom:10, paddingLeft:8 }}>My Study Sessions</div>
@@ -424,7 +431,7 @@ function FeaturesSection() {
           </p>
         </motion.div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:52, alignItems:'start' }}>
+        <div className="lp-2col" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:52, alignItems:'start' }}>
           {/* Feature tabs */}
           <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             {FEATURES.map((f, i) => (
@@ -454,7 +461,7 @@ function FeaturesSection() {
 
           {/* Mockup */}
           <motion.div key={active} initial={{opacity:0,scale:.97}} animate={{opacity:1,scale:1}} transition={{duration:.3}}
-            style={{ position:'sticky', top:96 }}>
+            className="lp-sticky" style={{ position:'sticky', top:96 }}>
             <div style={{ background:'linear-gradient(135deg,#f5f3ff,#ede8ff)', borderRadius:24, padding:24 }}>
               {mockups[FEATURES[active].mockup]}
             </div>
@@ -526,7 +533,7 @@ function HowItWorks() {
           </p>
         </motion.div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:56, alignItems:'start' }}>
+        <div className="lp-2col" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:56, alignItems:'start' }}>
           {/* Steps list */}
           <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
             {STEPS.map((s, i) => (
@@ -553,7 +560,7 @@ function HowItWorks() {
 
           {/* Visual */}
           <motion.div key={active} initial={{opacity:0,scale:.97}} animate={{opacity:1,scale:1}} transition={{duration:.3}}
-            style={{ position:'sticky', top:96 }}>
+            className="lp-sticky" style={{ position:'sticky', top:96 }}>
             {visuals[active]}
           </motion.div>
         </div>
@@ -578,7 +585,7 @@ function Comparison() {
           </p>
         </motion.div>
 
-        <div style={{ position:'relative', display:'grid', gridTemplateColumns:'1fr 1fr', gap:0 }}>
+        <div className="lp-2col" style={{ position:'relative', display:'grid', gridTemplateColumns:'1fr 1fr', gap:0 }}>
           {/* Old way */}
           <motion.div initial={{opacity:0,x:-24}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.5}}
             style={{ background:'#fff5f5', borderRadius:'20px 0 0 20px', padding:'32px 36px', borderRight:'none' }}>
@@ -636,7 +643,7 @@ function WhoSection() {
             Built for <span style={serif}>every student</span>
           </h2>
         </motion.div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:0, background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:20, overflow:'hidden', boxShadow:'0 4px 20px rgba(0,0,0,.05)' }}>
+        <div className="lp-2col" style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:0, background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:20, overflow:'hidden', boxShadow:'0 4px 20px rgba(0,0,0,.05)' }}>
           {/* Tabs */}
           <div style={{ borderRight:`1px solid ${C.gray200}`, padding:8 }}>
             {WHO_TABS.map((w, i) => (
@@ -684,7 +691,7 @@ function ToolGrid() {
   return (
     <section id="features-grid" style={{ background:C.gray50, padding:'0 clamp(16px,4vw,56px) 96px' }}>
       <div style={{ maxWidth:1100, margin:'0 auto' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+        <div className="lp-4col" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
           {TOOLS.map((t, i) => (
             <motion.div key={t.label} initial={{opacity:0,y:12}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.35,delay:i*.04}}>
               <div style={{ background:'#fff', border:`1px solid ${C.gray200}`, borderRadius:14, padding:'16px 18px', display:'flex', alignItems:'center', gap:12, boxShadow:'0 1px 4px rgba(0,0,0,.04)', transition:'all .2s', cursor:'default' }}
@@ -732,7 +739,7 @@ function Pricing() {
           </p>
         </motion.div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, alignItems:'start' }}>
+        <div className="lp-3col" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, alignItems:'start' }}>
           {PLANS.map((p, i) => {
             const isPro = p.name==='Pro';
             return (
@@ -776,7 +783,7 @@ function DarkCTA() {
   return (
     <section id="upload-cta" style={{ background:C.dark, padding:'96px clamp(16px,4vw,56px)', overflow:'hidden', position:'relative' }}>
       <div style={{ position:'absolute', top:-80, right:-80, width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,.18) 0%,transparent 70%)', pointerEvents:'none' }}/>
-      <div style={{ maxWidth:1100, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 1fr', gap:56, alignItems:'center' }}>
+      <div className="lp-2col" style={{ maxWidth:1100, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 1fr', gap:56, alignItems:'center' }}>
         <motion.div initial={{opacity:0,x:-20}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.55}}>
           <h2 style={{ fontSize:'clamp(1.9rem,4vw,3rem)', fontWeight:900, color:'#fff', lineHeight:1.15, letterSpacing:'-.04em', marginBottom:20 }}>
             Your next study session<br />can be smarter.
@@ -832,7 +839,7 @@ function Footer() {
   return (
     <footer style={{ background:'#fff', borderTop:`1px solid ${C.gray200}`, padding:'56px clamp(16px,4vw,56px) 32px' }}>
       <div style={{ maxWidth:1200, margin:'0 auto' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'1.8fr repeat(5,1fr)', gap:32, marginBottom:48 }}>
+        <div className="lp-foot" style={{ display:'grid', gridTemplateColumns:'1.8fr repeat(5,1fr)', gap:32, marginBottom:48 }}>
           {/* Brand col */}
           <div>
             <a href="/" style={{ display:'flex', alignItems:'center', gap:9, textDecoration:'none', marginBottom:16 }}>
@@ -893,10 +900,82 @@ function Footer() {
   );
 }
 
+/* ─────────────── ABOUT ─────────────── */
+function AboutSection() {
+  const stats = [
+    { value:'2,000+', label:'Students Helped' },
+    { value:'270+',   label:'Past Papers' },
+    { value:'5+',     label:'AI Tools' },
+    { value:'24/7',   label:'Always Available' },
+  ];
+  return (
+    <section id="about" style={{ background:'#fff', padding:'96px clamp(16px,4vw,56px)', borderTop:`1px solid ${C.gray200}` }}>
+      <div style={{ maxWidth:1100, margin:'0 auto' }}>
+        <div className="lp-2col" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:64, alignItems:'center' }}>
+          <motion.div initial={{opacity:0,x:-24}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.55}}>
+            <div style={{ fontSize:12.5, fontWeight:700, color:C.purple, textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:14 }}>About Fundo AI</div>
+            <h2 style={{ fontSize:'clamp(1.9rem,4vw,2.8rem)', fontWeight:900, color:C.gray900, letterSpacing:'-.05em', lineHeight:1.15, marginBottom:20 }}>
+              Built by a Zimbabwean student, <span style={serif}>for every student</span>
+            </h2>
+            <p style={{ fontSize:15.5, color:C.gray500, lineHeight:1.8, marginBottom:16 }}>
+              Fundo AI was created by <strong style={{color:C.gray900}}>Darrell Mucheri</strong>, a Zimbabwean developer who saw firsthand the challenges students face — scattered resources, no 24/7 tutors, and expensive study tools that don't align with the ZIMSEC curriculum.
+            </p>
+            <p style={{ fontSize:15.5, color:C.gray500, lineHeight:1.8, marginBottom:32 }}>
+              Fundo AI is 100% built for Zimbabwe — aligned with ZIMSEC and Cambridge curricula, affordable, and accessible right from WhatsApp or our web app.
+            </p>
+            <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+              <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"
+                style={{ display:'inline-flex', alignItems:'center', gap:8, background:C.purple, color:'#fff', textDecoration:'none', padding:'11px 22px', borderRadius:9, fontSize:14, fontWeight:700, boxShadow:`0 3px 12px rgba(124,58,237,.28)` }}>
+                <MessageCircle size={15}/> Start Learning Free
+              </a>
+              <a href="/contact"
+                style={{ display:'inline-flex', alignItems:'center', gap:8, color:C.gray700, textDecoration:'none', padding:'11px 22px', borderRadius:9, fontSize:14, fontWeight:700, border:`1.5px solid ${C.gray200}` }}>
+                Contact Us <ArrowRight size={13}/>
+              </a>
+            </div>
+          </motion.div>
+
+          <motion.div initial={{opacity:0,x:24}} whileInView={{opacity:1,x:0}} viewport={{once:true}} transition={{duration:.55,delay:.1}}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:20 }}>
+              {stats.map((s,i) => (
+                <motion.div key={s.label} initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:.4,delay:i*.07}}
+                  style={{ background:i===0?C.purple:C.gray50, border:`1px solid ${i===0?C.purple:C.gray200}`, borderRadius:18, padding:'22px 18px', textAlign:'center' }}>
+                  <div style={{ fontSize:26, fontWeight:900, color:i===0?'#fff':C.gray900, letterSpacing:'-.04em', marginBottom:4 }}>{s.value}</div>
+                  <div style={{ fontSize:12.5, color:i===0?'rgba(255,255,255,.8)':C.gray500, fontWeight:500 }}>{s.label}</div>
+                </motion.div>
+              ))}
+            </div>
+            <div style={{ padding:'20px 22px', background:C.gray50, border:`1px solid ${C.gray200}`, borderRadius:16 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
+                <div style={{ width:42, height:42, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden', flexShrink:0 }}>
+                  <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
+                </div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:800, color:C.gray900 }}>Darrell Mucheri</div>
+                  <div style={{ fontSize:12.5, color:C.gray500 }}>Creator & Lead Developer</div>
+                </div>
+              </div>
+              <p style={{ fontSize:13.5, color:C.gray600, lineHeight:1.7, fontStyle:'italic', margin:0 }}>
+                "Every Zimbabwean student deserves access to world-class AI tools that understand their curriculum. Fundo AI is my commitment to making that possible."
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─────────────── PAGE ─────────────── */
 export default function LandingPage() {
   return (
     <div style={{ minHeight:'100vh', fontFamily:"'Inter', system-ui, sans-serif" }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .lp-app-sidebar { display: none !important; }
+          .lp-app-body    { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <Navbar />
       <Hero />
       <TrustedBy />
@@ -906,6 +985,7 @@ export default function LandingPage() {
       <Comparison />
       <WhoSection />
       <ToolGrid />
+      <AboutSection />
       <Pricing />
       <DarkCTA />
       <Footer />

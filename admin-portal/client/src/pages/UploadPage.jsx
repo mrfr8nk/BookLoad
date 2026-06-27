@@ -225,8 +225,12 @@ function UploadForm() {
       fd.append('file',f,f.name); fd.append('title',f.name.replace(/\.[^.]+$/,''));
       fd.append('category',category); fd.append('level',level); fd.append('grade',grade);
       fd.append('subject',subjectFull); fd.append('year',''); fd.append('uploaderName',name); fd.append('uploaderPhone',phone);
-      try { const r=await fetch('/api/community/upload',{method:'POST',body:fd}); if(!r.ok) throw new Error(); ok++; }
-      catch { fail++; }
+      try {
+        const r = await fetch('/api/community/upload', { method:'POST', body:fd });
+        const rj = await r.json().catch(()=>({}));
+        if (!r.ok) throw new Error(rj.error || `Server error ${r.status}`);
+        ok++;
+      } catch(err) { fail++; if(fail===1) setError(err.message || 'Upload failed. Please try again.'); }
       done++;
     }
     setUploading(false);

@@ -463,6 +463,49 @@ function ChatTab({ profile, isMobile, p }) {
   );
 }
 
+function superChar(c) {
+  return {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻','n':'ⁿ','x':'ˣ','a':'ᵃ','b':'ᵇ'}[c] || c;
+}
+function subChar(c) {
+  return {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','+':'₊','-':'₋','n':'ₙ','x':'ₓ','a':'ₐ'}[c] || c;
+}
+function cleanMath(text) {
+  if (!text) return text;
+  return text
+    .replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => '\n\n`' + cleanExpr(m.trim()) + '`\n\n')
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => '\n\n`' + cleanExpr(m.trim()) + '`\n\n')
+    .replace(/\$([^$\n]+?)\$/g,     (_, m) => '`' + cleanExpr(m.trim()) + '`')
+    .replace(/\\\(([^)]+?)\\\)/g,   (_, m) => '`' + cleanExpr(m.trim()) + '`')
+    .replace(/\\boxed\{([^}]+)\}/g, '[$1]')
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+    .replace(/\\sqrt\{([^}]+)\}/g,  '√($1)')
+    .replace(/\\sqrt\b/g,           '√')
+    .replace(/\\times/g, '×').replace(/\\div/g, '÷').replace(/\\pm/g, '±').replace(/\\mp/g, '∓')
+    .replace(/\\cdot/g, '·').replace(/\\leq/g, '≤').replace(/\\geq/g, '≥').replace(/\\neq/g, '≠')
+    .replace(/\\approx/g, '≈').replace(/\\infty/g, '∞').replace(/\\pi/g, 'π').replace(/\\theta/g, 'θ')
+    .replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β').replace(/\\gamma/g, 'γ').replace(/\\delta/g, 'δ')
+    .replace(/\\lambda/g, 'λ').replace(/\\mu/g, 'μ').replace(/\\sigma/g, 'σ').replace(/\\omega/g, 'ω')
+    .replace(/\\phi/g, 'φ').replace(/\\psi/g, 'ψ').replace(/\\rho/g, 'ρ').replace(/\\epsilon/g, 'ε')
+    .replace(/\\Delta/g, 'Δ').replace(/\\Sigma/g, 'Σ').replace(/\\Omega/g, 'Ω').replace(/\\Pi/g, 'Π')
+    .replace(/\\[Nn]abla/g, '∇').replace(/\\partial/g, '∂').replace(/\\in\b/g, '∈').replace(/\\subset/g, '⊂')
+    .replace(/\^{([^}]+)}/g, (_, e) => e.split('').map(superChar).join(''))
+    .replace(/\^([0-9])/g,   (_, e) => superChar(e))
+    .replace(/_{([^}]+)}/g,  (_, e) => e.split('').map(subChar).join(''))
+    .replace(/_([0-9])/g,    (_, e) => subChar(e))
+    .replace(/\\[a-zA-Z]+/g, '').replace(/\{([^}]*)\}/g, '$1');
+}
+function cleanExpr(expr) {
+  return expr
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+    .replace(/\\sqrt\{([^}]+)\}/g, '√($1)').replace(/\\boxed\{([^}]+)\}/g, '$1')
+    .replace(/\^{([^}]+)}/g, (_, e) => e.split('').map(superChar).join(''))
+    .replace(/\^([0-9])/g, (_, e) => superChar(e))
+    .replace(/_{([^}]+)}/g, (_, e) => e.split('').map(subChar).join(''))
+    .replace(/\\times/g,'×').replace(/\\div/g,'÷').replace(/\\pm/g,'±').replace(/\\pi/g,'π')
+    .replace(/\\leq/g,'≤').replace(/\\geq/g,'≥').replace(/\\neq/g,'≠').replace(/\\cdot/g,'·')
+    .replace(/\\[a-zA-Z]+/g, '').replace(/\{([^}]*)\}/g, '$1').trim();
+}
+
 function ChatBubble({ msg, profile, isMobile, p }) {
   const isUser = msg.role === 'user';
   const [copied, setCopied] = useState(false);
@@ -482,7 +525,7 @@ function ChatBubble({ msg, profile, isMobile, p }) {
           color:isUser?p.chatUserText:p.chatAiText, fontSize:isMobile?14:13.5, lineHeight:1.75,
           boxShadow:isUser?'0 2px 10px rgba(124,58,237,0.2)':p.shadow }}>
           {isUser ? <p style={{ margin:0, whiteSpace:'pre-wrap' }}>{msg.content}</p>
-            : <div className="md-body"><ReactMarkdown>{msg.content}</ReactMarkdown></div>}
+            : <div className="md-body"><ReactMarkdown>{cleanMath(msg.content)}</ReactMarkdown></div>}
         </div>
         {!isUser && (
           <button onClick={copy} style={{ marginTop:4, background:'none', border:'none', cursor:'pointer', fontSize:11, color:p.dim, display:'flex', alignItems:'center', gap:4, padding:'2px 5px', fontFamily:'inherit' }}>
@@ -562,7 +605,17 @@ function ImageTab({ plan, isMobile, p }) {
 
       <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:22 }}>
         {EXAMPLES.map(ex => (
-          <button key={ex} onClick={() => setPrompt(ex)} style={{ padding:'5px 11px', borderRadius:99, border:`1px solid ${p.border}`, background:p.surface, color:p.muted, fontSize:12, cursor:'pointer', fontFamily:'inherit', transition:'all .14s' }}>{ex}</button>
+          <button key={ex} onClick={() => {
+            setPrompt(ex);
+            if (!loading) {
+              setError(''); setLoading(true); setResult(null);
+              api(`/api/student/generate-image?prompt=${encodeURIComponent(ex + ', ' + style)}`)
+                .then(d => { setResult(d); setHistory(h => [{ prompt: ex, imageUrl:d.imageUrl }, ...h.slice(0,7)]); })
+                .catch(e => setError(e.message))
+                .finally(() => setLoading(false));
+            }
+          }}
+          style={{ padding:'5px 11px', borderRadius:99, border:`1px solid ${p.border}`, background:p.surface, color:p.muted, fontSize:12, cursor:'pointer', fontFamily:'inherit', transition:'all .14s' }}>{ex}</button>
         ))}
       </div>
 
@@ -1150,9 +1203,9 @@ function ProfileTab({ profile, usage, limits, isMobile, p }) {
   const PIcon = PLAN_ICONS[plan] || Zap;
   const PLAN_PERKS = {
     FREE:    ['25 AI chats/day','3 image generations/day','1 note/project/day','Read-only library access'],
-    STARTER: ['75 AI chats/day','8 image generations/day','3 notes/projects/day','PDF download','Full library access'],
-    BASIC:   ['300 AI chats/day','20 image generations/day','10 notes/projects/day','PDF download','Full library access'],
-    PRO:     ['1000 AI chats/day','50 image generations/day','50 notes/projects/day','PDF download','Priority AI responses'],
+    STARTER: ['75 AI chats/month','8 image generations/month','3 notes/projects/month','PDF download','Full library access'],
+    BASIC:   ['300 AI chats/month','20 image generations/month','10 notes/projects/month','PDF download','Full library access'],
+    PRO:     ['1,000 AI chats/month','50 image generations/month','50 notes/projects/month','PDF download','Priority AI responses'],
     PREMIUM: ['Unlimited everything','All features unlocked','Priority support','Early access to new features'],
   };
 
@@ -1191,14 +1244,14 @@ function ProfileTab({ profile, usage, limits, isMobile, p }) {
         <Card p={p} style={{ padding:isMobile?'18px 16px':'22px', marginBottom:16 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
             <div>
-              <h3 style={{ fontSize:14.5, fontWeight:800, color:p.text, marginBottom:2 }}>Today's Usage</h3>
-              <p style={{ fontSize:11.5, color:p.dim }}>Shared across WhatsApp + Web · Resets at midnight</p>
+              <h3 style={{ fontSize:14.5, fontWeight:800, color:p.text, marginBottom:2 }}>{limits?.period==='monthly' ? 'Monthly' : "Today's"} Usage</h3>
+              <p style={{ fontSize:11.5, color:p.dim }}>Shared across WhatsApp + Web · Resets {limits?.period==='monthly' ? 'monthly' : 'at midnight'}</p>
             </div>
             <BarChart3 size={18} style={{ color:p.accent }}/>
           </div>
-          <UsageBar label="AI Chats" used={usage.chatToday||0}   limit={limits.chat||25}  icon={MessageSquare} p={p}/>
-          <UsageBar label="Images"   used={usage.imagesToday||0} limit={limits.images||3}  icon={Image} p={p}/>
-          <UsageBar label="Notes & Projects" used={usage.pdfToday||0}    limit={limits.pdf||1}     icon={FileText} p={p}/>
+          <UsageBar label="AI Chats" used={limits?.period==='monthly'?(usage.chatMonth||0):(usage.chatToday||0)}   limit={limits.chat||25}  icon={MessageSquare} p={p}/>
+          <UsageBar label="Images"   used={limits?.period==='monthly'?(usage.imagesMonth||0):(usage.imagesToday||0)} limit={limits.images||3}  icon={Image} p={p}/>
+          <UsageBar label="Notes & Projects" used={limits?.period==='monthly'?(usage.pdfMonth||0):(usage.pdfToday||0)} limit={limits.pdf||1} icon={FileText} p={p}/>
           <div style={{ marginTop:12, padding:'10px 13px', background:p.accentBg, border:`1px solid ${p.accentBorder}`, borderRadius:10, fontSize:12, color:p.muted }}>
             📱 WhatsApp + web usage is shared — a chat sent on WhatsApp reduces your web quota too.
           </div>
@@ -1295,12 +1348,12 @@ function SidebarContent({ profile, usage, limits, tab, setTab, signOut, plan, on
       {usage && limits && (
         <div style={{ margin:'0 8px 8px', padding:'12px', background:p.bg, border:`1px solid ${p.border}`, borderRadius:12 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-            <span style={{ fontSize:10.5, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px' }}>Today's Usage</span>
+            <span style={{ fontSize:10.5, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px' }}>{limits?.period==='monthly'?'Monthly':'Daily'} Usage</span>
             <button onClick={onRefresh} style={{ background:'none', border:'none', cursor:'pointer', color:p.dim, display:'flex', padding:0 }}><RefreshCw size={11}/></button>
           </div>
-          <UsageBar label="Chats"  used={usage.chatToday||0}   limit={limits.chat||25} icon={MessageSquare} p={p}/>
-          <UsageBar label="Images" used={usage.imagesToday||0} limit={limits.images||3} icon={Image} p={p}/>
-          <UsageBar label="Notes"  used={usage.pdfToday||0}    limit={limits.pdf||1}    icon={FileText} p={p}/>
+          <UsageBar label="Chats"  used={limits?.period==='monthly'?(usage.chatMonth||0):(usage.chatToday||0)}   limit={limits.chat||25} icon={MessageSquare} p={p}/>
+          <UsageBar label="Images" used={limits?.period==='monthly'?(usage.imagesMonth||0):(usage.imagesToday||0)} limit={limits.images||3} icon={Image} p={p}/>
+          <UsageBar label="Notes"  used={limits?.period==='monthly'?(usage.pdfMonth||0):(usage.pdfToday||0)}    limit={limits.pdf||1}    icon={FileText} p={p}/>
         </div>
       )}
 

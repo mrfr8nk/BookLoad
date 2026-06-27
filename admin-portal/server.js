@@ -60,13 +60,16 @@ const userSchema = new mongoose.Schema({
   referralCount: { type: Number, default: 0 },
   referredBy:    { type: String, default: '' },
   usage: {
-    chatToday:    { type: Number, default: 0 },
-    imagesToday:  { type: Number, default: 0 },
-    pdfToday:     { type: Number, default: 0 },
-    pdfMonth:     { type: Number, default: 0 },
-    mediaDownloads:{ type: Number, default: 0 },
-    mockMonth:    { type: Number, default: 0 },
-    lastDayReset: { type: String, default: '' },
+    chatToday:      { type: Number, default: 0 },
+    imagesToday:    { type: Number, default: 0 },
+    pdfToday:       { type: Number, default: 0 },
+    chatMonth:      { type: Number, default: 0 },
+    imagesMonth:    { type: Number, default: 0 },
+    pdfMonth:       { type: Number, default: 0 },
+    mediaDownloads: { type: Number, default: 0 },
+    mockMonth:      { type: Number, default: 0 },
+    lastDayReset:   { type: String, default: '' },
+    lastMonthReset: { type: String, default: '' },
   },
 }, { timestamps: true });
 
@@ -124,31 +127,50 @@ function requireStudent(req, res, next) {
 }
 
 // ─── Reset usage if needed ─────────────────────────────────────────────────────
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+function todayStr()  { return new Date().toISOString().slice(0, 10); }
+function monthStr()  { return new Date().toISOString().slice(0, 7); }
 
 async function resetUsageIfNeeded(user) {
   const today = todayStr();
-  if (user.usage?.lastDayReset !== today) {
-    user.usage = user.usage || {};
-    user.usage.chatToday = 0;
-    user.usage.imagesToday = 0;
-    user.usage.pdfToday = 0;
+  const month = monthStr();
+  const updates = {};
+  user.usage = user.usage || {};
+
+  if (user.usage.lastDayReset !== today) {
+    user.usage.chatToday    = 0;
+    user.usage.imagesToday  = 0;
+    user.usage.pdfToday     = 0;
     user.usage.lastDayReset = today;
-    await UserModel.findOneAndUpdate(
-      { phone: user.phone },
-      { 'usage.chatToday': 0, 'usage.imagesToday': 0, 'usage.pdfToday': 0, 'usage.lastDayReset': today }
-    ).catch(() => {});
+    updates['usage.chatToday']    = 0;
+    updates['usage.imagesToday']  = 0;
+    updates['usage.pdfToday']     = 0;
+    updates['usage.lastDayReset'] = today;
+  }
+
+  if (user.usage.lastMonthReset !== month) {
+    user.usage.chatMonth      = 0;
+    user.usage.imagesMonth    = 0;
+    user.usage.pdfMonth       = 0;
+    user.usage.lastMonthReset = month;
+    updates['usage.chatMonth']      = 0;
+    updates['usage.imagesMonth']    = 0;
+    updates['usage.pdfMonth']       = 0;
+    updates['usage.lastMonthReset'] = month;
+  }
+
+  if (Object.keys(updates).length) {
+    await UserModel.findOneAndUpdate({ phone: user.phone }, { $set: updates }).catch(() => {});
   }
   return user;
 }
 
 // ─── Plan limits ───────────────────────────────────────────────────────────────
 const PLAN_LIMITS = {
-  FREE:    { chat: 25,    images: 3,    pdf: 1  },
-  STARTER: { chat: 75,   images: 8,    pdf: 3  },
-  BASIC:   { chat: 300,  images: 20,   pdf: 10 },
-  PRO:     { chat: 1000, images: 50,   pdf: 50 },
-  PREMIUM: { chat: 9999, images: 9999, pdf: 9999 },
+  FREE:    { chat: 25,    images: 3,    pdf: 1,    period: 'daily'   },
+  STARTER: { chat: 75,   images: 8,    pdf: 3,    period: 'monthly' },
+  BASIC:   { chat: 300,  images: 20,   pdf: 10,   period: 'monthly' },
+  PRO:     { chat: 1000, images: 50,   pdf: 50,   period: 'monthly' },
+  PREMIUM: { chat: 9999, images: 9999, pdf: 9999, period: 'monthly' },
 };
 
 // ─── AI Config ─────────────────────────────────────────────────────────────────
@@ -370,11 +392,15 @@ app.get('/api/student/me', requireStudent, async (req, res) => {
       phone: user.phone, name: user.name, plan, school: user.school,
       levelType: user.levelType, levelLabel: user.levelLabel, grade: user.grade,
       usage: {
-        chatToday: user.usage?.chatToday || 0,
-        imagesToday: user.usage?.imagesToday || 0,
-        pdfToday: user.usage?.pdfToday || 0,
+        chatToday:    user.usage?.chatToday    || 0,
+        imagesToday:  user.usage?.imagesToday  || 0,
+        pdfToday:     user.usage?.pdfToday     || 0,
+        chatMonth:    user.usage?.chatMonth    || 0,
+        imagesMonth:  user.usage?.imagesMonth  || 0,
+        pdfMonth:     user.usage?.pdfMonth     || 0,
       },
       limits,
+      isMonthly: limits.period === 'monthly',
       extraMessages: user.extraMessages || 0,
       extraImages: user.extraImages || 0,
     });
@@ -396,10 +422,12 @@ app.post('/api/student/chat', requireStudent, async (req, res) => {
 
     const plan = user.plan || 'FREE';
     const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
-    const chatUsed = user.usage?.chatToday || 0;
+    const isMonthly = limits.period === 'monthly';
+    const chatUsed = isMonthly ? (user.usage?.chatMonth || 0) : (user.usage?.chatToday || 0);
     const extra = user.extraMessages || 0;
     if (chatUsed >= limits.chat + extra) {
-      return res.status(429).json({ error: `Daily chat limit reached (${limits.chat} chats). Upgrade your plan for more!` });
+      const pd = isMonthly ? 'month' : 'day';
+      return res.status(429).json({ error: `${isMonthly ? 'Monthly' : 'Daily'} chat limit reached (${limits.chat}/${pd}). Upgrade your plan for more!` });
     }
 
     const messages = [
@@ -413,9 +441,12 @@ app.post('/api/student/chat', requireStudent, async (req, res) => {
     const fullQ = historyContext ? `${historyContext}\n\nStudent: ${message}` : message;
     const reply = await callBK92(sysPrompt, fullQ);
 
+    const chatInc = isMonthly
+      ? { 'usage.chatToday': 1, 'usage.chatMonth': 1 }
+      : { 'usage.chatToday': 1 };
     await UserModel.findOneAndUpdate(
       { phone: req.student.phone },
-      { $inc: { 'usage.chatToday': 1 } }
+      { $inc: chatInc }
     ).catch(() => {});
 
     res.json({ reply });
@@ -435,18 +466,23 @@ app.get('/api/student/generate-image', requireStudent, async (req, res) => {
 
     const plan = user.plan || 'FREE';
     const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
-    const imgUsed = user.usage?.imagesToday || 0;
+    const isMonthly = limits.period === 'monthly';
+    const imgUsed = isMonthly ? (user.usage?.imagesMonth || 0) : (user.usage?.imagesToday || 0);
     const extra = user.extraImages || 0;
     if (imgUsed >= limits.images + extra) {
-      return res.status(429).json({ error: `Daily image limit reached (${limits.images} images). Upgrade for more!` });
+      const pd = isMonthly ? 'month' : 'day';
+      return res.status(429).json({ error: `${isMonthly ? 'Monthly' : 'Daily'} image limit reached (${limits.images}/${pd}). Upgrade for more!` });
     }
 
     const enhanced = `${prompt}, high quality, detailed, educational, vivid`;
     const imageUrl = await generateImageAI(enhanced);
 
+    const imgInc = isMonthly
+      ? { 'usage.imagesToday': 1, 'usage.imagesMonth': 1 }
+      : { 'usage.imagesToday': 1 };
     await UserModel.findOneAndUpdate(
       { phone: req.student.phone },
-      { $inc: { 'usage.imagesToday': 1 } }
+      { $inc: imgInc }
     ).catch(() => {});
 
     res.json({ imageUrl, prompt: enhanced });
