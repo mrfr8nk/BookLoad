@@ -27,11 +27,27 @@ const C = {
 const serif = { fontFamily:"'Playfair Display', Georgia, serif", fontStyle:'italic', color:C.purple };
 
 /* ─────────────── DATA ─────────────── */
-const SCHOOLS = [
+const PRIMARY_SCHOOLS = [
+  'Churchill Primary', 'Borrowdale Primary', 'Gateway Primary',
+  'Dominican Convent Primary', 'Hellenic Primary', 'Hartmann House Prep',
+  'St. John\'s Prep', 'Chisipite Junior', 'Selbourne Primary',
+  'Blakiston Primary', 'Marist Brothers Primary', 'Roosevelt Primary',
+  'Avondale Primary', 'Cranborne Primary', 'Mabelreign Primary',
+];
+const HIGH_SCHOOLS = [
+  'St. Mary\'s High School', 'Prince Edward School', 'Peterhouse School',
+  'St. George\'s College', 'Dominican Convent High', 'Hellenic Academy',
+  'Gateway High School', 'Eaglesvale School', 'Mt. St. Mary\'s College',
+  'Lomagundi College', 'Allan Wilson School', 'St. Ignatius College',
+  'Whitestone School', 'Marist Brothers High', 'Churchill High School',
+  'Arundel School', 'Girls High School', 'Chisipite Senior',
+];
+const UNIVERSITIES = [
   'ZIMSEC', 'University of Zimbabwe', 'NUST',
   'Midlands State University', 'Harare Institute of Technology',
   'Great Zimbabwe University', 'Chinhoyi University',
   'Lupane State University', 'Bindura University',
+  'Women\'s University in Africa', 'Africa University', 'Reformed Church University',
 ];
 
 const PAIN_CARDS = [
@@ -109,7 +125,7 @@ function Navbar() {
         {/* Logo */}
         <a href="/" style={{ display:'flex', alignItems:'center', gap:9, textDecoration:'none', flexShrink:0 }}>
           <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
+            <img src="https://media.mrfrankofc.gleeze.com/media/fcnd.png" alt="Fundo" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
           </div>
           <div>
             <div style={{ fontSize:17, fontWeight:900, color:C.gray900, letterSpacing:'-.3px', lineHeight:1 }}>fundo<span style={{ color:C.purple }}>ai</span><sup style={{ fontSize:8, color:C.gray500, fontWeight:700, letterSpacing:'.3px' }}>®</sup></div>
@@ -281,18 +297,67 @@ function Hero() {
 }
 
 /* ─────────────── TRUSTED BY ─────────────── */
+function MarqueeRow({ items, reverse, speed=38, accent }) {
+  const doubled = [...items, ...items];
+  const dir = reverse ? 'marquee-rtl' : 'marquee-ltr';
+  return (
+    <div style={{ overflow:'hidden', position:'relative', maskImage:'linear-gradient(to right,transparent,#000 8%,#000 92%,transparent)', WebkitMaskImage:'linear-gradient(to right,transparent,#000 8%,#000 92%,transparent)' }}>
+      <div className={dir} style={{ display:'flex', gap:10, width:'max-content', animationDuration:`${speed}s` }}>
+        {doubled.map((s, i) => (
+          <div key={i} style={{
+            display:'inline-flex', alignItems:'center', gap:7,
+            padding:'8px 18px', borderRadius:99, whiteSpace:'nowrap',
+            background: i % 3 === 0 ? '#f5f3ff' : i % 3 === 1 ? '#fff' : '#f0fdf4',
+            border: i % 3 === 0 ? '1.5px solid #ddd6fe' : i % 3 === 1 ? `1.5px solid ${C.gray200}` : '1.5px solid #bbf7d0',
+            boxShadow:'0 1px 4px rgba(0,0,0,.04)',
+          }}>
+            <span style={{ width:6, height:6, borderRadius:'50%', background: i % 3 === 0 ? '#7c3aed' : i % 3 === 1 ? '#6b7280' : '#059669', flexShrink:0, display:'inline-block' }}/>
+            <span style={{ fontSize:13, fontWeight:700, color: i % 3 === 0 ? '#6d28d9' : i % 3 === 1 ? C.gray700 : '#065f46', letterSpacing:'-.1px' }}>{s}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TrustedBy() {
   return (
-    <section style={{ background:'#fff', padding:'52px clamp(16px,4vw,56px)', borderTop:`1px solid ${C.gray200}` }}>
-      <div style={{ maxWidth:1100, margin:'0 auto', textAlign:'center' }}>
-        <p style={{ fontSize:11.5, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:C.gray500, marginBottom:32 }}>
-          Trusted by Students Across Zimbabwe's Top Institutions
-        </p>
-        <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'center', alignItems:'center', gap:'28px 48px', opacity:.55 }}>
-          {SCHOOLS.map(s => (
-            <span key={s} style={{ fontSize:14, fontWeight:800, color:C.gray700, letterSpacing:'-.2px', whiteSpace:'nowrap' }}>{s}</span>
-          ))}
+    <section style={{ background:'#fff', padding:'56px 0', borderTop:`1px solid ${C.gray200}`, overflow:'hidden' }}>
+      <style>{`
+        @keyframes marquee-ltr { from { transform:translateX(0) } to { transform:translateX(-50%) } }
+        @keyframes marquee-rtl { from { transform:translateX(-50%) } to { transform:translateX(0) } }
+        .marquee-ltr { animation:marquee-ltr linear infinite; }
+        .marquee-rtl { animation:marquee-rtl linear infinite; }
+      `}</style>
+
+      <div style={{ textAlign:'center', marginBottom:36, padding:'0 clamp(16px,4vw,56px)' }}>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'5px 14px', borderRadius:99, background:'#f5f3ff', border:'1.5px solid #ddd6fe', marginBottom:14 }}>
+          <GraduationCap size={13} style={{ color:'#7c3aed' }}/>
+          <span style={{ fontSize:11.5, fontWeight:700, letterSpacing:'1.2px', textTransform:'uppercase', color:'#7c3aed' }}>Trusted by Students Across Zimbabwe</span>
         </div>
+        <h3 style={{ fontSize:'clamp(1.4rem,3vw,2rem)', fontWeight:900, color:C.gray900, letterSpacing:'-.04em', margin:0 }}>
+          From Primary to <span style={serif}>University</span>
+        </h3>
+        <p style={{ fontSize:14.5, color:C.gray500, marginTop:8 }}>Students from Zimbabwe's top institutions already use Fundo AI</p>
+      </div>
+
+      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+        <div style={{ marginBottom:2 }}>
+          <div style={{ fontSize:10.5, fontWeight:700, letterSpacing:'1.2px', textTransform:'uppercase', color:C.gray500, textAlign:'center', marginBottom:10 }}>🎒 Primary Schools</div>
+          <MarqueeRow items={PRIMARY_SCHOOLS} reverse={false} speed={42}/>
+        </div>
+        <div>
+          <div style={{ fontSize:10.5, fontWeight:700, letterSpacing:'1.2px', textTransform:'uppercase', color:C.gray500, textAlign:'center', marginBottom:10 }}>🏫 High Schools</div>
+          <MarqueeRow items={HIGH_SCHOOLS} reverse={true} speed={36}/>
+        </div>
+        <div>
+          <div style={{ fontSize:10.5, fontWeight:700, letterSpacing:'1.2px', textTransform:'uppercase', color:C.gray500, textAlign:'center', marginBottom:10 }}>🎓 Universities &amp; Exam Boards</div>
+          <MarqueeRow items={UNIVERSITIES} reverse={false} speed={30}/>
+        </div>
+      </div>
+
+      <div style={{ textAlign:'center', marginTop:28, padding:'0 clamp(16px,4vw,56px)' }}>
+        <span style={{ fontSize:13, color:C.gray500, fontStyle:'italic' }}>+ thousands of students from schools across all 10 provinces of Zimbabwe</span>
       </div>
     </section>
   );
@@ -605,7 +670,7 @@ function Comparison() {
           {/* Centre brain */}
           <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:2 }}>
             <div style={{ width:52, height:52, borderRadius:'50%', background:'#fff', border:`3px solid ${C.gray200}`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(0,0,0,.10)' }}>
-              <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:32, height:32, objectFit:'cover', borderRadius:'50%' }} onError={e=>{e.target.style.display='none';}}/>
+              <img src="https://media.mrfrankofc.gleeze.com/media/fcnd.png" alt="" style={{ width:32, height:32, objectFit:'cover', borderRadius:'50%' }} onError={e=>{e.target.style.display='none';}}/>
             </div>
           </div>
 
@@ -805,7 +870,7 @@ function DarkCTA() {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <div style={{ width:28, height:28, borderRadius:8, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden' }}>
-                  <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
+                  <img src="https://media.mrfrankofc.gleeze.com/media/fcnd.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
                 </div>
                 <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,.9)' }}>fundoai</span>
               </div>
@@ -844,7 +909,7 @@ function Footer() {
           <div>
             <a href="/" style={{ display:'flex', alignItems:'center', gap:9, textDecoration:'none', marginBottom:16 }}>
               <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
+                <img src="https://media.mrfrankofc.gleeze.com/media/fcnd.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
               </div>
               <span style={{ fontSize:17, fontWeight:900, color:C.gray900 }}>fundo<span style={{ color:C.purple }}>ai</span></span>
             </a>

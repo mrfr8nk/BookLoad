@@ -1173,10 +1173,24 @@ function MaterialsTab({ isMobile, p }) {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div style={{ textAlign:'center', padding:'60px 20px' }}>
+          <div style={{ textAlign:'center', padding:'40px 16px' }}>
             <BookOpen size={44} style={{ color:p.dim, marginBottom:12 }}/>
             <p style={{ fontSize:15, fontWeight:700, color:p.muted }}>No resources found</p>
-            <p style={{ fontSize:13, color:p.dim }}>Try adjusting your filters.</p>
+            <p style={{ fontSize:13, color:p.dim, marginBottom:20 }}>Try adjusting your filters.</p>
+            <div style={{ background:p.surface, border:`1.5px dashed ${p.border}`, borderRadius:16, padding:'18px 20px', maxWidth:340, margin:'0 auto', textAlign:'left' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                <div style={{ width:36, height:36, borderRadius:10, background:'#f5f3ff', border:'1.5px solid #ddd6fe', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <UploadCloud size={16} style={{ color:'#7c3aed' }}/>
+                </div>
+                <div style={{ fontSize:13.5, fontWeight:800, color:p.text }}>Do you have this resource?</div>
+              </div>
+              <p style={{ fontSize:12.5, color:p.muted, lineHeight:1.6, margin:'0 0 12px' }}>
+                If you have this past paper, textbook or syllabus — upload it! You'll help thousands of students <em>and</em> earn bonus AI credits.
+              </p>
+              <a href="/upload" style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#7c3aed', color:'#fff', textDecoration:'none', padding:'8px 16px', borderRadius:8, fontSize:12.5, fontWeight:700 }}>
+                <UploadCloud size={13}/> Upload &amp; Earn Credits
+              </a>
+            </div>
           </div>
         ) : (
           <>
@@ -1386,13 +1400,28 @@ function MyUploadsTab({ profile, isMobile, p }) {
   return (
     <div style={{ padding:isMobile?'18px 14px':'26px 32px', maxWidth:680, margin:'0 auto', overflowY:'auto', height:'100%' }}>
       <SectionHeader title="My Uploads" sub="Resources you've contributed to the Fundo community." icon={UploadCloud} p={p}/>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:16, padding:'12px 16px', borderRadius:14, background:'#f5f3ff', border:'1.5px solid #ddd6fe' }}>
+        <div style={{ fontSize:13, color:'#6d28d9', lineHeight:1.5 }}>
+          <strong>Earn rewards!</strong> Every 3 approved uploads = +10 chats, +2 images, +1 project.
+        </div>
+        <a href="/upload" style={{ display:'inline-flex', alignItems:'center', gap:7, background:'#7c3aed', color:'#fff', textDecoration:'none', padding:'9px 18px', borderRadius:9, fontSize:13, fontWeight:700, flexShrink:0, boxShadow:'0 3px 10px rgba(124,58,237,.25)' }}>
+          <UploadCloud size={14}/> Upload Resource
+        </a>
+      </div>
       {loading ? (
         <div style={{ textAlign:'center', padding:48 }}><Loader size={22} style={{ color:p.accent, animation:'spin .8s linear infinite' }}/></div>
       ) : !uploads?.length ? (
-        <div style={{ textAlign:'center', padding:'52px 20px' }}>
-          <UploadCloud size={42} style={{ color:p.border, marginBottom:14 }}/>
-          <p style={{ fontSize:14.5, color:p.muted, margin:'0 0 10px' }}>You haven't uploaded any resources yet.</p>
-          <a href="/upload" style={{ fontSize:13.5, color:p.accent, fontWeight:700, textDecoration:'none' }}>Upload your first resource →</a>
+        <div style={{ textAlign:'center', padding:'40px 20px' }}>
+          <div style={{ width:72, height:72, borderRadius:20, background:'#f5f3ff', border:'2px dashed #ddd6fe', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 18px' }}>
+            <UploadCloud size={32} style={{ color:'#7c3aed' }}/>
+          </div>
+          <div style={{ fontSize:16, fontWeight:800, color:p.text, marginBottom:8 }}>No uploads yet</div>
+          <p style={{ fontSize:14, color:p.muted, maxWidth:320, margin:'0 auto 22px', lineHeight:1.65 }}>
+            Share past papers, textbooks or syllabuses with fellow students — and earn <strong style={{ color:'#7c3aed' }}>+10 AI chats, +2 images &amp; +1 project</strong> for every 3 approved uploads.
+          </p>
+          <a href="/upload" style={{ display:'inline-flex', alignItems:'center', gap:8, background:'#7c3aed', color:'#fff', textDecoration:'none', padding:'11px 24px', borderRadius:10, fontSize:14, fontWeight:700, boxShadow:'0 4px 16px rgba(124,58,237,.28)' }}>
+            <UploadCloud size={15}/> Upload Your First Resource
+          </a>
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>

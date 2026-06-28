@@ -104,7 +104,7 @@ export default function StudentAuth() {
         <motion.div className="auth-left" initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: .7 }}>
           <div className="brand-row">
             <div className="brand-logo">
-              <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" onError={e => { e.target.style.display = 'none'; }} />
+              <img src="https://media.mrfrankofc.gleeze.com/media/fcnd.png" alt="" onError={e => { e.target.style.display = 'none'; }} />
             </div>
             <span className="brand-name">Fundo<span>AI</span></span>
           </div>
@@ -130,7 +130,7 @@ export default function StudentAuth() {
         {/* Right form panel */}
         <div className="auth-right">
           <div className="mobile-logo">
-            <div className="brand-logo sm"><img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" onError={e => { e.target.style.display = 'none'; }} /></div>
+            <div className="brand-logo sm"><img src="https://media.mrfrankofc.gleeze.com/media/fcnd.png" alt="" onError={e => { e.target.style.display = 'none'; }} /></div>
             <span className="brand-name sm">Fundo<span>AI</span></span>
           </div>
 

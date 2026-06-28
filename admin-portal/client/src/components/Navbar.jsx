@@ -68,10 +68,10 @@ export default function Navbar() {
             >
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(255,255,255,0.22),transparent)', borderRadius: '50%' }} />
               <img
-                src="https://mrfranko-cdn.hf.space/edu/fundo.png"
+                src="https://media.mrfrankofc.gleeze.com/media/fcnd.png"
                 alt=""
                 style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 1 }}
-                onError={e => { e.target.style.display = 'none'; e.currentTarget.parentElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" style="width:16px;height:16px"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0-6C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>'; }}
+                onError={e => { e.target.style.display = 'none'; }}
               />
             </motion.div>
             <span style={{ fontSize: 14.5, fontWeight: 800, color: '#eef0ff', letterSpacing: '-0.3px' }}>Fundo AI</span>

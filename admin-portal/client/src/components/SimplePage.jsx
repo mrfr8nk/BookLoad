@@ -8,7 +8,7 @@ export default function SimplePage({ title, subtitle, children }) {
       <nav style={{ position:'sticky', top:0, zIndex:100, background:'rgba(255,255,255,.97)', backdropFilter:'blur(12px)', borderBottom:'1px solid #e5e7eb', padding:'0 clamp(16px,4vw,56px)', height:64, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <a href="/" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>
           <div style={{ width:34, height:34, borderRadius:9, background:'linear-gradient(135deg,#7c3aed,#8b5cf6)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
+            <img src="https://media.mrfrankofc.gleeze.com/media/fcnd.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
           </div>
           <span style={{ fontSize:16, fontWeight:900, color:'#111827', letterSpacing:'-.2px' }}>Fundo<span style={{ color:'#7c3aed' }}>AI</span></span>
         </a>
