@@ -5,7 +5,8 @@ import SimplePage from '../components/SimplePage.jsx';
 export default function ContactPage() {
   return (
     <SimplePage title="Contact Us" subtitle="We're here to help you succeed.">
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:32, maxWidth:860, margin:'0 auto' }}>
+      <style>{`@media(max-width:600px){.contact-grid{grid-template-columns:1fr!important;gap:16px!important;}}`}</style>
+      <div className="contact-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24, maxWidth:860, margin:'0 auto' }}>
         {[
           { icon:MessageCircle, color:'#25D366', bg:'#f0fdf4', border:'#bbf7d0', title:'WhatsApp (Fastest)', desc:'Chat with us directly on WhatsApp. Get answers in seconds.', cta:'Chat on WhatsApp', href:'https://wa.me/263719647303' },
           { icon:Mail, color:'#7c3aed', bg:'#f5f3ff', border:'#ddd6fe', title:'Email Support', desc:'Send us a detailed message and we\'ll respond within 24 hours.', cta:'Send Email', href:'mailto:support.fundo.ai@gmail.com' },

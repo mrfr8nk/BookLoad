@@ -44,10 +44,11 @@ export default function HelpPage() {
   return (
     <SimplePage title="Help Centre" subtitle="Everything you need to know about Fundo AI.">
       <div style={{ maxWidth:740, margin:'0 auto' }}>
-        <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:20, padding:'8px 32px', boxShadow:'0 4px 16px rgba(0,0,0,.04)', marginBottom:48 }}>
+        <style>{`@media(max-width:600px){.help-faq{padding:8px 14px!important;}.help-cta{padding:24px 20px!important;}}`}</style>
+        <div className="help-faq" style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:20, padding:'8px 32px', boxShadow:'0 4px 16px rgba(0,0,0,.04)', marginBottom:40 }}>
           {FAQS.map(f => <FAQItem key={f.q} q={f.q} a={f.a} />)}
         </div>
-        <div style={{ background:'linear-gradient(135deg,#f5f3ff,#eff6ff)', border:'1.5px solid #ddd6fe', borderRadius:20, padding:'32px 40px', textAlign:'center' }}>
+        <div className="help-cta" style={{ background:'linear-gradient(135deg,#f5f3ff,#eff6ff)', border:'1.5px solid #ddd6fe', borderRadius:20, padding:'32px 40px', textAlign:'center' }}>
           <div style={{ fontSize:20, fontWeight:800, color:'#111827', marginBottom:8 }}>Still have questions?</div>
           <p style={{ fontSize:14.5, color:'#6b7280', marginBottom:20 }}>Our team is available on WhatsApp to help you right away.</p>
           <a href="https://wa.me/263719647303" target="_blank" rel="noopener noreferrer"

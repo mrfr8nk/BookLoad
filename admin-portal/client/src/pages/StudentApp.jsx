@@ -609,7 +609,7 @@ function ImageTab({ plan, isMobile, p }) {
   return (
     <div style={{ padding:isMobile?'18px 14px':'26px 32px', maxWidth:860, margin:'0 auto', overflowY:'auto', height:'100%' }}>
       <SectionHeader title="AI Image Creator" sub="Generate educational diagrams, illustrations, and concept visuals instantly." icon={Image} p={p}/>
-      <p style={{ fontSize:11.5, color:p.dim, marginBottom:16, marginTop:-10 }}>Powered by NanoBanana Pro · Pollinations fallback</p>
+      <p style={{ fontSize:11.5, color:p.dim, marginBottom:16, marginTop:-10 }}>Powered by Fundo AI · Flux model</p>
 
       <div style={{ display:'flex', gap:7, flexWrap:'wrap', marginBottom:14 }}>
         {STYLES.map(s => (
@@ -650,7 +650,7 @@ function ImageTab({ plan, isMobile, p }) {
         <div style={{ textAlign:'center', padding:'52px 20px' }}>
           <motion.div animate={{ rotate:360 }} transition={{ repeat:Infinity, duration:1.8, ease:'linear' }}
             style={{ width:52, height:52, borderRadius:'50%', border:`3px solid ${p.border}`, borderTopColor:p.accent, margin:'0 auto 14px' }}/>
-          <p style={{ fontSize:14, color:p.muted }}>NanoBanana Pro is creating your image…</p>
+          <p style={{ fontSize:14, color:p.muted }}>Fundo AI is generating your image…</p>
         </div>
       )}
       {result && !loading && (

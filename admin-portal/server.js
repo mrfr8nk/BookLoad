@@ -234,15 +234,19 @@ async function callVisionAPI(imageUrl, question) {
 }
 
 async function generateImageAI(prompt) {
-  try {
-    const res = await axios.get('https://omegatech-api.dixonomega.tech/api/ai/nano-banana-pro', {
-      params: { prompt },
-      timeout: 35000,
-    });
-    if (res.data?.image) return res.data.image;
-  } catch (_) {}
-  const seed = Date.now();
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&nologo=true&model=flux&seed=${seed}`;
+  const seed = Math.floor(Math.random() * 99999999);
+  const encoded = encodeURIComponent(prompt);
+  const urls = [
+    `https://image.pollinations.ai/prompt/${encoded}?width=768&height=768&nologo=true&model=flux&seed=${seed}`,
+    `https://image.pollinations.ai/prompt/${encoded}?width=768&height=768&nologo=true&model=turbo&seed=${seed}`,
+  ];
+  for (const url of urls) {
+    try {
+      const r = await axios.head(url, { timeout: 15000 });
+      if (r.status === 200) return url;
+    } catch (_) {}
+  }
+  return urls[0];
 }
 
 async function callNVIDIA(messages) {
@@ -299,6 +303,7 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // ─── Serve React build ────────────────────────────────────────────────────────
 const CLIENT_DIST = path.join(__dirname, 'client', 'dist');
+app.get('/favicon.ico', (_req, res) => res.redirect(301, 'https://mrfranko-cdn.hf.space/edu/fundo.png'));
 app.use(express.static(CLIENT_DIST));
 
 // ─── Admin Auth endpoint ───────────────────────────────────────────────────────
@@ -884,13 +889,14 @@ app.post('/api/materials/upload', requireAuth, upload.single('file'), async (req
 // ─── POST /api/public/upload + alias /api/community/upload ────────────────────
 async function handlePublicUpload(req, res) {
   try {
-    const { category, level, grade, subject, title, uploaderName, uploaderPhone } = req.body;
+    const { category, level, grade, subject, title, uploaderName, uploaderPhone, year, referralCode } = req.body;
     const file = req.file;
     if (!file)    return res.status(400).json({ error: 'No file provided' });
     if (!subject) return res.status(400).json({ error: 'Subject is required' });
 
     const displayTitle  = (title || file.originalname).replace(/\.[^.]+$/, '').trim();
-    const cdnUrl        = await uploadToCDN(file.buffer, file.originalname, file.mimetype, 'fundo/community/');
+    const safeName      = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const cdnUrl        = await uploadToCDN(file.buffer, safeName, file.mimetype, 'fundo/community/');
     const resolvedGrade = level === 'alevel' ? 'A-Level' : (grade || '');
     const cleanSubject  = (subject || 'General').replace(/\s*\(ZIMSEC\)|\s*\(Cambridge\)/gi, '').trim();
 
@@ -899,23 +905,38 @@ async function handlePublicUpload(req, res) {
       subject: cleanSubject, title: displayTitle, url: cdnUrl,
       mimeType: file.mimetype, fileSize: file.size,
       uploadedBy: uploaderPhone || 'public',
-      approved: false, approvedBy: '', year: '',
+      approved: false, approvedBy: '',
+      year: year || '',
     });
 
     if (uploaderPhone) {
       await UserModel.findOneAndUpdate(
         { phone: uploaderPhone },
-        { $setOnInsert: { phone: uploaderPhone, name: uploaderName || '' } },
+        {
+          $setOnInsert: { phone: uploaderPhone, name: uploaderName || '' },
+          ...(referralCode ? { $setOnInsert: { referredBy: referralCode } } : {}),
+        },
         { upsert: true }
       ).catch(() => {});
     }
 
-    res.json({ ok: true, message: 'Upload submitted for review. You will be rewarded once approved!' });
+    res.json({ ok: true, message: 'Upload submitted for review. You will earn rewards once approved!' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 }
 
 app.post('/api/public/upload', upload.single('file'), handlePublicUpload);
 app.post('/api/community/upload', upload.single('file'), handlePublicUpload);
+
+// ─── GET /api/community/uploader-credits (public) ─────────────────────────────
+app.get('/api/community/uploader-credits', async (req, res) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) return res.status(400).json({ error: 'Phone required' });
+    const approvedUploads = await MaterialModel.countDocuments({ uploadedBy: phone, approved: true });
+    const pendingUploads  = await MaterialModel.countDocuments({ uploadedBy: phone, approved: false });
+    res.json({ approvedUploads, pendingUploads, rewardsEarned: Math.floor(approvedUploads / 3) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // ─── GET /api/community/stats (public) ────────────────────────────────────────
 app.get('/api/community/stats', async (req, res) => {
