@@ -11,7 +11,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
+import rehypeHighlight from 'rehype-highlight';
 
 /* ─────────────────────────── THEME ──────────────────────────────────────── */
 const LIGHT = {
@@ -551,7 +553,7 @@ function ChatBubble({ msg, profile, isMobile, p }) {
           color:isUser?p.chatUserText:p.chatAiText, fontSize:isMobile?14:13.5, lineHeight:1.75,
           boxShadow:isUser?'0 2px 10px rgba(124,58,237,0.2)':p.shadow }}>
           {isUser ? <p style={{ margin:0, whiteSpace:'pre-wrap' }}>{msg.content}</p>
-            : <div className="md-body"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{msg.content}</ReactMarkdown></div>}
+            : <div className="md-body"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex, rehypeHighlight]}>{msg.content}</ReactMarkdown></div>}
         </div>
         {!isUser && (
           <button onClick={copy} style={{ marginTop:4, background:'none', border:'none', cursor:'pointer', fontSize:11, color:p.dim, display:'flex', alignItems:'center', gap:4, padding:'2px 5px', fontFamily:'inherit' }}>

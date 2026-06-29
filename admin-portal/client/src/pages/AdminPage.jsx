@@ -5,13 +5,16 @@ import {
   ChevronLeft, ChevronRight, Trash2, Edit3, Check, X, LogOut,
   Eye, EyeOff, Shield, Database, TrendingUp, Star, Award,
   FileText, CheckCircle, AlertCircle, RefreshCw, Zap, Lock,
-  Layers, UserCheck, BookMarked, Activity,
+  Layers, UserCheck, BookMarked, Activity, Settings, Save,
+  MessageSquare, Image, Globe, Crown, Flame, Brain,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast.jsx';
 import { useApi } from '../hooks/useApi.js';
 
 /* ── Constants ──────────────────────────────────────────────────── */
-const PLANS   = ['FREE','STARTER','BASIC','PRO','PREMIUM'];
+const PLANS      = ['FREE','STARTER','BASIC','PRO','PREMIUM'];
+const PLAN_COLOR = { FREE:'#9ca3af', STARTER:'#2563eb', BASIC:'#059669', PRO:'#7c3aed', PREMIUM:'#d97706' };
+const PLAN_ICON  = { FREE:Zap, STARTER:Flame, BASIC:Brain, PRO:Star, PREMIUM:Crown };
 const SUBJECTS = {
   primary: ['Mathematics','English','Shona','Ndebele','Science','Social Studies','Environmental Science','Art & Craft'],
   olevel:  ['Mathematics','English Language','English Literature','History','Geography','Biology','Chemistry','Physics','Combined Science','Agriculture','Commerce','Accounting','Economics','Business Studies','Computer Science','Food & Nutrition','Fashion & Fabrics','Art','Shona','Ndebele'],
@@ -174,8 +177,12 @@ function LoginScreen({ onLogin }) {
             background:'linear-gradient(135deg,#7c3aed,#8b5cf6)',
             display:'flex', alignItems:'center', justifyContent:'center',
             boxShadow:'0 8px 24px rgba(124,58,237,.3)', overflow:'hidden',
+            position:'relative',
           }}>
-            <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';e.target.parentNode.innerHTML='<span style="font-size:24px;font-weight:900;color:#fff">F</span>';}} />
+            <span style={{ fontSize:26, fontWeight:900, color:'#fff', position:'absolute' }}>F</span>
+            <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="Fundo" loading="eager"
+              style={{ width:'100%', height:'100%', objectFit:'cover', position:'relative', zIndex:1 }}
+              onError={e=>{e.target.style.display='none';}} />
           </div>
           <h1 style={{ fontSize:26, fontWeight:900, color:'var(--gray-900)', letterSpacing:'-.5px', marginBottom:4 }}>Welcome back</h1>
           <p style={{ fontSize:14, color:'var(--gray-500)' }}>Sign in to the Fundo AI admin portal</p>
@@ -572,111 +579,356 @@ function ResourcesTab({ api, upload, toast }) {
 /* ══════════════════════════════════════════════════════════════════
    ANALYTICS TAB
    ══════════════════════════════════════════════════════════════════ */
+function MiniBarChart({ rows, labelKey, valKey, color='#7c3aed', height=110 }) {
+  const max = Math.max(...rows.map(r=>r[valKey]||0), 1);
+  return (
+    <div style={{ display:'flex', alignItems:'flex-end', gap:6, height, paddingTop:16 }}>
+      {rows.map((r,i) => {
+        const pct = Math.max(((r[valKey]||0)/max)*85, (r[valKey]||0)?4:2);
+        return (
+          <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, height:'100%', justifyContent:'flex-end' }}>
+            <span style={{ fontSize:8.5, color:'var(--gray-400)', lineHeight:1, minHeight:12 }}>{r[valKey]||''}</span>
+            <motion.div initial={{ height:0 }} animate={{ height:`${pct}px` }}
+              transition={{ duration:.9, delay:i*.05, ease:[.4,0,.2,1] }}
+              style={{ width:'100%', background:r[valKey]?`linear-gradient(180deg,${color},${color}99)`:'var(--gray-100)', borderRadius:'3px 3px 0 0' }}/>
+            <span style={{ fontSize:8, color:'var(--gray-400)', textAlign:'center', whiteSpace:'nowrap', overflow:'hidden', width:'100%', textOverflow:'ellipsis' }}>{r[labelKey]}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LeaderRow({ user, rank, val, label, color='#7c3aed' }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 16px', borderBottom:'1px solid var(--gray-100)' }}>
+      <div style={{ width:22, fontSize:11, fontWeight:800, color:'var(--gray-300)', textAlign:'center', flexShrink:0 }}>#{rank}</div>
+      <div style={{ width:30, height:30, borderRadius:'50%', background:'var(--purple-bg)', border:'1px solid var(--purple-border)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, flexShrink:0, color:'#7c3aed' }}>
+        {user.name?user.name[0].toUpperCase():'?'}
+      </div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:12.5, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'var(--gray-800)' }}>{user.name||user.phone}</div>
+        <div style={{ fontSize:10.5, color:'var(--gray-400)', marginTop:1 }}>{user.plan} · {user.phone}</div>
+      </div>
+      {val != null && <div style={{ fontSize:14, fontWeight:800, color, flexShrink:0 }}>{val} <span style={{ fontSize:10, fontWeight:500, color:'var(--gray-400)' }}>{label}</span></div>}
+    </div>
+  );
+}
+
 function AnalyticsTab({ api, toast }) {
-  const [data, setData]     = useState(null);
+  const [data, setData]       = useState(null);
+  const [webData, setWebData] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(()=>{ load(); },[]);
-  async function load() { setLoading(true); try { setData(await api('GET','/api/analytics')); } catch(e){ toast(e.message,'error'); } setLoading(false); }
+  async function load() {
+    setLoading(true);
+    try {
+      const [main, web] = await Promise.all([
+        api('GET','/api/analytics'),
+        api('GET','/api/web-stats'),
+      ]);
+      setData(main); setWebData(web);
+    } catch(e){ toast(e.message,'error'); }
+    setLoading(false);
+  }
 
   const getLast7 = () => Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-(6-i)); return d.toISOString().slice(0,10); });
 
   if (loading) return <div style={{ padding:72, textAlign:'center' }}><span className="spinner"/></div>;
   if (!data) return null;
 
-  const last7  = getLast7();
-  const trend  = data.signupTrend||[];
-  const maxT   = Math.max(...trend.map(t=>t.count),1);
-  const maxP   = Math.max(...(data.planBreakdown||[]).map(p=>p.count),1);
-  const planColors = { FREE:'#9ca3af', STARTER:'#2563eb', BASIC:'#059669', PRO:'#7c3aed', PREMIUM:'#d97706' };
+  const last7 = getLast7();
+  const trend = data.signupTrend||[];
+  const trendRows = last7.map(day=>({ _id:day, count:(trend.find(x=>x._id===day)||{count:0}).count, label:day.slice(5) }));
+  const maxP  = Math.max(...(data.planBreakdown||[]).map(p=>p.count),1);
+  const maxL  = Math.max(...(data.levelBreakdown||[]).map(l=>l.count),1);
+  const levelRows = (data.levelBreakdown||[]).map(l=>({ label:l._id||'?', count:l.count }));
 
   return (
     <div style={{ padding:24, display:'flex', flexDirection:'column', gap:20 }}>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))', gap:12 }}>
+      {/* ── Top stat cards ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:12 }}>
         {[
-          { icon:Users,     val:data.users?.total,       label:'Total Users',    color:'#7c3aed', bg:'#f5f3ff' },
-          { icon:TrendingUp,val:data.users?.today,       label:'Joined Today',   color:'#059669', bg:'#ecfdf5' },
-          { icon:BarChart3, val:data.users?.week,        label:'This Week',      color:'#d97706', bg:'#fffbeb' },
-          { icon:Star,      val:data.users?.month,       label:'This Month',     color:'#2563eb', bg:'#eff6ff' },
-          { icon:Database,  val:data.materials?.total,   label:'Live Materials', color:'#7c3aed', bg:'#f5f3ff' },
-          { icon:Clock,     val:data.materials?.pending, label:'Pending',        color:'#d97706', bg:'#fffbeb' },
-          { icon:Upload,    val:data.materials?.community,label:'Community',     color:'#059669', bg:'#ecfdf5' },
+          { icon:Users,        val:data.users?.total,        label:'Total Users',       color:'#7c3aed', bg:'#f5f3ff' },
+          { icon:TrendingUp,   val:data.users?.today,        label:'Joined Today',      color:'#059669', bg:'#ecfdf5' },
+          { icon:BarChart3,    val:data.users?.week,         label:'This Week',         color:'#d97706', bg:'#fffbeb' },
+          { icon:Star,         val:data.users?.month,        label:'This Month',        color:'#2563eb', bg:'#eff6ff' },
+          { icon:Globe,        val:webData?.totalWebUsers,   label:'Web App Users',     color:'#7c3aed', bg:'#f5f3ff' },
+          { icon:MessageSquare,val:webData?.totalMessages,   label:'AI Msgs (month)',   color:'#059669', bg:'#ecfdf5' },
+          { icon:Database,     val:data.materials?.total,    label:'Live Materials',    color:'#7c3aed', bg:'#f5f3ff' },
+          { icon:Clock,        val:data.materials?.pending,  label:'Pending',           color:'#d97706', bg:'#fffbeb' },
         ].map((s,i)=><StatCard key={s.label} icon={s.icon} val={s.val} label={s.label} color={s.color} bgColor={s.bg} delay={i*.03} />)}
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-        {/* Trend chart */}
+      {/* ── Charts row ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
+        {/* Signup trend */}
         <div className="card" style={{ overflow:'hidden' }}>
-          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            Signup Trend <span style={{ fontSize:11.5, color:'var(--gray-400)', fontWeight:400 }}>last 7 days</span>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)', display:'flex', justifyContent:'space-between' }}>
+            Signups <span style={{ fontSize:11, color:'var(--gray-400)', fontWeight:400 }}>last 7 days</span>
           </div>
-          <div style={{ padding:'18px 16px', display:'flex', alignItems:'flex-end', gap:8, height:140 }}>
-            {last7.map(day=>{
-              const t = trend.find(x=>x._id===day)||{count:0};
+          <div style={{ padding:'8px 16px 14px' }}>
+            <MiniBarChart rows={trendRows} labelKey="label" valKey="count" color="#7c3aed" />
+          </div>
+        </div>
+
+        {/* Plan distribution */}
+        <div className="card" style={{ overflow:'hidden' }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)' }}>Plan Distribution</div>
+          <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:9 }}>
+            {PLANS.map(plan=>{
+              const p=(data.planBreakdown||[]).find(x=>x._id===plan)||{count:0};
+              const Icon = PLAN_ICON[plan]||Zap;
               return (
-                <div key={day} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, height:'100%', justifyContent:'flex-end' }}>
-                  <span style={{ fontSize:9, color:'var(--gray-400)', height:14 }}>{t.count||''}</span>
-                  <motion.div
-                    initial={{ height:0 }} animate={{ height:`${Math.max((t.count/maxT)*80, t.count?5:2)}px` }}
-                    transition={{ duration:.8, delay:.1, ease:[.4,0,.2,1] }}
-                    style={{ width:'100%', background:t.count?'linear-gradient(180deg,#7c3aed,#8b5cf6)':'var(--gray-100)', borderRadius:'3px 3px 0 0', minHeight:2 }}
-                  />
-                  <span style={{ fontSize:8.5, color:'var(--gray-400)' }}>{day.slice(5)}</span>
+                <div key={plan} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <Icon size={11} style={{ color:PLAN_COLOR[plan], flexShrink:0 }}/>
+                  <span style={{ fontSize:11, fontWeight:700, width:58, flexShrink:0, color:PLAN_COLOR[plan] }}>{plan}</span>
+                  <div style={{ flex:1, background:'var(--gray-100)', borderRadius:99, height:6, overflow:'hidden' }}>
+                    <motion.div initial={{ width:0 }} animate={{ width:`${Math.round((p.count/maxP)*100)}%` }}
+                      transition={{ duration:1, delay:.2 }}
+                      style={{ height:'100%', background:PLAN_COLOR[plan], borderRadius:99 }} />
+                  </div>
+                  <span style={{ fontSize:11.5, color:'var(--gray-500)', width:22, textAlign:'right', flexShrink:0 }}>{p.count}</span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Plan breakdown */}
+        {/* Level distribution */}
         <div className="card" style={{ overflow:'hidden' }}>
-          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)' }}>Plan Distribution</div>
-          <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:10 }}>
-            {['FREE','STARTER','BASIC','PRO','PREMIUM'].map(plan=>{
-              const p=(data.planBreakdown||[]).find(x=>x._id===plan)||{count:0};
-              return (
-                <div key={plan} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <span style={{ fontSize:11.5, fontWeight:700, width:68, flexShrink:0, color:planColors[plan] }}>{plan}</span>
-                  <div style={{ flex:1, background:'var(--gray-100)', borderRadius:99, height:7, overflow:'hidden' }}>
-                    <motion.div initial={{ width:0 }} animate={{ width:`${Math.round((p.count/maxP)*100)}%` }}
-                      transition={{ duration:1, delay:.2, ease:[.4,0,.2,1] }}
-                      style={{ height:'100%', background:planColors[plan], borderRadius:99 }} />
-                  </div>
-                  <span style={{ fontSize:12, color:'var(--gray-500)', width:24, textAlign:'right', flexShrink:0 }}>{p.count}</span>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)' }}>
+            Student Levels
+          </div>
+          <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:9 }}>
+            {(data.levelBreakdown||[]).slice(0,8).map(l=>(
+              <div key={l._id} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:11, fontWeight:600, width:70, flexShrink:0, color:'var(--gray-600)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{l._id||'Unknown'}</span>
+                <div style={{ flex:1, background:'var(--gray-100)', borderRadius:99, height:6, overflow:'hidden' }}>
+                  <motion.div initial={{ width:0 }} animate={{ width:`${Math.round((l.count/maxL)*100)}%` }}
+                    transition={{ duration:1, delay:.3 }}
+                    style={{ height:'100%', background:'linear-gradient(90deg,#2563eb,#60a5fa)', borderRadius:99 }} />
                 </div>
-              );
-            })}
+                <span style={{ fontSize:11.5, color:'var(--gray-500)', width:22, textAlign:'right', flexShrink:0 }}>{l.count}</span>
+              </div>
+            ))}
+            {(data.levelBreakdown||[]).length===0 && <span style={{ color:'var(--gray-400)', fontSize:13 }}>No data yet</span>}
           </div>
         </div>
       </div>
 
-      {/* Leaderboards */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-        {[
-          { title:'Top Uploaders', icon:Upload, rows:data.topUploaders, valKey:'uploadCount', nameKey:'name' },
-          { title:'Recent Signups', icon:Users, rows:data.recentSignups, nameKey:'name', showDate:true },
-        ].map(({ title, icon:Icon, rows, valKey, nameKey, showDate })=>(
-          <div key={title} className="card" style={{ overflow:'hidden' }}>
-            <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              {title} <Icon size={14} style={{ color:'var(--gray-400)' }} />
-            </div>
-            {(rows||[]).length===0
-              ? <div style={{ padding:'18px 16px', color:'var(--gray-400)', fontSize:13 }}>No data yet</div>
-              : (rows||[]).map((u,i)=>(
-                <motion.div key={u.phone||i} initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }} transition={{ delay:i*.03 }}
-                  style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 16px', borderBottom:i<rows.length-1?'1px solid var(--gray-100)':'none' }}>
-                  <div style={{ width:30, height:30, borderRadius:'50%', background:'var(--purple-bg)', border:'1px solid var(--purple-border)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, flexShrink:0, color:'#7c3aed' }}>
-                    {u.name?u.name[0].toUpperCase():'?'}
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12.5, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'var(--gray-800)' }}>{u[nameKey]||u.phone}</div>
-                    <div style={{ fontSize:11, color:'var(--gray-400)', marginTop:1 }}>{u.plan}</div>
-                  </div>
-                  {valKey && <div style={{ fontSize:14, fontWeight:800, color:'#7c3aed', flexShrink:0 }}>{u[valKey]}</div>}
-                  {showDate && <div style={{ fontSize:11, color:'var(--gray-400)', flexShrink:0 }}>{new Date(u.createdAt).toLocaleDateString()}</div>}
-                </motion.div>
-              ))}
+      {/* ── Leaderboards ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
+        {/* Top uploaders */}
+        <div className="card" style={{ overflow:'hidden' }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            Top Uploaders <Upload size={13} style={{ color:'var(--gray-400)' }}/>
           </div>
-        ))}
+          {(data.topUploaders||[]).length===0 ? <div style={{ padding:'18px 16px', color:'var(--gray-400)', fontSize:13 }}>No data yet</div>
+            : (data.topUploaders||[]).slice(0,8).map((u,i)=><LeaderRow key={u.phone} user={u} rank={i+1} val={u.uploadCount} label="uploads"/>)}
+        </div>
+
+        {/* Top AI chatters */}
+        <div className="card" style={{ overflow:'hidden' }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            Top AI Chatters <MessageSquare size={13} style={{ color:'var(--gray-400)' }}/>
+          </div>
+          {(webData?.topChatters||[]).length===0 ? <div style={{ padding:'18px 16px', color:'var(--gray-400)', fontSize:13 }}>No data yet</div>
+            : (webData?.topChatters||[]).slice(0,8).map((u,i)=><LeaderRow key={u.phone} user={u} rank={i+1} val={u.usage?.chatMonth||0} label="msgs" color="#059669"/>)}
+        </div>
+
+        {/* Recent signups */}
+        <div className="card" style={{ overflow:'hidden' }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            Recent Signups <Users size={13} style={{ color:'var(--gray-400)' }}/>
+          </div>
+          {(data.recentSignups||[]).length===0 ? <div style={{ padding:'18px 16px', color:'var(--gray-400)', fontSize:13 }}>No data yet</div>
+            : (data.recentSignups||[]).slice(0,8).map((u,i)=>(
+              <div key={u.phone} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 16px', borderBottom:'1px solid var(--gray-100)' }}>
+                <div style={{ width:30, height:30, borderRadius:'50%', background:'var(--purple-bg)', border:'1px solid var(--purple-border)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, flexShrink:0, color:'#7c3aed' }}>
+                  {u.name?u.name[0].toUpperCase():'?'}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:12.5, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'var(--gray-800)' }}>{u.name||u.phone}</div>
+                  <div style={{ fontSize:10.5, color:'var(--gray-400)' }}>{u.plan}</div>
+                </div>
+                <div style={{ fontSize:11, color:'var(--gray-400)', flexShrink:0 }}>{new Date(u.createdAt).toLocaleDateString()}</div>
+              </div>
+            ))}
+        </div>
+      </div>
+
+      {/* ── Referrers ── */}
+      {(data.topReferrers||[]).length > 0 && (
+        <div className="card" style={{ overflow:'hidden' }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--gray-100)', fontSize:13, fontWeight:700, color:'var(--gray-900)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            Top Referrers <Award size={13} style={{ color:'var(--gray-400)' }}/>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))' }}>
+            {(data.topReferrers||[]).slice(0,6).map((u,i)=><LeaderRow key={u.phone} user={u} rank={i+1} val={u.referralCount} label="refs" color="#d97706"/>)}
+          </div>
+        </div>
+      )}
+
+      {/* ── Refresh button ── */}
+      <div style={{ display:'flex', justifyContent:'flex-end' }}>
+        <Btn variant="ghost" size="sm" onClick={load}><RefreshCw size={13}/> Refresh Analytics</Btn>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PLAN LIMITS TAB
+   ══════════════════════════════════════════════════════════════════ */
+function PlanLimitsTab({ api, toast }) {
+  const [limits, setLimits]   = useState(null);
+  const [draft, setDraft]     = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [dirty, setDirty]     = useState(false);
+
+  useEffect(()=>{ load(); },[]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const d = await api('GET','/api/plan-limits');
+      setLimits(d); setDraft(JSON.parse(JSON.stringify(d))); setDirty(false);
+    } catch(e) { toast(e.message,'error'); }
+    setLoading(false);
+  }
+
+  function update(plan, field, raw) {
+    const val = field === 'period' ? raw : (raw === '' ? '' : Number(raw));
+    setDraft(prev => ({ ...prev, [plan]: { ...prev[plan], [field]: val } }));
+    setDirty(true);
+  }
+
+  async function save() {
+    const parsed = {};
+    for (const plan of PLANS) {
+      parsed[plan] = {
+        chat:   Number(draft[plan].chat)   || 0,
+        images: Number(draft[plan].images) || 0,
+        pdf:    Number(draft[plan].pdf)    || 0,
+        period: draft[plan].period || 'daily',
+      };
+    }
+    setSaving(true);
+    try {
+      await api('PUT','/api/plan-limits', parsed);
+      setLimits(parsed); setDraft(JSON.parse(JSON.stringify(parsed))); setDirty(false);
+      toast('Plan limits saved — live immediately!','success');
+    } catch(e) { toast(e.message,'error'); }
+    setSaving(false);
+  }
+
+  function reset() { setDraft(JSON.parse(JSON.stringify(limits))); setDirty(false); }
+
+  if (loading) return <div style={{ padding:72, textAlign:'center' }}><span className="spinner"/></div>;
+  if (!draft) return null;
+
+  const planDesc = {
+    FREE:    'Default plan, no payment required',
+    STARTER: 'Entry-level paid plan',
+    BASIC:   'Standard paid plan',
+    PRO:     'Advanced paid plan',
+    PREMIUM: 'Unlimited tier',
+  };
+
+  return (
+    <div style={{ padding:24, display:'flex', flexDirection:'column', gap:20, maxWidth:900 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10 }}>
+        <div>
+          <h2 style={{ fontSize:18, fontWeight:800, color:'var(--gray-900)', display:'flex', alignItems:'center', gap:8 }}>
+            <Settings size={18} style={{ color:'#7c3aed' }}/> Plan Usage Limits
+          </h2>
+          <p style={{ fontSize:13, color:'var(--gray-500)', marginTop:3 }}>
+            Changes apply instantly to all users — no restart needed.
+          </p>
+        </div>
+        <div style={{ display:'flex', gap:8 }}>
+          {dirty && <Btn variant="ghost" size="sm" onClick={reset}><X size={13}/> Reset</Btn>}
+          <Btn variant="primary" size="sm" disabled={!dirty || saving} onClick={save}>
+            {saving ? <><span className="spinner spinner-sm"/> Saving…</> : <><Save size={13}/> Save Changes</>}
+          </Btn>
+        </div>
+      </div>
+
+      {dirty && (
+        <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} style={{ overflow:'hidden' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'var(--amber-bg)', border:'1.5px solid var(--amber-border)', borderRadius:9, fontSize:13, color:'var(--amber)' }}>
+            <AlertCircle size={14}/> You have unsaved changes. Click Save to apply them live.
+          </div>
+        </motion.div>
+      )}
+
+      {/* Header legend */}
+      <div style={{ display:'grid', gridTemplateColumns:'180px 1fr 1fr 1fr 110px', gap:12, padding:'0 16px', fontSize:11, fontWeight:700, color:'var(--gray-400)', textTransform:'uppercase', letterSpacing:'.5px' }}>
+        <div>Plan</div><div>Chat msgs</div><div>Images</div><div>PDF exports</div><div>Period</div>
+      </div>
+
+      {PLANS.map((plan, idx) => {
+        const Icon = PLAN_ICON[plan]||Zap;
+        const col  = PLAN_COLOR[plan];
+        return (
+          <motion.div key={plan} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:idx*.05 }}
+            className="card" style={{ padding:'18px 20px' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'180px 1fr 1fr 1fr 110px', gap:12, alignItems:'center' }}>
+              {/* Plan label */}
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:3 }}>
+                  <div style={{ width:28, height:28, borderRadius:8, background:`${col}15`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <Icon size={14} style={{ color:col }}/>
+                  </div>
+                  <span style={{ fontSize:14, fontWeight:800, color:col }}>{plan}</span>
+                </div>
+                <div style={{ fontSize:11, color:'var(--gray-400)', paddingLeft:35 }}>{planDesc[plan]}</div>
+              </div>
+
+              {/* Chat */}
+              <div>
+                <div style={{ fontSize:10.5, fontWeight:700, color:'var(--gray-400)', marginBottom:4, textTransform:'uppercase', letterSpacing:'.4px' }}>
+                  <MessageSquare size={9} style={{ marginRight:4, verticalAlign:'middle' }}/>Chat
+                </div>
+                <input type="number" min={0} max={99999} value={draft[plan]?.chat ?? ''} onChange={e=>update(plan,'chat',e.target.value)} style={{ fontSize:15, fontWeight:800, color:col, textAlign:'center', padding:'7px 10px' }}/>
+              </div>
+
+              {/* Images */}
+              <div>
+                <div style={{ fontSize:10.5, fontWeight:700, color:'var(--gray-400)', marginBottom:4, textTransform:'uppercase', letterSpacing:'.4px' }}>
+                  <Image size={9} style={{ marginRight:4, verticalAlign:'middle' }}/>Images
+                </div>
+                <input type="number" min={0} max={99999} value={draft[plan]?.images ?? ''} onChange={e=>update(plan,'images',e.target.value)} style={{ fontSize:15, fontWeight:800, color:col, textAlign:'center', padding:'7px 10px' }}/>
+              </div>
+
+              {/* PDF */}
+              <div>
+                <div style={{ fontSize:10.5, fontWeight:700, color:'var(--gray-400)', marginBottom:4, textTransform:'uppercase', letterSpacing:'.4px' }}>
+                  <FileText size={9} style={{ marginRight:4, verticalAlign:'middle' }}/>PDF
+                </div>
+                <input type="number" min={0} max={99999} value={draft[plan]?.pdf ?? ''} onChange={e=>update(plan,'pdf',e.target.value)} style={{ fontSize:15, fontWeight:800, color:col, textAlign:'center', padding:'7px 10px' }}/>
+              </div>
+
+              {/* Period */}
+              <div>
+                <div style={{ fontSize:10.5, fontWeight:700, color:'var(--gray-400)', marginBottom:4, textTransform:'uppercase', letterSpacing:'.4px' }}>Period</div>
+                <select value={draft[plan]?.period||'daily'} onChange={e=>update(plan,'period',e.target.value)} style={{ fontSize:13, fontWeight:700, color:col }}>
+                  <option value="daily">Daily</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
+
+      <div style={{ padding:'14px 18px', background:'var(--purple-bg)', border:'1.5px solid var(--purple-border)', borderRadius:10, fontSize:13, color:'var(--purple-text)', display:'flex', gap:10, alignItems:'flex-start' }}>
+        <Shield size={14} style={{ flexShrink:0, marginTop:1 }}/>
+        <div>
+          <strong>How it works:</strong> Limits are stored in your database and loaded on server start. After saving, they apply immediately for all new AI requests — no restart needed. Set any value to 9999 for unlimited.
+        </div>
       </div>
     </div>
   );
@@ -940,10 +1192,11 @@ function PendingTab({ api, toast }) {
    MAIN ADMIN PAGE
    ══════════════════════════════════════════════════════════════════ */
 const TABS = [
-  { id:'resources', label:'Resources',  icon:Database },
-  { id:'analytics', label:'Analytics',  icon:BarChart3 },
-  { id:'users',     label:'Students',   icon:Users },
-  { id:'pending',   label:'Pending',    icon:Clock },
+  { id:'resources', label:'Resources',   icon:Database },
+  { id:'analytics', label:'Analytics',   icon:BarChart3 },
+  { id:'users',     label:'Students',    icon:Users },
+  { id:'pending',   label:'Pending',     icon:Clock },
+  { id:'limits',    label:'Plan Limits', icon:Settings },
 ];
 
 export default function AdminPage() {
@@ -979,8 +1232,12 @@ export default function AdminPage() {
             background:'linear-gradient(135deg,#7c3aed,#8b5cf6)',
             display:'flex', alignItems:'center', justifyContent:'center',
             overflow:'hidden', flexShrink:0, boxShadow:'0 2px 8px rgba(124,58,237,.25)',
+            position:'relative',
           }}>
-            <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}} />
+            <span style={{ fontSize:16, fontWeight:900, color:'#fff', position:'absolute' }}>F</span>
+            <img src="https://mrfranko-cdn.hf.space/edu/fundo.png" alt="" loading="eager"
+              style={{ width:'100%', height:'100%', objectFit:'cover', position:'relative', zIndex:1 }}
+              onError={e=>{e.target.style.display='none';}} />
           </div>
           <div>
             <div style={{ fontSize:14, fontWeight:800, color:'var(--gray-900)', letterSpacing:'-.2px' }}>Fundo AI</div>
@@ -1034,6 +1291,7 @@ export default function AdminPage() {
           {activeTab==='analytics' && <AnalyticsTab api={api} toast={toast} />}
           {activeTab==='users'     && <UsersTab api={api} toast={toast} />}
           {activeTab==='pending'   && <PendingTab api={api} toast={toast} />}
+          {activeTab==='limits'    && <PlanLimitsTab api={api} toast={toast} />}
         </motion.div>
       </AnimatePresence>
     </div>

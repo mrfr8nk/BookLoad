@@ -164,14 +164,28 @@ async function resetUsageIfNeeded(user) {
   return user;
 }
 
-// ─── Plan limits ───────────────────────────────────────────────────────────────
-const PLAN_LIMITS = {
+// ─── Settings model (for dynamic plan limits) ──────────────────────────────────
+const settingsSchema = new mongoose.Schema({
+  key:   { type: String, required: true, unique: true },
+  value: { type: mongoose.Schema.Types.Mixed, required: true },
+}, { timestamps: true });
+const SettingsModel = mongoose.models?.Settings || mongoose.model('Settings', settingsSchema);
+
+// ─── Plan limits (mutable — updated by admin portal) ──────────────────────────
+let PLAN_LIMITS = {
   FREE:    { chat: 25,    images: 3,    pdf: 1,    period: 'daily'   },
   STARTER: { chat: 75,   images: 8,    pdf: 3,    period: 'monthly' },
   BASIC:   { chat: 300,  images: 20,   pdf: 10,   period: 'monthly' },
   PRO:     { chat: 1000, images: 50,   pdf: 50,   period: 'monthly' },
   PREMIUM: { chat: 9999, images: 9999, pdf: 9999, period: 'monthly' },
 };
+
+mongoose.connection.once('open', async () => {
+  try {
+    const saved = await SettingsModel.findOne({ key: 'planLimits' });
+    if (saved?.value) { PLAN_LIMITS = saved.value; console.log('✅ Plan limits loaded from DB'); }
+  } catch (e) { console.error('⚠️  Could not load plan limits:', e.message); }
+});
 
 // ─── AI Config ─────────────────────────────────────────────────────────────────
 const BK9_MODEL    = 'meta-llama/llama-4-scout-17b-16e-instruct';
@@ -1124,6 +1138,58 @@ app.delete('/api/users', requireAuth, async (req, res) => {
     if (!Array.isArray(phones) || !phones.length) return res.status(400).json({ error: 'No phones provided' });
     const result = await UserModel.deleteMany({ phone: { $in: phones } });
     res.json({ deleted: result.deletedCount });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/plan-limits ─────────────────────────────────────────────────────
+app.get('/api/plan-limits', async (_req, res) => {
+  res.json(PLAN_LIMITS);
+});
+
+// ─── PUT /api/plan-limits ─────────────────────────────────────────────────────
+app.put('/api/plan-limits', requireAuth, async (req, res) => {
+  try {
+    const limits = req.body;
+    const valid = ['FREE','STARTER','BASIC','PRO','PREMIUM'];
+    for (const plan of valid) {
+      if (!limits[plan]) return res.status(400).json({ error: `Missing plan: ${plan}` });
+      if (typeof limits[plan].chat !== 'number') return res.status(400).json({ error: `Invalid chat for ${plan}` });
+    }
+    await SettingsModel.findOneAndUpdate(
+      { key: 'planLimits' },
+      { value: limits },
+      { upsert: true, new: true }
+    );
+    PLAN_LIMITS = limits;
+    res.json({ ok: true, limits: PLAN_LIMITS });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── GET /api/web-stats ───────────────────────────────────────────────────────
+app.get('/api/web-stats', requireAuth, async (_req, res) => {
+  try {
+    const [
+      totalWebUsers, webWithPlan,
+      topChatters, totalMessages,
+    ] = await Promise.all([
+      UserModel.countDocuments({ webPassword: { $ne: '' } }),
+      UserModel.aggregate([
+        { $match: { webPassword: { $ne: '' } } },
+        { $group: { _id: '$plan', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+      UserModel.find({}, 'phone name plan usage')
+        .sort({ 'usage.chatMonth': -1 }).limit(10),
+      UserModel.aggregate([
+        { $group: { _id: null, total: { $sum: '$usage.chatMonth' } } },
+      ]),
+    ]);
+    res.json({
+      totalWebUsers,
+      webWithPlan,
+      topChatters,
+      totalMessages: totalMessages[0]?.total || 0,
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
