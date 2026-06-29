@@ -1,0 +1,346 @@
+You are a senior React/Next.js frontend engineer. Your task is to transform my AI chat interface into a polished ChatGPT/Claude-style message renderer.
+
+## Goal
+
+The AI API returns Markdown containing:
+
+* Headings (`#`, `##`, `###`)
+* Bold (`**text**`)
+* Italics (`*text*`)
+* Horizontal rules (`---`)
+* Tables
+* Ordered and unordered lists
+* Task lists (`- [ ]`, `- [x]`)
+* Blockquotes (`>`)
+* Inline code
+* Fenced code blocks
+* Links
+* Images
+* LaTeX mathematics (`\( ... \)` and `\[ ... \]`)
+* Sometimes `$$...$$`
+* GitHub-Flavored Markdown
+
+Currently everything appears as raw text. I want it rendered beautifully.
+
+---
+
+## Requirements
+
+Use the following libraries:
+
+* react-markdown
+* remark-gfm
+* remark-math
+* rehype-katex
+* rehype-highlight
+* katex
+
+Install anything required.
+
+Import the KaTeX stylesheet globally.
+
+---
+
+## Message Component
+
+Create or replace my AI message component.
+
+It must render:
+
+✓ Markdown
+
+✓ Tables
+
+✓ Lists
+
+✓ Task lists
+
+✓ Horizontal rules
+
+✓ Headings
+
+✓ Blockquotes
+
+✓ Links
+
+✓ Images
+
+✓ Inline code
+
+✓ Code blocks
+
+✓ Mathematical equations
+
+✓ GitHub Markdown
+
+---
+
+## Mathematical Rendering
+
+Render all of these correctly:
+
+Inline
+
+(
+a^2+b^2=c^2
+)
+
+Display
+
+[
+\int_0^\pi \sin x,dx
+]
+
+Also support
+
+$$
+E=mc^2
+$$
+
+Fractions
+
+[
+\frac{a+b}{c+d}
+]
+
+Matrices
+
+[
+\begin{bmatrix}
+1&2\
+3&4
+\end{bmatrix}
+]
+
+Summations
+
+[
+\sum_{i=1}^{n} i
+]
+
+Integrals
+
+[
+\int x^2dx
+]
+
+Greek symbols
+
+[
+\alpha,\beta,\gamma,\Delta,\Omega
+]
+
+Everything should render using KaTeX.
+
+---
+
+## Code Blocks
+
+Render fenced code blocks with syntax highlighting.
+
+Support:
+
+* JavaScript
+* TypeScript
+* Python
+* Java
+* C++
+* HTML
+* CSS
+* SQL
+* JSON
+* Bash
+
+Add:
+
+* Rounded corners
+* Dark background
+* Copy button
+* Horizontal scrolling
+* Line wrapping disabled
+* Nice monospace font
+
+Inline code should have a subtle gray background.
+
+---
+
+## Tables
+
+Tables should:
+
+* Scroll horizontally on mobile
+* Alternate row colors
+* Sticky header (if practical)
+* Rounded border
+* Responsive
+
+---
+
+## Blockquotes
+
+Render with:
+
+* Colored left border
+* Light background
+* Padding
+* Rounded corners
+
+---
+
+## Horizontal Rules
+
+Instead of showing
+
+---
+
+render a beautiful divider.
+
+Example styling:
+
+* thin gray divider
+* or subtle gradient
+* generous spacing
+
+---
+
+## Headings
+
+Style nicely.
+
+H1
+
+* Large
+* Bold
+* Bottom spacing
+
+H2
+
+* Slightly smaller
+
+H3
+
+* Medium
+
+Maintain proper spacing.
+
+---
+
+## Lists
+
+Render:
+
+* bullets
+* numbering
+* nested lists
+* task lists
+
+Use proper indentation.
+
+---
+
+## Links
+
+External links should:
+
+* open in new tab
+* use rel="noopener noreferrer"
+
+Style them blue with underline on hover.
+
+---
+
+## Images
+
+Images should:
+
+* be responsive
+* rounded corners
+* lazy loaded
+* max width 100%
+
+---
+
+## Typography
+
+Improve readability.
+
+Use:
+
+* max-width around 70ch
+* line-height around 1.7
+* comfortable spacing
+* good paragraph margins
+
+---
+
+## Dark Mode
+
+Everything must automatically look good in dark mode.
+
+Do not hardcode colors.
+
+Respect my theme.
+
+---
+
+## Mobile
+
+Messages must render perfectly on phones.
+
+Tables should scroll.
+
+Code blocks should scroll horizontally.
+
+Nothing should overflow.
+
+---
+
+## Security
+
+Do NOT use dangerouslySetInnerHTML.
+
+Do NOT allow unsafe HTML unless sanitized.
+
+Prevent XSS.
+
+---
+
+## Performance
+
+Memoize expensive renders.
+
+Avoid unnecessary rerenders.
+
+Lazy load syntax highlighting if possible.
+
+---
+
+## Styling
+
+Use Tailwind CSS if my project already uses it.
+
+Otherwise use my existing styling system.
+
+Keep the UI modern like:
+
+* ChatGPT
+* Claude
+* Perplexity
+* Gemini
+
+---
+
+## Output
+
+Provide:
+
+1. Required npm packages
+2. Every modified file
+3. Every new component
+4. Any CSS additions
+5. Any Tailwind additions
+6. Imports
+7. Explanations
+8. Production-ready code
+
+The final renderer should display AI responses exactly like ChatGPT, including beautiful Markdown, equations, code blocks, tables, dividers, lists, blockquotes, and responsive formatting without showing any raw Markdown syntax.

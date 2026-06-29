@@ -9,11 +9,9 @@
   },
   "dependencies": {
     "@tavily/core": "^0.7.2",
-    "@whiskeysockets/baileys": "6.7.23",
     "axios": "^1.7.9",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
-    "gifted-btns": "^1.0.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.4.1",
     "multer": "^1.4.5-lts.1",
