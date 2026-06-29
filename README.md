@@ -40,11 +40,11 @@ Make sure your project is in a GitHub repository (public or private).
 | **Name** | `fundo-ai` *(or any name you like)* |
 | **Root Directory** | `admin-portal` |
 | **Runtime** | `Node` |
-| **Build Command** | `npm install && cd client && npm install && npm run build` |
+| **Build Command** | `npm install && npm run build` |
 | **Start Command** | `node server.js` |
 | **Instance Type** | Free *(or Starter for always-on)* |
 
-> **Important:** The build command installs both server and client dependencies, then compiles the React frontend into `client/dist/`. The Express server serves these built files automatically.
+> **Important:** The build script automatically installs client dependencies and compiles the React frontend into `client/dist/`. The Express server serves these built files automatically. Node.js 20 is pinned via `.node-version` — do **not** change it (Node 24 has a known npm bug).
 
 **4. Add Environment Variables**
 
@@ -78,7 +78,8 @@ Your site is live! 🎉
 
 | Problem | Fix |
 |---|---|
-| Build fails with "vite not found" | Make sure the build command is exactly: `npm install && cd client && npm install && npm run build` |
+| `npm error Exit handler never called!` | This is a Node.js 24 bug. The `.node-version` file pins Node 20 — push the latest commit and redeploy |
+| Build fails with "vite not found" | Make sure the build command is exactly: `npm install && npm run build` |
 | Site loads but shows blank page | Check that `client/dist/` was built — look in the build logs for `✓ built in` |
 | API calls return 404 | Make sure Root Directory is set to `admin-portal`, not the repo root |
 | MongoDB connection error | Whitelist `0.0.0.0/0` in MongoDB Atlas → Network Access (allow all IPs) |
