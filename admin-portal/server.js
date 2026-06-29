@@ -16,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const app  = express();
-const PORT = process.env.PORTAL_PORT || 5000;
+const PORT = process.env.PORT || process.env.PORTAL_PORT || 5000;
 
 const JWT_SECRET = process.env.SESSION_SECRET || 'fundo-ai-secret-2025';
 
@@ -334,9 +334,36 @@ app.post('/api/login', (req, res) => {
 // STUDENT AUTH ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
 
+async function generateUniqueReferralCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code, exists;
+  do {
+    code = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    exists = await UserModel.findOne({ referralCode: code });
+  } while (exists);
+  return code;
+}
+
+async function applyReferral(newPhone, referredByCode) {
+  if (!referredByCode) return;
+  try {
+    const code = referredByCode.trim().toUpperCase();
+    const referrer = await UserModel.findOne({ referralCode: code });
+    if (!referrer || referrer.phone === newPhone) return;
+    await UserModel.updateOne(
+      { referralCode: code },
+      { $inc: { referralCount: 1, extraMessages: 5, extraImages: 2, extraProjects: 1 } }
+    );
+    await UserModel.updateOne(
+      { phone: newPhone },
+      { $set: { referredBy: code }, $inc: { extraMessages: 5, extraImages: 2 } }
+    );
+  } catch (_) {}
+}
+
 app.post('/api/student/signup', async (req, res) => {
   try {
-    const { phone, name, school, levelType, levelLabel, grade, password } = req.body;
+    const { phone, name, school, levelType, levelLabel, grade, password, referredBy } = req.body;
     if (!phone || !name || !password) return res.status(400).json({ error: 'Phone, name and password are required.' });
     const cleanPhone = phone.replace(/\D/g, '');
     if (cleanPhone.length < 9) return res.status(400).json({ error: 'Enter a valid phone number.' });
@@ -350,18 +377,21 @@ app.post('/api/student/signup', async (req, res) => {
       existing.levelLabel = levelLabel || existing.levelLabel;
       existing.grade = grade || existing.grade;
       existing.webPassword = hashPassword(password);
+      if (!existing.referralCode) existing.referralCode = await generateUniqueReferralCode();
       await existing.save();
       const token = jwt ? jwt.sign({ phone: cleanPhone, name }, JWT_SECRET, { expiresIn: '30d' }) : 'no-jwt';
-      return res.json({ token, user: { phone: cleanPhone, name, plan: existing.plan, school, levelLabel, grade } });
+      return res.json({ token, user: { phone: cleanPhone, name, plan: existing.plan, school, levelLabel, grade, referralCode: existing.referralCode } });
     }
 
+    const refCode = await generateUniqueReferralCode();
     const user = await UserModel.create({
       phone: cleanPhone, name, school: school || '', levelType: levelType || '',
       levelLabel: levelLabel || '', grade: grade || '',
-      webPassword: hashPassword(password), plan: 'FREE',
+      webPassword: hashPassword(password), plan: 'FREE', referralCode: refCode,
     });
+    await applyReferral(cleanPhone, referredBy);
     const token = jwt ? jwt.sign({ phone: cleanPhone, name }, JWT_SECRET, { expiresIn: '30d' }) : 'no-jwt';
-    res.json({ token, user: { phone: cleanPhone, name, plan: 'FREE', school, levelLabel, grade } });
+    res.json({ token, user: { phone: cleanPhone, name, plan: 'FREE', school, levelLabel, grade, referralCode: refCode } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

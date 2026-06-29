@@ -1,0 +1,310 @@
+## A‑Level Pure Mathematics – A “Complex” Problem Solved Step‑by‑Step  
+
+Below is a **classic A‑Level (Cambridge/​ZIMSEC) calculus problem** that brings together differentiation, implicit differentiation, and the use of integrals to find an area.  
+
+> **Problem statement**  
+> The curve is defined by  
+
+\[
+y=\ln\!\Bigl(x+\sqrt{x^{2}+1}\Bigr)
+\]
+
+> 1. Find \(\displaystyle \frac{dy}{dx}\).  
+> 2. Show that \(\displaystyle \frac{dy}{dx}= \frac{1}{\sqrt{x^{2}+1}}\).  
+> 3. Find the equation of the tangent to the curve at \(x=1\).  
+> 4. Find the area enclosed between the curve, this tangent line, and the vertical lines \(x=0\) and \(x=2\).
+
+---
+
+### 1️⃣ Differentiate the function  
+
+First write the function in a form that is easy to differentiate:
+
+\[
+y=\ln\!\bigl(u\bigr)\qquad\text{where }u=x+\sqrt{x^{2}+1}
+\]
+
+Using the chain rule  
+
+\[
+\frac{dy}{dx}= \frac{1}{u}\,\frac{du}{dx}
+\]
+
+Now compute \(\displaystyle \frac{du}{dx}\):
+
+\[
+u = x+\sqrt{x^{2}+1}
+\]
+
+\[
+\frac{du}{dx}=1+\frac{1}{2}(x^{2}+1)^{-1/2}\cdot 2x
+            =1+\frac{x}{\sqrt{x^{2}+1}}
+\]
+
+Hence  
+
+\[
+\frac{dy}{dx}= \frac{1+\displaystyle\frac{x}{\sqrt{x^{2}+1}}}
+                     {x+\sqrt{x^{2}+1}}
+\tag{1}
+\]
+
+---
+
+### 2️⃣ Simplify the derivative  
+
+We need to show  
+
+\[
+\frac{dy}{dx}= \frac{1}{\sqrt{x^{2}+1}}
+\]
+
+Start from (1) and rationalise the denominator.
+
+\[
+x+\sqrt{x^{2}+1}= \frac{(x+\sqrt{x^{2}+1})(\sqrt{x^{2}+1}-x)}{\sqrt{x^{2}+1}-x}
+                 =\frac{(x^{2}+1)-x^{2}}{\sqrt{x^{2}+1}-x}
+                 =\frac{1}{\sqrt{x^{2}+1}-x}
+\]
+
+Thus  
+
+\[
+\frac{1}{x+\sqrt{x^{2}+1}} = \sqrt{x^{2}+1}-x
+\]
+
+Now substitute this into (1):
+
+\[
+\frac{dy}{dx}= \Bigl(1+\frac{x}{\sqrt{x^{2}+1}}\Bigr)\bigl(\sqrt{x^{2}+1}-x\bigr)
+\]
+
+Expand:
+
+\[
+\begin{aligned}
+\frac{dy}{dx}&= \sqrt{x^{2}+1}-x
+                +\frac{x}{\sqrt{x^{2}+1}}\bigl(\sqrt{x^{2}+1}-x\bigr)\\[2mm]
+            &= \sqrt{x^{2}+1}-x
+                +x-\frac{x^{2}}{\sqrt{x^{2}+1}}\\[2mm]
+            &= \sqrt{x^{2}+1}-\frac{x^{2}}{\sqrt{x^{2}+1}}\\[2mm]
+            &= \frac{x^{2}+1-x^{2}}{\sqrt{x^{2}+1}}
+            =\frac{1}{\sqrt{x^{2}+1}} .
+\end{aligned}
+\]
+
+\[
+\boxed{\displaystyle \frac{dy}{dx}= \frac{1}{\sqrt{x^{2}+1}}}
+\]
+
+> **What we used:** algebraic manipulation (rationalising) and the chain rule – both core topics in the *A‑Level Calculus* section of the Cambridge/​ZIMSEC syllabus.
+
+---
+
+### 3️⃣ Tangent line at \(x=1\)
+
+First find the point \((x,y)\) on the curve when \(x=1\).
+
+\[
+\begin{aligned}
+y(1) &= \ln\!\Bigl(1+\sqrt{1^{2}+1}\Bigr)
+      = \ln\!\bigl(1+\sqrt{2}\bigr) .
+\end{aligned}
+\]
+
+The gradient at \(x=1\) from the derivative:
+
+\[
+m = \left.\frac{dy}{dx}\right|_{x=1}
+   = \frac{1}{\sqrt{1^{2}+1}}
+   = \frac{1}{\sqrt{2}} .
+\]
+
+Using the point–gradient form \(y-y_{0}=m(x-x_{0})\):
+
+\[
+\boxed{\,y-\ln(1+\sqrt{2})=\frac{1}{\sqrt{2}}\,(x-1)\,}
+\]
+
+If you prefer the explicit form:
+
+\[
+y = \frac{x}{\sqrt{2}} +\Bigl[\ln(1+\sqrt{2})-\frac{1}{\sqrt{2}}\Bigr].
+\]
+
+---
+
+### 4️⃣ Area between the curve, its tangent, and \(x=0,\;x=2\)
+
+The required area \(A\) is
+
+\[
+A=\int_{0}^{2}\Bigl|\,y_{\text{curve}}-y_{\text{tangent}}\,\Bigr|\,dx .
+\]
+
+Because the curve lies **above** the tangent on the interval \([0,2]\) (you can check by evaluating at a test point, e.g. \(x=0\)), we can drop the absolute value:
+
+\[
+A=\int_{0}^{2}\Bigl[\,\ln\!\bigl(x+\sqrt{x^{2}+1}\bigr)
+      -\Bigl(\frac{x}{\sqrt{2}}+C\Bigr)\Bigr]dx,
+\]
+where \(C=\ln(1+\sqrt{2})-\dfrac{1}{\sqrt{2}}\).
+
+#### 4.1 Integrate the logarithmic term  
+
+A handy antiderivative (derived via a standard substitution \(x=\sinh t\)) is  
+
+\[
+\int \ln\!\bigl(x+\sqrt{x^{2}+1}\bigr)\,dx
+   = x\ln\!\bigl(x+\sqrt{x^{2}+1}\bigr)-\sqrt{x^{2}+1}+K .
+\]
+
+*Quick verification:* differentiate the RHS using the product rule and the result from part 2; you recover the integrand.
+
+#### 4.2 Integrate the linear term  
+
+\[
+\int \frac{x}{\sqrt{2}}\,dx = \frac{1}{\sqrt{2}}\cdot\frac{x^{2}}{2}
+                           = \frac{x^{2}}{2\sqrt{2}} .
+\]
+
+The constant \(C\) integrates to \(C x\).
+
+#### 4.3 Combine and evaluate from 0 to 2  
+
+\[
+\begin{aligned}
+A &=\Bigl[\,x\ln\!\bigl(x+\sqrt{x^{2}+1}\bigr)-\sqrt{x^{2}+1}
+          -\frac{x^{2}}{2\sqrt{2}}-Cx\,\Bigr]_{0}^{2} .
+\end{aligned}
+\]
+
+Now plug in the limits.
+
+*At \(x=2\):*  
+
+\[
+\begin{aligned}
+x &=2,\\
+\sqrt{x^{2}+1}&=\sqrt{5},\\
+\ln\!\bigl(2+\sqrt{5}\bigr)&\;( \text{keep as is}),\\
+C &=\ln(1+\sqrt{2})-\frac{1}{\sqrt{2}} .
+\end{aligned}
+\]
+
+Hence  
+
+\[
+\begin{aligned}
+F(2) &= 2\ln\!\bigl(2+\sqrt{5}\bigr)-\sqrt{5}
+       -\frac{4}{2\sqrt{2}}-2C\\
+     &= 2\ln\!\bigl(2+\sqrt{5}\bigr)-\sqrt{5}
+       -\frac{2}{\sqrt{2}}-2\Bigl[\ln(1+\sqrt{2})-\frac{1}{\sqrt{2}}\Bigr]\\
+     &= 2\ln\!\bigl(2+\sqrt{5}\bigr)-\sqrt{5}
+       -\frac{2}{\sqrt{2}}-2\ln(1+\sqrt{2})+\frac{2}{\sqrt{2}}\\
+     &= 2\ln\!\bigl(2+\sqrt{5}\bigr)-2\ln(1+\sqrt{2})-\sqrt{5}.
+\end{aligned}
+\]
+
+(The \(\frac{2}{\sqrt{2}}\) terms cancel nicely!)
+
+*At \(x=0\):*  
+
+\[
+\begin{aligned}
+x\ln\!\bigl(x+\sqrt{x^{2}+1}\bigr) &\to 0\cdot\ln(0+1)=0,\\
+\sqrt{x^{2}+1}&=1,\\
+\frac{x^{2}}{2\sqrt{2}}&=0,\\
+Cx&=0.
+\end{aligned}
+\]
+
+Thus  
+
+\[
+F(0)= -1 .
+\]
+
+Finally  
+
+\[
+\boxed{
+\begin{aligned}
+A &= F(2)-F(0)\\[2mm]
+  &=\Bigl[2\ln\!\bigl(2+\sqrt{5}\bigr)-2\ln(1+\sqrt{2})-\sqrt{5}\Bigr] - (-1)\\[2mm]
+  &= 2\ln\!\frac{2+\sqrt{5}}{1+\sqrt{2}} -\sqrt{5}+1 .
+\end{aligned}}
+\]
+
+If you prefer a decimal approximation (use a calculator):
+
+\[
+\begin{aligned}
+2+\sqrt{5}&\approx 4.23607,\\
+1+\sqrt{2}&\approx 2.41421,\\
+\frac{2+\sqrt{5}}{1+\sqrt{2}}&\approx 1.75488,\\
+2\ln(1.75488)&\approx 1.118,\\
+-\sqrt{5}+1 &\approx -2.23607+1 = -1.23607,\\
+A &\approx 1.118-1.23607 \approx -0.118\;(\text{but area must be positive})\\
+\end{aligned}
+\]
+
+Oops! The sign shows we subtracted the wrong constant. Remember \(F(0)=-1\), so  
+
+\[
+A = \bigl(\text{positive part}\bigr) - (-1) = \text{positive part}+1 .
+\]
+
+Re‑computing correctly:
+
+\[
+\begin{aligned}
+A &= 2\ln\!\frac{2+\sqrt{5}}{1+\sqrt{2}} -\sqrt{5}+1\\
+  &\approx 1.118 - 2.236 + 1\\
+  &\approx  -0.118\;(\text{still negative!})
+\end{aligned}
+\]
+
+The negative sign tells us the curve is **below** the tangent on part of the interval.  
+To avoid sign confusion we take the absolute value of the integral:
+
+\[
+A = \Bigl|\,2\ln\!\frac{2+\sqrt{5}}{1+\sqrt{2}} -\sqrt{5}+1\Bigr|
+   \approx 0.118\;\text{square units}.
+\]
+
+> **Result:**  
+> \[
+> \boxed{A\;\approx\;0.12\;\text{units}^{2}}
+> \]
+
+(Exact form is the expression inside the absolute value.)
+
+---
+
+## 📚 How this ties to the syllabus  
+
+| Syllabus topic | Where it appears in the solution |
+|----------------|----------------------------------|
+| **Differentiation – chain rule** | Part 1 (derivative of a composite log function) |
+| **Algebraic manipulation – rationalising** | Part 2 (simplifying the derivative) |
+| **Equation of a tangent** | Part 3 (point–gradient form) |
+| **Integration – standard forms & substitution** | Part 4 (integrating the log term) |
+| **Area between curves** | Part 4 (setting up and evaluating the definite integral) |
+| **Use of calculators (for final decimal)** | Optional step for exam precision |
+
+---
+
+### 🎓 Tips for tackling similar A‑Level problems  
+
+1. **Identify the underlying pattern** – many A‑Level curve problems involve the *inverse hyperbolic* substitution \(x=\sinh t\) or rationalising tricks.  
+2. **Keep a tidy “tool‑box”** of standard derivatives/integrals (e.g., \(\frac{d}{dx}\ln(x+\sqrt{x^{2}+1}) = \frac{1}{\sqrt{x^{2}+1}}\)).  
+3. **Check the sign of the area** – always compare the two functions at a test point to know which lies above.  
+4. **Write every step** – exam markers love clear logical flow; a missed algebraic simplification can cost marks.  
+5. **Use exact forms first**, then only convert to decimals when the question explicitly asks.
+
+---
+
+Keep practising, and you’ll find that “complex” A‑Level questions become manageable puzzles! 🌟  
+
+— *Fundo AI* 🤖✨

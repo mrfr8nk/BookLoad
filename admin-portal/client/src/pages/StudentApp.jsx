@@ -320,9 +320,27 @@ async function exportPDF(content, title, type, plan) {
 /* ══════════════════════════════════════════════════════════════════════════
    AI CHAT
 ══════════════════════════════════════════════════════════════════════════ */
+function chatStorageKey(phone) {
+  const d = new Date();
+  return `fundo_chats_${d.getFullYear()}_${d.getMonth()}_${phone || 'anon'}`;
+}
+
 function ChatTab({ profile, isMobile, p }) {
-  const [sessions, setSessions] = useState([{ id:1, title:'New Chat', messages:[] }]);
-  const [active, setActive] = useState(1);
+  const [sessions, setSessions] = useState(() => {
+    try {
+      const key = chatStorageKey(profile?.phone);
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : [{ id:1, title:'New Chat', messages:[] }];
+    } catch { return [{ id:1, title:'New Chat', messages:[] }]; }
+  });
+  const [active, setActive] = useState(() => {
+    try {
+      const key = chatStorageKey(profile?.phone);
+      const saved = localStorage.getItem(key);
+      if (saved) { const arr = JSON.parse(saved); return arr[arr.length - 1]?.id || 1; }
+    } catch {}
+    return 1;
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -334,6 +352,10 @@ function ChatTab({ profile, isMobile, p }) {
   const session = sessions.find(s => s.id === active) || sessions[0];
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [session?.messages.length, loading]);
+
+  useEffect(() => {
+    try { localStorage.setItem(chatStorageKey(profile?.phone), JSON.stringify(sessions)); } catch {}
+  }, [sessions]);
 
   function newChat() { const id = Date.now(); setSessions(s => [...s, { id, title:'New Chat', messages:[] }]); setActive(id); setError(''); }
 
@@ -522,6 +544,13 @@ function cleanMath(text) {
     .replace(/_([0-9])/g,    (_, e) => subChar(e))
     .replace(/\\[a-zA-Z]+/g, '').replace(/\{([^}]*)\}/g, '$1');
 }
+
+function preprocessLatex(text) {
+  if (!text) return text;
+  return text
+    .replace(/\\\[\s*([\s\S]*?)\s*\\\]/g, (_, m) => '\n\n$$\n' + m.trim() + '\n$$\n\n')
+    .replace(/\\\(\s*([\s\S]*?)\s*\\\)/g, (_, m) => '$' + m.trim() + '$');
+}
 function cleanExpr(expr) {
   return expr
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
@@ -553,7 +582,7 @@ function ChatBubble({ msg, profile, isMobile, p }) {
           color:isUser?p.chatUserText:p.chatAiText, fontSize:isMobile?14:13.5, lineHeight:1.75,
           boxShadow:isUser?'0 2px 10px rgba(124,58,237,0.2)':p.shadow }}>
           {isUser ? <p style={{ margin:0, whiteSpace:'pre-wrap' }}>{msg.content}</p>
-            : <div className="md-body"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex, rehypeHighlight]}>{msg.content}</ReactMarkdown></div>}
+            : <div className="md-body"><ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex, rehypeHighlight]}>{preprocessLatex(msg.content)}</ReactMarkdown></div>}
         </div>
         {!isUser && (
           <button onClick={copy} style={{ marginTop:4, background:'none', border:'none', cursor:'pointer', fontSize:11, color:p.dim, display:'flex', alignItems:'center', gap:4, padding:'2px 5px', fontFamily:'inherit' }}>
@@ -1337,13 +1366,20 @@ function ProfileTab({ profile, usage, limits, isMobile, p }) {
 ══════════════════════════════════════════════════════════════════════════ */
 function ReferralTab({ profile, isMobile, p }) {
   const [data, setData] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState('');
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     api('/api/student/my-referral').then(d => setData(d)).catch(() => {}).finally(() => setLoading(false));
   }, []);
-  function copy() { navigator.clipboard.writeText(data?.referralCode || '').catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-  const waLink = `https://wa.me/?text=Hey! Use my code *${data?.referralCode || ''}* to sign up on Fundo AI and get bonus study credits! 👉 https://fundoai.gleeze.com`;
+
+  const code = data?.referralCode || '';
+  const webLink = `https://fundoai.gleeze.com/student?ref=${code}`;
+  const waMsg = `Hey! I use Fundo AI to study smarter for ZIMSEC & Cambridge. Join free using my referral code *${code}* and get bonus AI credits! 👉 ${webLink}`;
+  const waLink = `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+
+  function copyCode() { navigator.clipboard.writeText(code).catch(() => {}); setCopied('code'); setTimeout(() => setCopied(''), 2000); }
+  function copyLink() { navigator.clipboard.writeText(webLink).catch(() => {}); setCopied('link'); setTimeout(() => setCopied(''), 2000); }
+
   return (
     <div style={{ padding:isMobile?'18px 14px':'26px 32px', maxWidth:680, margin:'0 auto', overflowY:'auto', height:'100%' }}>
       <SectionHeader title="Refer & Earn" sub="Share Fundo AI with friends and earn bonus AI credits." icon={Gift} p={p}/>
@@ -1353,36 +1389,59 @@ function ReferralTab({ profile, isMobile, p }) {
         <>
           <div style={{ background:p.surface, border:`1px solid ${p.border}`, borderRadius:16, padding:'22px 24px', marginBottom:14 }}>
             <div style={{ fontSize:11, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.6px', marginBottom:12 }}>Your Referral Code</div>
-            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+            <div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:12 }}>
               <div style={{ flex:1, padding:'14px 18px', borderRadius:12, background:p.accentBg, border:`2px solid ${p.accentBorder}`, fontSize:22, fontWeight:900, color:p.accent, letterSpacing:3, textAlign:'center', fontFamily:'monospace' }}>
-                {data?.referralCode || '—'}
+                {code || '—'}
               </div>
-              <button onClick={copy} style={{ width:48, height:48, borderRadius:12, border:`1.5px solid ${p.border}`, background:copied?p.accentBg:p.surface, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all .15s', flexShrink:0 }}>
-                {copied ? <Check size={16} style={{ color:p.accent }}/> : <Copy size={16} style={{ color:p.muted }}/>}
+              <button onClick={copyCode} title="Copy code" style={{ width:48, height:48, borderRadius:12, border:`1.5px solid ${p.border}`, background:copied==='code'?p.accentBg:p.surface, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all .15s', flexShrink:0 }}>
+                {copied==='code' ? <Check size={16} style={{ color:p.accent }}/> : <Copy size={16} style={{ color:p.muted }}/>}
+              </button>
+            </div>
+            <div style={{ fontSize:11, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.6px', marginBottom:8 }}>Your Referral Link</div>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <div style={{ flex:1, padding:'10px 13px', borderRadius:10, background:p.inputBg, border:`1px solid ${p.border}`, fontSize:12, color:p.muted, fontFamily:'monospace', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {webLink}
+              </div>
+              <button onClick={copyLink} title="Copy link" style={{ width:40, height:40, borderRadius:10, border:`1.5px solid ${p.border}`, background:copied==='link'?p.accentBg:p.surface, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all .15s', flexShrink:0 }}>
+                {copied==='link' ? <Check size={14} style={{ color:p.accent }}/> : <Link2 size={14} style={{ color:p.muted }}/>}
               </button>
             </div>
           </div>
+
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
-            {[{ v: data?.referralCount||0, l:'Friends Referred', c:p.accent }, { v:(data?.referralCount||0)*50, l:'Bonus Chats Earned', c:'#10b981' }].map(s => (
+            {[{ v: data?.referralCount||0, l:'Friends Referred', c:p.accent }, { v:(data?.referralCount||0)*5, l:'Bonus Chats Earned', c:'#10b981' }].map(s => (
               <div key={s.l} style={{ background:p.surface, border:`1px solid ${p.border}`, borderRadius:14, padding:'18px', textAlign:'center' }}>
                 <div style={{ fontSize:28, fontWeight:900, color:s.c, marginBottom:4 }}>{s.v}</div>
                 <div style={{ fontSize:12.5, color:p.muted }}>{s.l}</div>
               </div>
             ))}
           </div>
+
           <div style={{ background:p.surface, border:`1px solid ${p.border}`, borderRadius:14, padding:'18px 20px', marginBottom:14 }}>
             <div style={{ fontSize:11, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px', marginBottom:12 }}>How It Works</div>
-            {['Share your code with a friend','They sign up using your code','You both earn 50 bonus AI chats','Keep sharing — no limit!'].map((s, i) => (
+            {[
+              'Share your code or link with a friend',
+              'They sign up on Fundo AI using your code',
+              'You earn +5 chats, +2 images, +1 PDF credit',
+              'They also get a bonus — keep sharing!',
+            ].map((s, i) => (
               <div key={i} style={{ display:'flex', alignItems:'center', gap:12, marginBottom:i<3?10:0 }}>
                 <div style={{ width:24, height:24, borderRadius:'50%', background:p.accentBg, border:`1.5px solid ${p.accentBorder}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, color:p.accent, flexShrink:0 }}>{i+1}</div>
                 <span style={{ fontSize:13.5, color:p.text }}>{s}</span>
               </div>
             ))}
           </div>
-          <a href={waLink} target="_blank" rel="noopener noreferrer"
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px 24px', borderRadius:12, background:'#25D366', color:'#fff', textDecoration:'none', fontWeight:700, fontSize:14.5 }}>
-            <Share2 size={16}/> Share via WhatsApp
-          </a>
+
+          <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'1fr 1fr', gap:10 }}>
+            <a href={waLink} target="_blank" rel="noopener noreferrer"
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px 20px', borderRadius:12, background:'#25D366', color:'#fff', textDecoration:'none', fontWeight:700, fontSize:14 }}>
+              <Share2 size={15}/> Share via WhatsApp
+            </a>
+            <button onClick={copyLink}
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:'14px 20px', borderRadius:12, border:`1.5px solid ${p.accentBorder}`, background:p.accentBg, color:p.accent, cursor:'pointer', fontWeight:700, fontSize:14, fontFamily:'inherit' }}>
+              {copied==='link' ? <><Check size={15}/>Link Copied!</> : <><Link2 size={15}/>Copy Referral Link</>}
+            </button>
+          </div>
         </>
       )}
     </div>

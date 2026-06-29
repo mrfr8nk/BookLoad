@@ -1,11 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowRight, Eye, EyeOff, Smartphone, Lock, User, School,
+  ArrowRight, Eye, EyeOff, Lock, User, School,
   CheckCircle, Sparkles, MessageCircle, BookOpen, Image, FileText,
-  GraduationCap, ChevronRight, Star, Brain,
+  GraduationCap, ChevronRight, Star, Brain, ChevronDown, Gift,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
+const COUNTRIES = [
+  { code: 'ZW', dial: '263', flag: '🇿🇼', name: 'Zimbabwe' },
+  { code: 'ZA', dial: '27',  flag: '🇿🇦', name: 'South Africa' },
+  { code: 'ZM', dial: '260', flag: '🇿🇲', name: 'Zambia' },
+  { code: 'BW', dial: '267', flag: '🇧🇼', name: 'Botswana' },
+  { code: 'MZ', dial: '258', flag: '🇲🇿', name: 'Mozambique' },
+  { code: 'MW', dial: '265', flag: '🇲🇼', name: 'Malawi' },
+  { code: 'TZ', dial: '255', flag: '🇹🇿', name: 'Tanzania' },
+  { code: 'KE', dial: '254', flag: '🇰🇪', name: 'Kenya' },
+  { code: 'NG', dial: '234', flag: '🇳🇬', name: 'Nigeria' },
+  { code: 'GH', dial: '233', flag: '🇬🇭', name: 'Ghana' },
+  { code: 'ET', dial: '251', flag: '🇪🇹', name: 'Ethiopia' },
+  { code: 'UG', dial: '256', flag: '🇺🇬', name: 'Uganda' },
+  { code: 'RW', dial: '250', flag: '🇷🇼', name: 'Rwanda' },
+  { code: 'AO', dial: '244', flag: '🇦🇴', name: 'Angola' },
+  { code: 'NA', dial: '264', flag: '🇳🇦', name: 'Namibia' },
+  { code: 'SZ', dial: '268', flag: '🇸🇿', name: 'Eswatini' },
+  { code: 'LS', dial: '266', flag: '🇱🇸', name: 'Lesotho' },
+  { code: 'GB', dial: '44',  flag: '🇬🇧', name: 'United Kingdom' },
+  { code: 'US', dial: '1',   flag: '🇺🇸', name: 'United States' },
+  { code: 'CA', dial: '1',   flag: '🇨🇦', name: 'Canada' },
+  { code: 'AU', dial: '61',  flag: '🇦🇺', name: 'Australia' },
+  { code: 'IN', dial: '91',  flag: '🇮🇳', name: 'India' },
+  { code: 'DE', dial: '49',  flag: '🇩🇪', name: 'Germany' },
+  { code: 'FR', dial: '33',  flag: '🇫🇷', name: 'France' },
+  { code: 'CN', dial: '86',  flag: '🇨🇳', name: 'China' },
+];
 
 const LEVELS = [
   { value: 'primary', label: 'Primary', sub: 'Grade 1–7', icon: BookOpen },
@@ -27,8 +55,83 @@ const FEATURES = [
   { icon: BookOpen,      label: 'Past Papers',     sub: 'ZIMSEC & Cambridge library' },
 ];
 
+function normalizePhone(dial, local) {
+  const digits = local.replace(/\D/g, '');
+  const stripped = digits.startsWith('0') ? digits.slice(1) : digits;
+  if (stripped.startsWith(dial)) return stripped;
+  return dial + stripped;
+}
+
+function PhoneInput({ value, onChange, required }) {
+  const [country, setCountry] = useState(COUNTRIES[0]);
+  const [local, setLocal] = useState('');
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const wrapRef = useRef();
+
+  useEffect(() => {
+    function handle(e) { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, []);
+
+  const filtered = search
+    ? COUNTRIES.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.dial.includes(search))
+    : COUNTRIES;
+
+  function handleLocal(v) {
+    setLocal(v);
+    onChange(normalizePhone(country.dial, v));
+  }
+
+  function pickCountry(c) {
+    setCountry(c); setOpen(false); setSearch('');
+    onChange(normalizePhone(c.dial, local));
+  }
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      <div style={{ display: 'flex', borderRadius: 11, border: '1.5px solid #e5e7eb', overflow: 'visible', background: '#f9fafb', transition: 'border .18s, box-shadow .18s' }}
+        onFocus={() => {}} className="phone-wrap">
+        <button type="button" onClick={() => setOpen(o => !o)}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '12px 10px 12px 13px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 14, color: '#111827', flexShrink: 0, fontFamily: 'inherit', whiteSpace: 'nowrap', borderRight: '1px solid #e5e7eb' }}>
+          <span style={{ fontSize: 20, lineHeight: 1 }}>{country.flag}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>+{country.dial}</span>
+          <ChevronDown size={12} style={{ color: '#9ca3af', transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }}/>
+        </button>
+        <input type="tel" value={local} onChange={e => handleLocal(e.target.value)}
+          placeholder="e.g. 0719647303" required={required}
+          style={{ flex: 1, padding: '12px 14px', border: 'none', background: 'transparent', fontSize: 14, color: '#111827', outline: 'none', fontFamily: 'inherit', minWidth: 0 }}/>
+      </div>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0, y: -6, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: .97 }} transition={{ duration: .15 }}
+            style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 500, background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 13, boxShadow: '0 12px 40px rgba(0,0,0,0.13)', width: '100%', minWidth: 240, overflow: 'hidden' }}>
+            <div style={{ padding: '8px 10px', borderBottom: '1px solid #f3f4f6' }}>
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search country…"
+                autoFocus style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13, outline: 'none', fontFamily: 'inherit', background: '#f9fafb', color: '#111827' }}/>
+            </div>
+            <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+              {filtered.map(c => (
+                <button key={c.code} type="button" onClick={() => pickCountry(c)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 14px', border: 'none', background: country.code === c.code ? '#f5f3ff' : 'transparent', cursor: 'pointer', fontSize: 13.5, fontFamily: 'inherit', textAlign: 'left', color: '#111827', transition: 'background .12s' }}>
+                  <span style={{ fontSize: 20 }}>{c.flag}</span>
+                  <span style={{ flex: 1 }}>{c.name}</span>
+                  <span style={{ color: '#9ca3af', fontSize: 12.5, fontWeight: 600 }}>+{c.dial}</span>
+                </button>
+              ))}
+              {filtered.length === 0 && <div style={{ padding: '16px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No results</div>}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function StudentAuth() {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
   const [mode, setMode]   = useState('login');
   const [step, setStep]   = useState(1);
   const [loading, setLoading] = useState(false);
@@ -36,8 +139,14 @@ export default function StudentAuth() {
   const [showPw, setShowPw] = useState(false);
   const [form, setForm]   = useState({
     phone: '', password: '', name: '', school: '',
-    levelType: 'olevel', grade: 'Form 1', referredBy: '',
+    levelType: 'olevel', grade: 'Form 1',
+    referredBy: searchParams.get('ref') || '',
   });
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) { setForm(f => ({ ...f, referredBy: ref })); setMode('signup'); }
+  }, []);
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); setError(''); }
 
@@ -144,7 +253,10 @@ export default function StudentAuth() {
                   <h2 className="card-title">Welcome back</h2>
                   <p className="card-sub">Log in to your study session.</p>
                   <form onSubmit={handleLogin} className="form-stack">
-                    <FInput icon={Smartphone} type="tel" placeholder="WhatsApp number  e.g. 263778123456" value={form.phone} onChange={v => set('phone', v)} />
+                    <div className="field-group">
+                      <div className="field-label">WhatsApp Number</div>
+                      <PhoneInput value={form.phone} onChange={v => set('phone', v)} required />
+                    </div>
                     <FInput icon={Lock} type={showPw ? 'text' : 'password'} placeholder="Password" value={form.password} onChange={v => set('password', v)}
                       rightEl={<button type="button" onClick={() => setShowPw(p => !p)} className="eye-btn">{showPw ? <EyeOff size={15}/> : <Eye size={15}/>}</button>} />
                     <ErrBox msg={error} />
@@ -178,7 +290,10 @@ export default function StudentAuth() {
                       <motion.form key="s1" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} onSubmit={handleSignup} className="form-stack">
                         <h2 className="card-title">Create account</h2>
                         <FInput icon={User} type="text" placeholder="Your full name" value={form.name} onChange={v => set('name', v)} required />
-                        <FInput icon={Smartphone} type="tel" placeholder="WhatsApp number  e.g. 263778123456" value={form.phone} onChange={v => set('phone', v)} required />
+                        <div className="field-group">
+                          <div className="field-label">WhatsApp Number</div>
+                          <PhoneInput value={form.phone} onChange={v => set('phone', v)} required />
+                        </div>
                         <FInput icon={Lock} type={showPw ? 'text' : 'password'} placeholder="Create a password (min 6 chars)" value={form.password} onChange={v => set('password', v)} required minLength={6}
                           rightEl={<button type="button" onClick={() => setShowPw(p => !p)} className="eye-btn">{showPw ? <EyeOff size={15}/> : <Eye size={15}/>}</button>} />
                         <ErrBox msg={error} />
@@ -207,7 +322,12 @@ export default function StudentAuth() {
                             {(GRADES[form.levelType] || []).map(g => <option key={g} value={g}>{g}</option>)}
                           </select>
                         </div>
-                        <FInput icon={User} type="text" placeholder="Referral code (optional)" value={form.referredBy} onChange={v => set('referredBy', v)} />
+                        <div className="field-group">
+                          <div className="field-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <Gift size={11}/> Referral Code (optional)
+                          </div>
+                          <FInput icon={Gift} type="text" placeholder="Enter a friend's referral code" value={form.referredBy} onChange={v => set('referredBy', v.toUpperCase())} />
+                        </div>
                         <ErrBox msg={error} />
                         <div className="two-btns">
                           <button type="button" onClick={() => setStep(1)} className="back-btn">Back</button>
@@ -361,6 +481,8 @@ export default function StudentAuth() {
         .f-input::placeholder { color: #9ca3af; }
         .eye-btn { background: none; border: none; cursor: pointer; color: #9ca3af; display: flex; padding: 0; }
 
+        .phone-wrap:focus-within { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.1); background: #fff !important; }
+
         .submit-btn {
           width: 100%; padding: 13px; border: none; border-radius: 12px; cursor: pointer;
           font-size: 14.5px; font-weight: 700; color: #fff; display: flex; align-items: center;
@@ -502,15 +624,12 @@ function FInput({ icon: Icon, rightEl, onChange, ...props }) {
   );
 }
 
+function ErrBox({ msg }) { return msg ? <div className="err-box">{msg}</div> : null; }
+
 function SubmitBtn({ loading, label, icon: Icon }) {
   return (
     <button type="submit" disabled={loading} className="submit-btn">
-      {loading ? <><span className="spin-ring" /> Working…</> : <>{label} {Icon && <Icon size={15}/>}</>}
+      {loading ? <span className="spin-ring"/> : <>{label} <Icon size={15}/></>}
     </button>
   );
-}
-
-function ErrBox({ msg }) {
-  if (!msg) return null;
-  return <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="err-box">{msg}</motion.div>;
 }
