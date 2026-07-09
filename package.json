@@ -1,0 +1,38 @@
+{
+  "name": "fundo-admin-portal",
+  "version": "1.0.0",
+  "description": "Fundo AI Resource Upload Portal",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": "20.x",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "build": "cd client && npm install && npm run build",
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^2.10.0",
+    "@tavily/core": "^0.7.6",
+    "@whiskeysockets/baileys": "^7.0.0-rc13",
+    "axios": "^1.7.9",
+    "dotenv": "^16.6.1",
+    "drizzle-zod": "^0.8.3",
+    "express": "^4.21.2",
+    "gifted-btns": "^1.0.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cache": "^5.1.2",
+    "p-limit": "^7.3.0",
+    "p-retry": "^7.1.1",
+    "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.17.2",
+    "pino": "^10.3.1",
+    "zod": "^4.4.3",
+    "zod-validation-error": "^5.0.0"
+  }
+}
