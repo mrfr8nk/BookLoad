@@ -10,7 +10,7 @@
     "npm": ">=10"
   },
   "scripts": {
-    "build": "cd client && npm install && npm run build",
+    "build": "npm --prefix client install && npm --prefix client run build",
     "start": "node server.js",
     "dev": "node server.js"
   },
