@@ -131,6 +131,7 @@ const TABS = [
   { id:'notes',     icon:FileText,       label:'Notes'     },
   { id:'project',   icon:FolderOpen,     label:'Projects'  },
   { id:'exam',      icon:ClipboardCheck, label:'Mock Exam' },
+  { id:'knowledge', icon:BookMarked,     label:'Study Docs'},
   { id:'materials', icon:BookOpen,       label:'Library'   },
   { id:'referral',  icon:Gift,           label:'Referral'  },
   { id:'myuploads', icon:UploadCloud,    label:'My Uploads'},
@@ -331,6 +332,139 @@ async function exportPDF(content, title, type, plan) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
   return { success: true };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LIBRARY PICKER
+══════════════════════════════════════════════════════════════════════════ */
+function LibraryPicker({ selected, onChange, p, isMobile }) {
+  const [open, setOpen]     = useState(false);
+  const [items, setItems]   = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [level, setLevel]   = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setLoading(true);
+    const pr = new URLSearchParams({ limit: 40 });
+    if (search) pr.set('search', search);
+    if (level) pr.set('level', level);
+    api(`/api/student/materials?${pr}`)
+      .then(d => { if (!cancelled) setItems(d.items || []); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, search, level]);
+
+  function toggle(item) {
+    const isSel = selected.some(s => s._id === item._id);
+    if (isSel) onChange(selected.filter(s => s._id !== item._id));
+    else if (selected.length < 5) onChange([...selected, item]);
+  }
+
+  const CAT_COLOR = { paper:'#3b82f6', textbook:'#10b981', syllabus:'#7c3aed', marking_scheme:'#f59e0b' };
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}
+        style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 14px', borderRadius:10, border:`1.5px dashed ${selected.length > 0 ? p.accentBorder : p.inputBdr}`, background: selected.length > 0 ? p.accentBg : 'transparent', color: selected.length > 0 ? p.accent : p.muted, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', width:'100%', transition:'all .15s' }}>
+        <BookMarked size={13} style={{ flexShrink:0 }}/>
+        {selected.length > 0 ? `${selected.length}/5 library material${selected.length > 1 ? 's' : ''} selected` : 'Add from Library (optional, up to 5)'}
+        {selected.length > 0 && <span style={{ marginLeft:'auto', fontSize:11, color:p.dim }}>tap to change</span>}
+      </button>
+
+      {selected.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:7 }}>
+          {selected.map(m => (
+            <div key={m._id} style={{ display:'flex', alignItems:'center', gap:4, padding:'3px 7px 3px 9px', borderRadius:99, background:p.accentBg, border:`1px solid ${p.accentBorder}`, fontSize:11.5 }}>
+              <span style={{ color:p.accent, fontWeight:600, maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.title}</span>
+              <button onClick={() => toggle(m)} style={{ background:'none', border:'none', cursor:'pointer', color:p.dim, display:'flex', padding:'0 1px', lineHeight:1 }}>
+                <X size={10}/>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {open && (
+        <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:isMobile?8:20, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)' }}
+          onClick={e => e.target === e.currentTarget && setOpen(false)}>
+          <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }} transition={{ duration:.14 }}
+            style={{ background:p.pageBg, border:`1px solid ${p.border}`, borderRadius:18, width:'100%', maxWidth:660, maxHeight:isMobile?'90vh':'78vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 60px rgba(0,0,0,0.25)', overflow:'hidden' }}>
+
+            <div style={{ padding:'16px 20px', borderBottom:`1px solid ${p.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div>
+                <div style={{ fontSize:16, fontWeight:800, color:p.text }}>Pick Study Materials</div>
+                <div style={{ fontSize:12, color:p.muted, marginTop:2 }}>Select up to 5 — AI will use them as context when generating</div>
+              </div>
+              <button onClick={() => setOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:p.dim, display:'flex' }}><X size={18}/></button>
+            </div>
+
+            <div style={{ padding:'10px 16px', borderBottom:`1px solid ${p.border}`, display:'flex', gap:8 }}>
+              <div style={{ position:'relative', flex:1 }}>
+                <Search size={12} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:p.dim, pointerEvents:'none' }}/>
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search materials…"
+                  style={{ width:'100%', padding:'8px 10px 8px 28px', borderRadius:9, border:`1.5px solid ${p.inputBdr}`, background:p.inputBg, color:p.text, fontSize:13, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }}/>
+              </div>
+              <select value={level} onChange={e => setLevel(e.target.value)}
+                style={{ padding:'8px 10px', borderRadius:9, border:`1.5px solid ${p.inputBdr}`, background:p.inputBg, color:p.text, fontSize:13, outline:'none', fontFamily:'inherit', cursor:'pointer' }}>
+                <option value="">All Levels</option>
+                <option value="primary">Primary</option>
+                <option value="olevel">O-Level</option>
+                <option value="alevel">A-Level</option>
+              </select>
+            </div>
+
+            {selected.length > 0 && (
+              <div style={{ padding:'7px 16px', background:p.accentBg, borderBottom:`1px solid ${p.accentBorder}`, fontSize:12.5, color:p.accent, fontWeight:700 }}>
+                {selected.length}/5 selected · {5 - selected.length} slot{5 - selected.length !== 1 ? 's' : ''} remaining
+              </div>
+            )}
+
+            <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
+              {loading ? (
+                <div style={{ textAlign:'center', padding:36 }}><Loader size={20} style={{ color:p.accent, animation:'spin .8s linear infinite' }}/></div>
+              ) : items.length === 0 ? (
+                <div style={{ textAlign:'center', padding:36, color:p.muted, fontSize:13 }}>No materials found</div>
+              ) : (
+                <div style={{ display:'grid', gridTemplateColumns:`repeat(auto-fill,minmax(${isMobile?'155px':'190px'},1fr))`, gap:9 }}>
+                  {items.map(item => {
+                    const isSel = selected.some(s => s._id === item._id);
+                    const disabled = !isSel && selected.length >= 5;
+                    const cc = CAT_COLOR[item.category] || '#7c3aed';
+                    return (
+                      <motion.div key={item._id} onClick={() => !disabled && toggle(item)} whileHover={!disabled ? { y:-2 } : {}}
+                        style={{ padding:'11px 13px', borderRadius:11, border:`1.5px solid ${isSel ? p.accentBorder : p.border}`, background:isSel ? p.accentBg : p.surface, cursor:disabled ? 'not-allowed' : 'pointer', opacity:disabled ? .45 : 1, transition:'all .14s', position:'relative' }}>
+                        {isSel && (
+                          <div style={{ position:'absolute', top:8, right:8, width:18, height:18, borderRadius:'50%', background:p.accent, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                            <Check size={10} color="#fff"/>
+                          </div>
+                        )}
+                        <div style={{ fontSize:10.5, fontWeight:700, color:cc, textTransform:'uppercase', letterSpacing:'.4px', marginBottom:5 }}>
+                          {item.category?.replace('_',' ')} {item.year && `· ${item.year}`}
+                        </div>
+                        <div style={{ fontSize:12.5, fontWeight:700, color:p.text, lineHeight:1.4, marginBottom:5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{item.title}</div>
+                        <div style={{ fontSize:11.5, color:p.muted }}>{item.subject} · {item.level?.toUpperCase()}</div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding:'12px 20px', borderTop:`1px solid ${p.border}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <span style={{ fontSize:12, color:p.muted }}>
+                {selected.length === 0 ? 'Nothing selected yet' : `${selected.length} material${selected.length > 1 ? 's' : ''} will be used as context`}
+              </span>
+              <Btn onClick={() => setOpen(false)} variant="primary" size="sm" p={p}>Done</Btn>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </>
+  );
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -738,7 +872,8 @@ function ImageTab({ plan, isMobile, p, bumpUsage }) {
    STUDY NOTES
 ══════════════════════════════════════════════════════════════════════════ */
 function NotesTab({ profile, plan, isMobile, p, bumpUsage }) {
-  const [form, setForm] = useState({ topic:'', subject:'', level:profile?.levelType||'olevel', grade:profile?.grade||'' });
+  const [form, setForm] = useState({ topic:'', subject:'', level:'olevel', grade:'' });
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [loading, setLoading]  = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [notes, setNotes]      = useState('');
@@ -750,12 +885,23 @@ function NotesTab({ profile, plan, isMobile, p, bumpUsage }) {
   const subjects = SUBJECTS[form.level] || SUBJECTS.olevel;
   const isPaid = plan !== 'FREE';
 
+  // Sync profile fields when profile loads (useState only runs once on mount)
+  useEffect(() => {
+    if (profile) {
+      setForm(f => ({
+        ...f,
+        level: f.level || profile.levelType || 'olevel',
+        grade: f.grade || profile.grade || '',
+      }));
+    }
+  }, [profile?.phone]);
+
   async function generate(e) {
     e.preventDefault();
     if (!form.topic.trim() || loading) return;
     setError(''); setLoading(true); setNotes('');
     try {
-      const d = await api('/api/student/generate-notes', { method:'POST', body:form });
+      const d = await api('/api/student/generate-notes', { method:'POST', body:{ ...form, selectedMaterials: selectedMaterials.map(m => m._id) } });
       setNotes(d.notes);
       setView('notes');
       bumpUsage?.('pdfToday'); bumpUsage?.('pdfMonth');
@@ -798,6 +944,9 @@ function NotesTab({ profile, plan, isMobile, p, bumpUsage }) {
               <FG label="Level" p={p}><Sel value={form.level} onChange={v=>setF('level',v)} options={[['primary','Primary School'],['olevel','O-Level'],['alevel','A-Level']]} isMobile={isMobile} p={p}/></FG>
               <FG label="Subject" p={p}><Sel value={form.subject} onChange={v=>setF('subject',v)} options={[['','— Choose subject —'],...subjects.map(s=>[s,s])]} isMobile={isMobile} p={p}/></FG>
               <FG label="Grade / Form" p={p}><Inp value={form.grade} onChange={v=>setF('grade',v)} placeholder="e.g. Form 4, Grade 7" isMobile={isMobile} p={p}/></FG>
+              <FG label="Library Context" p={p}>
+                <LibraryPicker selected={selectedMaterials} onChange={setSelectedMaterials} p={p} isMobile={isMobile}/>
+              </FG>
               <Err msg={error} p={p}/>
               <Btn type="submit" disabled={!form.topic.trim()} loading={loading} variant="primary" size="md" p={p} style={{ width:'100%' }} onClick={generate}>
                 <Sparkles size={14}/> {loading ? 'Generating notes…' : 'Generate Notes'}
@@ -861,7 +1010,8 @@ function NotesTab({ profile, plan, isMobile, p, bumpUsage }) {
    PROJECT GENERATOR
 ══════════════════════════════════════════════════════════════════════════ */
 function ProjectTab({ profile, plan, isMobile, p, bumpUsage }) {
-  const [form, setForm] = useState({ topic:'', subject:'', level:profile?.levelType||'olevel', grade:profile?.grade||'', studentName:profile?.name||'', school:profile?.school||'', pages:4 });
+  const [form, setForm] = useState({ topic:'', subject:'', level:'olevel', grade:'', studentName:'', school:'', pages:4 });
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [loading, setLoading]  = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [project, setProject]  = useState(null);
@@ -873,12 +1023,25 @@ function ProjectTab({ profile, plan, isMobile, p, bumpUsage }) {
   const subjects = SUBJECTS[form.level] || SUBJECTS.olevel;
   const isPaid = plan !== 'FREE';
 
+  // Sync profile fields once profile data arrives from the server
+  useEffect(() => {
+    if (profile) {
+      setForm(f => ({
+        ...f,
+        level:       f.level       || profile.levelType || 'olevel',
+        grade:       f.grade       || profile.grade     || '',
+        studentName: f.studentName || profile.name      || '',
+        school:      f.school      || profile.school    || '',
+      }));
+    }
+  }, [profile?.phone]);
+
   async function generate(e) {
     e.preventDefault();
     if (!form.topic.trim() || loading) return;
     setError(''); setLoading(true); setProject(null);
     try {
-      const d = await api('/api/student/generate-project', { method:'POST', body:form });
+      const d = await api('/api/student/generate-project', { method:'POST', body:{ ...form, selectedMaterials: selectedMaterials.map(m => m._id) } });
       setProject(d);
       if (isMobile) setView('project');
       bumpUsage?.('projectsMonth');
@@ -940,6 +1103,9 @@ function ProjectTab({ profile, plan, isMobile, p, bumpUsage }) {
               </div>
               <FG label="Student Name" p={p}><Inp value={form.studentName} onChange={v=>setF('studentName',v)} placeholder="Your full name" isMobile={isMobile} p={p}/></FG>
               <FG label="School Name" p={p}><Inp value={form.school} onChange={v=>setF('school',v)} placeholder="Your school name" isMobile={isMobile} p={p}/></FG>
+              <FG label="Library Context" p={p}>
+                <LibraryPicker selected={selectedMaterials} onChange={setSelectedMaterials} p={p} isMobile={isMobile}/>
+              </FG>
               <Err msg={error} p={p}/>
               <Btn disabled={!form.topic.trim()} loading={loading} variant="primary" size="md" p={p} style={{ width:'100%' }} onClick={generate}>
                 <FolderOpen size={14}/> {loading ? 'Generating project…' : 'Generate Project'}
@@ -1162,6 +1328,143 @@ function ExamTab({ profile, plan, isMobile, p, bumpUsage }) {
           </Btn>
         </form>
       </Card>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   KNOWLEDGE BASE (STUDY DOCS)
+══════════════════════════════════════════════════════════════════════════ */
+function KnowledgeBaseTab({ profile, plan, isMobile, p, bumpUsage }) {
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
+  const [sessions, setSessions] = useState([{ id:1, title:'New Session', messages:[] }]);
+  const [active, setActive]     = useState(1);
+  const [input, setInput]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+  const bottomRef = useRef();
+  const session = sessions.find(s => s.id === active) || sessions[0];
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }); }, [session?.messages.length, loading]);
+
+  function newSession() {
+    const id = Date.now();
+    setSessions(s => [...s, { id, title:'New Session', messages:[] }]);
+    setActive(id); setError('');
+  }
+
+  function addMsg(sid, msgs) {
+    setSessions(s => s.map(sess => sess.id === sid ? {
+      ...sess,
+      messages: [...sess.messages, ...msgs],
+      title: sess.messages.length === 0 ? (msgs[0]?.content || '').slice(0, 34) : sess.title,
+    } : sess));
+  }
+
+  async function send() {
+    const msg = input.trim();
+    if (!msg || loading) return;
+    const sid = active;
+    setInput(''); setError('');
+    addMsg(sid, [{ role:'user', content:msg }]);
+    setLoading(true);
+    try {
+      const history = session.messages.slice(-8);
+      const d = await api('/api/student/knowledge-chat', {
+        method:'POST',
+        body:{ message:msg, history, materialIds: selectedMaterials.map(m => m._id) },
+      });
+      setSessions(s => s.map(sess => sess.id === sid
+        ? { ...sess, messages:[...sess.messages, { role:'assistant', content:d.reply }] }
+        : sess));
+      bumpUsage?.('chatToday'); bumpUsage?.('chatMonth');
+    } catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div style={{ display:'flex', height:'100%', overflow:'hidden', flexDirection:'column' }}>
+      {/* Material selector header */}
+      <div style={{ padding:'10px 16px', borderBottom:`1px solid ${p.border}`, background:p.bg, flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+          <BookMarked size={14} style={{ color:p.accent, flexShrink:0 }}/>
+          <span style={{ fontSize:13.5, fontWeight:800, color:p.text }}>Study Docs</span>
+          <span style={{ fontSize:12, color:p.muted }}>— chat with your library materials</span>
+        </div>
+        <LibraryPicker selected={selectedMaterials} onChange={setSelectedMaterials} p={p} isMobile={isMobile}/>
+        {selectedMaterials.length === 0 && (
+          <p style={{ fontSize:11.5, color:p.dim, marginTop:7, fontStyle:'italic' }}>
+            💡 Select up to 5 materials above — the AI will answer questions based on them specifically.
+          </p>
+        )}
+      </div>
+
+      {/* Chat area */}
+      <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+        {!isMobile && (
+          <div style={{ width:176, borderRight:`1px solid ${p.border}`, display:'flex', flexDirection:'column', gap:2, padding:'10px 8px', background:p.bg, flexShrink:0 }}>
+            <button onClick={newSession} style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderRadius:9, border:`1.5px dashed ${p.accentBorder}`, background:'transparent', cursor:'pointer', fontSize:12.5, fontWeight:700, color:p.accent, marginBottom:6, width:'100%', fontFamily:'inherit' }}>
+              <Plus size={12}/> New Session
+            </button>
+            <div style={{ overflowY:'auto', flex:1 }}>
+              {sessions.map(s => (
+                <button key={s.id} onClick={() => setActive(s.id)}
+                  style={{ width:'100%', textAlign:'left', padding:'8px 11px', borderRadius:9, border:'none', cursor:'pointer', marginBottom:2, fontSize:12, fontWeight:active===s.id?700:500, fontFamily:'inherit', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', transition:'all .14s',
+                    background:active===s.id?p.accentBg:'transparent', color:active===s.id?p.accent:p.muted }}>
+                  <BookMarked size={10} style={{ marginRight:6 }}/>{s.title}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, overflow:'hidden' }}>
+          <div style={{ flex:1, overflowY:'auto', padding:isMobile?'16px 14px':'20px 24px' }}>
+            {session.messages.length === 0 ? (
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'62%', textAlign:'center', padding:'24px 16px' }}>
+                <motion.div initial={{ scale:.85 }} animate={{ scale:1 }} transition={{ type:'spring', stiffness:200 }}
+                  style={{ width:66, height:66, borderRadius:18, background:'linear-gradient(135deg,#7c3aed,#a78bfa)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14, boxShadow:'0 8px 24px rgba(124,58,237,0.3)' }}>
+                  <BookMarked size={28} color="#fff"/>
+                </motion.div>
+                <h3 style={{ fontSize:isMobile?18:20, fontWeight:900, color:p.text, marginBottom:8 }}>
+                  {selectedMaterials.length > 0 ? `Chatting with ${selectedMaterials.length} material${selectedMaterials.length>1?'s':''}` : 'Study Docs Chat'}
+                </h3>
+                <p style={{ fontSize:13.5, color:p.muted, lineHeight:1.7, maxWidth:380, marginBottom:0 }}>
+                  {selectedMaterials.length > 0
+                    ? <>Ask anything about <strong style={{ color:p.accent }}>{selectedMaterials.map(m => m.title.split(' ').slice(0,3).join(' ')).join(', ')}</strong> — the AI will answer using these resources.</>
+                    : 'Select up to 5 library materials above, then ask questions about them. The AI will use those specific documents as context.'}
+                </p>
+              </div>
+            ) : (
+              <>
+                {session.messages.map((m, i) => <ChatBubble key={i} msg={m} profile={profile} isMobile={isMobile} p={p}/>)}
+                {loading && <TypingBubble p={p}/>}
+                {error && <Err msg={error} p={p}/>}
+                <div ref={bottomRef}/>
+              </>
+            )}
+          </div>
+
+          <div style={{ padding:isMobile?'10px 12px':'12px 16px', borderTop:`1px solid ${p.border}`, flexShrink:0 }}>
+            <div style={{ display:'flex', gap:8, alignItems:'flex-end', background:p.inputBg, border:`1.5px solid ${p.inputBdr}`, borderRadius:14, padding:'9px 12px' }}>
+              <textarea value={input} onChange={e => setInput(e.target.value)}
+                onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+                placeholder={selectedMaterials.length > 0
+                  ? `Ask about your ${selectedMaterials.length} selected material${selectedMaterials.length>1?'s':''}…`
+                  : 'Ask anything…'}
+                rows={1}
+                style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:isMobile?16:14, color:p.text, resize:'none', maxHeight:110, fontFamily:'inherit', lineHeight:1.6 }}
+                onInput={e => { e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,110)+'px'; }}/>
+              <motion.button onClick={send} disabled={!input.trim()||loading} whileTap={{ scale:.9 }}
+                style={{ width:36, height:36, borderRadius:10, border:'none', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, cursor: input.trim()&&!loading ? 'pointer' : 'not-allowed', transition:'all .15s',
+                  background: input.trim()&&!loading ? 'linear-gradient(135deg,#7c3aed,#5b21b6)' : p.border,
+                  boxShadow: input.trim()&&!loading ? '0 2px 8px rgba(124,58,237,0.35)' : 'none' }}>
+                <Send size={14} style={{ color: input.trim()&&!loading ? '#fff' : p.dim }}/>
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1729,6 +2032,7 @@ export default function StudentApp() {
               {tab==='notes'     && <NotesTab {...tabProps}/>}
               {tab==='project'   && <ProjectTab {...tabProps}/>}
               {tab==='exam'      && <ExamTab {...tabProps}/>}
+              {tab==='knowledge' && <KnowledgeBaseTab {...tabProps}/>}
               {tab==='materials' && <MaterialsTab {...tabProps}/>}
               {tab==='referral'  && <ReferralTab {...tabProps}/>}
               {tab==='myuploads' && <MyUploadsTab {...tabProps}/>}

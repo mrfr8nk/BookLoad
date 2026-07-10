@@ -685,7 +685,7 @@ app.get('/api/student/my-uploads', requireStudent, async (req, res) => {
 
 app.post('/api/student/generate-notes', requireStudent, async (req, res) => {
   try {
-    const { topic, subject, level, grade } = req.body;
+    const { topic, subject, level, grade, selectedMaterials = [] } = req.body;
     if (!topic) return res.status(400).json({ error: 'Topic required' });
 
     let user = await UserModel.findOne({ phone: req.student.phone });
@@ -699,11 +699,21 @@ app.post('/api/student/generate-notes', requireStudent, async (req, res) => {
       return res.status(429).json({ error: `Daily notes limit reached (${limits.pdf}). Upgrade for more!` });
     }
 
+    // Build context from any library materials the student selected
+    let materialsContext = '';
+    if (Array.isArray(selectedMaterials) && selectedMaterials.length > 0) {
+      const mats = await MaterialModel.find({ _id: { $in: selectedMaterials.slice(0, 5) }, approved: true })
+        .select('title subject category level year').limit(5).lean();
+      if (mats.length > 0) {
+        materialsContext = `\n\nBase your notes on these specific study materials the student has selected:\n${mats.map(m => `- "${m.title}" (${m.subject}, ${m.level}${m.year ? ', ' + m.year : ''}, ${m.category.replace('_', ' ')})`).join('\n')}\nTailor your notes to align with the content and style of these resources.`;
+      }
+    }
+
     const levelInfo = grade ? `${level} ${grade}` : level || 'O-Level';
     const prompt = `Generate comprehensive, well-structured study notes for: **${topic}**
 
 Level: ${levelInfo} | Subject: ${subject || 'General'}
-Curriculum: ZIMSEC and Cambridge
+Curriculum: ZIMSEC and Cambridge${materialsContext}
 
 Please provide:
 1. Overview/Introduction
@@ -802,7 +812,7 @@ Requirements:
 // ─── Project Generator ─────────────────────────────────────────────────────────
 app.post('/api/student/generate-project', requireStudent, async (req, res) => {
   try {
-    const { topic, subject, level, grade, studentName, school, pages = 4 } = req.body;
+    const { topic, subject, level, grade, studentName, school, pages = 4, selectedMaterials = [] } = req.body;
     if (!topic) return res.status(400).json({ error: 'Project topic required' });
 
     let user = await UserModel.findOne({ phone: req.student.phone });
@@ -816,13 +826,11 @@ app.post('/api/student/generate-project', requireStudent, async (req, res) => {
       return res.status(429).json({ error: `Monthly project limit reached (${projectLimit}/month on ${plan}). Upgrade for more!` });
     }
 
+    // Use DB values as fallback so the student's name/school are always populated
     const sName = studentName || user.name || 'Student';
     const sSchool = school || user.school || 'School';
     void pages;
 
-    // Normalise level → same "Form N" / "Grade N" / "O-Level" / "A-Level"
-    // convention used by the WhatsApp bot so the shared ZIMSEC stage prompts
-    // (project-prompts.js) apply the correct complexity/marking guidance.
     const isForm = level !== 'primary';
     let zimsecLevel = grade && grade.trim() ? grade.trim() : null;
     if (!zimsecLevel) {
@@ -831,18 +839,34 @@ app.post('/api/student/generate-project', requireStudent, async (req, res) => {
 
     const subj = subject || 'General Studies';
 
-    // The BK9 API becomes unreliable when hit with 6+ large concurrent
-    // requests at once (as a single Promise.all would do), so stages are
-    // generated in small concurrent batches with automatic retries.
+    // Build context from any library materials the student selected
+    let materialsContext = '';
+    if (Array.isArray(selectedMaterials) && selectedMaterials.length > 0) {
+      const mats = await MaterialModel.find({ _id: { $in: selectedMaterials.slice(0, 5) }, approved: true })
+        .select('title subject category level year').limit(5).lean();
+      if (mats.length > 0) {
+        materialsContext = ` Reference these study materials: ${mats.map(m => `"${m.title}" (${m.subject}${m.year ? ', ' + m.year : ''})`).join(', ')}.`;
+      }
+    }
+
+    // Helper: race NVIDIA + BK9 for each stage — same dual-provider approach
+    // as chat, so a single provider outage won't stall the whole generation.
+    const stageAI = (prompt) => askAI([
+      { role: 'system', content: WEB_SYSTEM_PROMPT },
+      { role: 'user', content: prompt + materialsContext },
+    ]);
+
+    // Batch size 3 (up from 2) because each stage now races two providers,
+    // so individual calls resolve faster and we can run more in parallel.
     const [preamble, s1, s2, s3, s4, s5, s6] = await runWithConcurrency([
-      () => callBK92Retry(WEB_SYSTEM_PROMPT, PREAMBLE_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
-      () => callBK92Retry(WEB_SYSTEM_PROMPT, STAGE1_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
-      () => callBK92Retry(WEB_SYSTEM_PROMPT, STAGE2_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
-      () => callBK92Retry(WEB_SYSTEM_PROMPT, STAGE3_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
-      () => callBK92Retry(WEB_SYSTEM_PROMPT, STAGE4_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
-      () => callBK92Retry(WEB_SYSTEM_PROMPT, STAGE5_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
-      () => callBK92Retry(WEB_SYSTEM_PROMPT, STAGE6_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
-    ], 2);
+      () => stageAI(PREAMBLE_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
+      () => stageAI(STAGE1_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
+      () => stageAI(STAGE2_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
+      () => stageAI(STAGE3_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
+      () => stageAI(STAGE4_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
+      () => stageAI(STAGE5_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
+      () => stageAI(STAGE6_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
+    ], 3);
 
     const content = `# ${sName}'s ZIMSEC School-Based Project
 
@@ -983,6 +1007,55 @@ app.post('/api/student/export-pdf', requireStudent, async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     return res.end(pdfBuffer);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Knowledge Base Chat ───────────────────────────────────────────────────────
+app.post('/api/student/knowledge-chat', requireStudent, async (req, res) => {
+  try {
+    const { message, history = [], materialIds = [] } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message required' });
+
+    let user = await UserModel.findOne({ phone: req.student.phone });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
+
+    const plan = user.plan || 'FREE';
+    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    if ((user.usage?.chatToday || 0) >= (limits.chat || 25)) {
+      return res.status(429).json({ error: `Daily chat limit reached (${limits.chat}). Upgrade for more!` });
+    }
+
+    // Build a richer system prompt that includes the selected materials as context
+    let materialsContext = '';
+    if (Array.isArray(materialIds) && materialIds.length > 0) {
+      const mats = await MaterialModel.find({ _id: { $in: materialIds.slice(0, 5) }, approved: true })
+        .select('title subject category level year').limit(5).lean();
+      if (mats.length > 0) {
+        materialsContext = `\n\nThe student has selected these study materials as their knowledge base:\n${mats.map(m =>
+          `- "${m.title}" — ${m.subject}, ${m.level}${m.year ? ', Year ' + m.year : ''} (${m.category.replace('_', ' ')})`
+        ).join('\n')}\n\nAnswer questions as if you have read and understood these exact resources. Reference them specifically when relevant, e.g. "According to ${mats[0].title}...". If the question is not related to these materials, say so politely and still help the student.`;
+      }
+    }
+
+    const systemPrompt = WEB_SYSTEM_PROMPT + materialsContext;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history.slice(-8).map(m => ({ role: m.role, content: m.content })),
+      { role: 'user', content: message },
+    ];
+
+    const reply = await askAI(messages);
+
+    await UserModel.findOneAndUpdate(
+      { phone: req.student.phone },
+      { $inc: { 'usage.chatToday': 1, 'usage.chatMonth': 1 } }
+    ).catch(() => {});
+
+    res.json({ reply });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
