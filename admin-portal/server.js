@@ -15,7 +15,7 @@ import {
   STAGE4_PROMPT_MD,
   STAGE5_PROMPT_MD,
   STAGE6_PROMPT_MD,
-} from '../project-prompts.js';
+} from './project-prompts.js';
 
 const require = createRequire(import.meta.url);
 let jwt;
