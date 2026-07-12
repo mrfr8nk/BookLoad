@@ -186,6 +186,154 @@ function Navbar() {
 }
 
 /* ─────────────── HERO ─────────────── */
+/* ─────────────── ANIMATED HERO DEMO ─────────────── */
+const DEMO_TABS = ['AI Chat','AI Notes','Past Papers','Quiz','AI Tutor'];
+const DEMO_SESSIONS = ['O-Level Maths 2024','ZIMSEC Biology','English Literature','Physics Past Papers','Chemistry Notes'];
+const DEMO_CONVOS = [
+  [
+    { from:'user', text:'Can you help me with O-Level Maths — surds and indices?' },
+    { from:'ai',   text:'Sure! Surds are irrational square roots (e.g. √2, √3).\n\nKey rules:\n• √a × √b = √(ab)\n• √a ÷ √b = √(a/b)\n• (√a)² = a\n\nWant a ZIMSEC-style practice question?' },
+    { from:'user', text:'Yes please!' },
+    { from:'ai',   text:'Simplify: √48 + 2√75\n\nHint: find perfect square factors inside each root.' },
+  ],
+  [
+    { from:'user', text:'Generate notes on Photosynthesis for O-Level Biology.' },
+    { from:'ai',   text:'Photosynthesis\n\nWord equation:\nCO₂ + H₂O + light → Glucose + O₂\n\nKey limiting factors:\n• Light intensity\n• CO₂ concentration\n• Temperature\n\nStored as starch in the chloroplasts.' },
+  ],
+  [
+    { from:'user', text:'Show me ZIMSEC 2023 History questions about WWI.' },
+    { from:'ai',   text:'ZIMSEC 2023 History — WWI\n\n"Explain how the alliance system contributed to the outbreak of World War One."\n\nMark scheme hints:\n• Triple Alliance vs Triple Entente\n• Chain reaction after Sarajevo 1914\n• 8 marks — use PEEL paragraphs' },
+  ],
+  [
+    { from:'user', text:'Quiz me on the periodic table — 2 questions.' },
+    { from:'ai',   text:'Question 1 of 2:\n\nWhat is the atomic number of Carbon?\n\nA. 5   B. 6   C. 7   D. 8\n\nType A, B, C, or D!' },
+    { from:'user', text:'B — it\'s 6!' },
+    { from:'ai',   text:'Correct! Carbon has atomic number 6 (6 protons).\n\nQuestion 2 of 2:\n\nWhich group are the noble gases in?\n\nA. Group 1   B. Group 7   C. Group 0   D. Group 2' },
+  ],
+];
+
+function AnimatedHeroDemo() {
+  const [activeTab, setActiveTab] = useState(0);
+  const [messages, setMessages]   = useState([]);
+  const [typing, setTyping]       = useState(false);
+  const [msgIdx, setMsgIdx]       = useState(0);
+  const convoRef = useRef(0);
+
+  const convo = DEMO_CONVOS[activeTab % DEMO_CONVOS.length];
+
+  // Reset when tab changes
+  useEffect(() => {
+    convoRef.current += 1;
+    const stamp = convoRef.current;
+    setMessages([]); setTyping(false); setMsgIdx(0);
+    const t = setTimeout(() => {
+      if (convoRef.current === stamp) setMsgIdx(1);
+    }, 600);
+    return () => clearTimeout(t);
+  }, [activeTab]);
+
+  // Step through messages
+  useEffect(() => {
+    if (msgIdx === 0 || msgIdx > convo.length) return;
+    const stamp = convoRef.current;
+    const msg = convo[msgIdx - 1];
+    const isUser = msg.from === 'user';
+    const delay = isUser ? (msgIdx === 1 ? 0 : 1200) : 0;
+
+    const t1 = setTimeout(() => {
+      if (convoRef.current !== stamp) return;
+      if (!isUser) {
+        // show typing indicator for AI, then reveal message
+        setTyping(true);
+        const t2 = setTimeout(() => {
+          if (convoRef.current !== stamp) return;
+          setTyping(false);
+          setMessages(m => [...m, msg]);
+          setMsgIdx(i => i + 1);
+        }, 1400);
+        return () => clearTimeout(t2);
+      } else {
+        setMessages(m => [...m, msg]);
+        if (convo[msgIdx]?.from === 'ai') setTyping(true);
+        const t2 = setTimeout(() => {
+          if (convoRef.current !== stamp) return;
+          setTyping(false);
+          setMsgIdx(i => i + 1);
+        }, 1400);
+        return () => clearTimeout(t2);
+      }
+    }, delay);
+    return () => clearTimeout(t1);
+  }, [msgIdx, activeTab]);
+
+  // Auto-advance tab when convo finishes
+  useEffect(() => {
+    if (msgIdx !== convo.length + 1) return;
+    const t = setTimeout(() => setActiveTab(a => (a + 1) % DEMO_TABS.length), 3000);
+    return () => clearTimeout(t);
+  }, [msgIdx, activeTab]);
+
+  return (
+    <div className="lp-app-body" style={{ display:'grid', gridTemplateColumns:'220px 1fr', minHeight:340 }}>
+      {/* Sidebar */}
+      <div style={{ background:'#faf9fe', borderRight:`1px solid ${C.gray200}`, padding:'16px 12px', overflow:'hidden' }}>
+        <div style={{ fontSize:10.5, fontWeight:700, color:C.gray500, letterSpacing:'.8px', textTransform:'uppercase', marginBottom:10, paddingLeft:8 }}>My Study Sessions</div>
+        {DEMO_SESSIONS.map((s,i)=>(
+          <div key={s} style={{ padding:'8px 10px', borderRadius:8, marginBottom:2, background:i===0?'#ede8ff':'transparent', cursor:'pointer', transition:'background .2s' }}>
+            <div style={{ fontSize:12.5, fontWeight:i===0?700:500, color:i===0?C.purple:C.gray700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{s}</div>
+          </div>
+        ))}
+        <div style={{ marginTop:16, padding:'8px 10px', borderRadius:8, border:`1px dashed ${C.gray200}`, display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
+          <span style={{ fontSize:18, color:C.purple, lineHeight:1 }}>+</span>
+          <span style={{ fontSize:12.5, color:C.purple, fontWeight:600 }}>New Session</span>
+        </div>
+      </div>
+
+      {/* Main chat area */}
+      <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:12, overflow:'hidden' }}>
+        {/* Tab pills */}
+        <div style={{ display:'flex', gap:6, alignItems:'center', borderBottom:`1px solid ${C.gray200}`, paddingBottom:12, marginBottom:2, flexWrap:'nowrap', overflowX:'auto' }}>
+          {DEMO_TABS.map((t,i)=>(
+            <motion.div key={t} onClick={() => setActiveTab(i)} whileTap={{ scale:.93 }}
+              animate={{ background:i===activeTab?C.purple:'transparent', color:i===activeTab?'#fff':C.gray500, borderColor:i===activeTab?C.purple:C.gray200 }}
+              transition={{ duration:.2 }}
+              style={{ padding:'5px 13px', borderRadius:99, fontSize:12, fontWeight:600, border:`1px solid ${C.gray200}`, cursor:'pointer', flexShrink:0, whiteSpace:'nowrap' }}>
+              {t}
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Messages */}
+        <div style={{ display:'flex', flexDirection:'column', gap:9, minHeight:200, overflowY:'hidden', position:'relative' }}>
+          <AnimatePresence mode="popLayout">
+            {messages.map((m, i) => (
+              <motion.div key={`${activeTab}-${i}`}
+                initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+                transition={{ duration:.22, ease:'easeOut' }}
+                style={{ display:'flex', justifyContent:m.from==='user'?'flex-end':'flex-start' }}>
+                <div style={{ maxWidth:'72%', padding:'9px 13px', borderRadius:m.from==='user'?'16px 16px 4px 16px':'16px 16px 16px 4px', background:m.from==='user'?C.purple:'#f3f4f6', color:m.from==='user'?'#fff':C.gray900, fontSize:12.5, lineHeight:1.6, whiteSpace:'pre-line', fontWeight:m.from==='user'?500:400 }}>
+                  {m.text}
+                </div>
+              </motion.div>
+            ))}
+            {typing && (
+              <motion.div key="typing"
+                initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+                style={{ display:'flex', gap:5, alignItems:'center', padding:'10px 14px', background:'#f3f4f6', borderRadius:'16px 16px 16px 4px', width:'fit-content' }}>
+                {[0,1,2].map(i => (
+                  <motion.div key={i} style={{ width:6, height:6, borderRadius:'50%', background:'#9ca3af' }}
+                    animate={{ y:[0,-5,0], opacity:[.4,1,.4] }}
+                    transition={{ repeat:Infinity, duration:.85, delay:i*.18 }}/>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Hero() {
   return (
     <section style={{ background:`linear-gradient(180deg, ${C.hero} 0%, #ffffff 85%)`, paddingTop:64, minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
@@ -255,41 +403,8 @@ function Hero() {
               <span style={{ fontSize:12, color:C.gray500, fontWeight:500 }}>fundo.ai — Your AI Study Partner</span>
             </div>
           </div>
-          {/* App body */}
-          <div className="lp-app-body" style={{ display:'grid', gridTemplateColumns:'220px 1fr', minHeight:340 }}>
-            {/* Sidebar */}
-            <div style={{ background:'#faf9fe', borderRight:`1px solid ${C.gray200}`, padding:'16px 12px' }}>
-              <div style={{ fontSize:10.5, fontWeight:700, color:C.gray500, letterSpacing:'.8px', textTransform:'uppercase', marginBottom:10, paddingLeft:8 }}>My Study Sessions</div>
-              {['O-Level Maths 2024','ZIMSEC Biology','English Literature','Physics Past Papers','Chemistry Notes'].map((s,i)=>(
-                <div key={s} style={{ padding:'8px 10px', borderRadius:8, marginBottom:2, background:i===0?'#ede8ff':'transparent', cursor:'pointer' }}>
-                  <div style={{ fontSize:12.5, fontWeight:i===0?700:500, color:i===0?C.purple:C.gray700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{s}</div>
-                </div>
-              ))}
-              <div style={{ marginTop:16, padding:'8px 10px', borderRadius:8, border:`1px dashed ${C.gray200}`, display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
-                <span style={{ fontSize:18, color:C.purple, lineHeight:1 }}>+</span>
-                <span style={{ fontSize:12.5, color:C.purple, fontWeight:600 }}>New Session</span>
-              </div>
-            </div>
-            {/* Main chat area */}
-            <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:12 }}>
-              <div style={{ display:'flex', gap:8, alignItems:'center', borderBottom:`1px solid ${C.gray200}`, paddingBottom:12, marginBottom:4 }}>
-                {['AI Chat','AI Notes','Past Papers','Quiz','AI Tutor'].map((t,i)=>(
-                  <div key={t} style={{ padding:'5px 14px', borderRadius:99, fontSize:12.5, fontWeight:600, background:i===0?C.purple:'transparent', color:i===0?'#fff':C.gray500, border:`1px solid ${i===0?C.purple:C.gray200}`, cursor:'pointer' }}>{t}</div>
-                ))}
-              </div>
-              {[
-                { from:'user', text:'Can you help me with O-Level Maths, specifically surds and indices?' },
-                { from:'ai', text:'Absolutely! Let me break down surds and indices for you.\n\n**Surds** are irrational numbers that can\'t be simplified to remove a square root. For example, √2, √3, √5.\n\n**Key rules:**\n• √a × √b = √(ab)\n• √a ÷ √b = √(a/b)\n\nShall I give you some practice questions from the 2023 ZIMSEC paper?' },
-                { from:'user', text:'Yes please!' },
-              ].map((m,i)=>(
-                <div key={i} style={{ display:'flex', justifyContent:m.from==='user'?'flex-end':'flex-start' }}>
-                  <div style={{ maxWidth:'70%', padding:'10px 14px', borderRadius:m.from==='user'?'18px 18px 4px 18px':'18px 18px 18px 4px', background:m.from==='user'?C.purple:'#f3f4f6', color:m.from==='user'?'#fff':C.gray900, fontSize:13, lineHeight:1.55, whiteSpace:'pre-line', fontWeight:m.from==='user'?500:400 }}>
-                    {m.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* App body — animated demo */}
+          <AnimatedHeroDemo/>
         </div>
       </motion.div>
     </section>

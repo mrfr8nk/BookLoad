@@ -200,6 +200,17 @@ const notificationSchema = new mongoose.Schema({
 }, { timestamps: true });
 const NotificationModel = mongoose.models?.Notification || mongoose.model('Notification', notificationSchema);
 
+// ─── Saved work model ──────────────────────────────────────────────────────────
+const savedWorkSchema = new mongoose.Schema({
+  phone:   { type: String, required: true },
+  type:    { type: String, enum: ['notes','project'], default: 'notes' },
+  title:   { type: String, required: true },
+  content: { type: String, required: true },
+  subject: { type: String, default: '' },
+  level:   { type: String, default: '' },
+}, { timestamps: true });
+const SavedWorkModel = mongoose.models?.SavedWork || mongoose.model('SavedWork', savedWorkSchema);
+
 // ─── Team member model ─────────────────────────────────────────────────────────
 const teamSchema = new mongoose.Schema({
   name:    { type: String, required: true },
@@ -550,6 +561,7 @@ app.get('/api/student/me', requireStudent, async (req, res) => {
         projectsMonth:       user.usage?.projectsMonth       || 0,
         mediaDownloadsToday: user.usage?.mediaDownloadsToday || 0,
         mediaDownloadsMonth: user.usage?.mediaDownloadsMonth || 0,
+        mockMonth:           user.usage?.mockMonth           || 0,
       },
       limits,
       isMonthly: limits.period === 'monthly',
@@ -717,9 +729,11 @@ app.post('/api/student/generate-notes', requireStudent, async (req, res) => {
 
     const plan = user.plan || 'FREE';
     const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
-    const pdfUsed = user.usage?.pdfToday || 0;
+    const isMonthlyNotes = limits.period === 'monthly';
+    const pdfUsed = isMonthlyNotes ? (user.usage?.pdfMonth || 0) : (user.usage?.pdfToday || 0);
     if (pdfUsed >= limits.pdf) {
-      return res.status(429).json({ error: `Daily notes limit reached (${limits.pdf}). Upgrade for more!` });
+      const pd = isMonthlyNotes ? 'month' : 'day';
+      return res.status(429).json({ error: `${isMonthlyNotes ? 'Monthly' : 'Daily'} notes limit reached (${limits.pdf}/${pd}). Upgrade for more!` });
     }
 
     // Build context from any library materials the student selected
@@ -756,9 +770,12 @@ Format with clear headings, bullet points, and make it easy to study from.`;
 
     const notes = await askAI(messages);
 
+    const notesInc = isMonthlyNotes
+      ? { 'usage.pdfToday': 1, 'usage.pdfMonth': 1 }
+      : { 'usage.pdfToday': 1 };
     await UserModel.findOneAndUpdate(
       { phone: req.student.phone },
-      { $inc: { 'usage.pdfToday': 1 } }
+      { $inc: notesInc }
     ).catch(() => {});
 
     res.json({ notes, topic, subject, level });
@@ -779,9 +796,11 @@ app.post('/api/student/generate-mock-exam', requireStudent, async (req, res) => 
 
     const plan = user.plan || 'FREE';
     const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
-    const pdfUsed = user.usage?.pdfToday || 0;
+    const isMonthlyExam = limits.period === 'monthly';
+    const pdfUsed = isMonthlyExam ? (user.usage?.pdfMonth || 0) : (user.usage?.pdfToday || 0);
     if (pdfUsed >= limits.pdf) {
-      return res.status(429).json({ error: `Daily limit reached (${limits.pdf}). Upgrade for more!` });
+      const pd = isMonthlyExam ? 'month' : 'day';
+      return res.status(429).json({ error: `${isMonthlyExam ? 'Monthly' : 'Daily'} exam limit reached (${limits.pdf}/${pd}). Upgrade for more!` });
     }
 
     const levelInfo = grade ? `${level} ${grade}` : level || 'O-Level';
@@ -821,9 +840,12 @@ Requirements:
       throw new Error('No questions generated. Please try again.');
     }
 
+    const examInc = isMonthlyExam
+      ? { 'usage.pdfToday': 1, 'usage.pdfMonth': 1, 'usage.mockMonth': 1 }
+      : { 'usage.pdfToday': 1, 'usage.mockMonth': 1 };
     await UserModel.findOneAndUpdate(
       { phone: req.student.phone },
-      { $inc: { 'usage.pdfToday': 1 } }
+      { $inc: examInc }
     ).catch(() => {});
 
     res.json({ questions: parsed.questions, subject, level, topic, count: parsed.questions.length });
@@ -879,8 +901,10 @@ app.post('/api/student/generate-project', requireStudent, async (req, res) => {
       { role: 'user', content: prompt + materialsContext },
     ]);
 
-    // Batch size 3 (up from 2) because each stage now races two providers,
-    // so individual calls resolve faster and we can run more in parallel.
+    // Run all 7 stages fully in parallel — each stage independently races NVIDIA + BK9
+    // (resolving in ~5–12 s), so running them all at once finishes the project in
+    // ~12–18 s instead of the old 3-batch approach (which could hit 40–60 s and
+    // exceed reverse-proxy timeouts).
     const [preamble, s1, s2, s3, s4, s5, s6] = await runWithConcurrency([
       () => stageAI(PREAMBLE_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
       () => stageAI(STAGE1_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
@@ -889,7 +913,7 @@ app.post('/api/student/generate-project', requireStudent, async (req, res) => {
       () => stageAI(STAGE4_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
       () => stageAI(STAGE5_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
       () => stageAI(STAGE6_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
-    ], 3);
+    ], 7);
 
     const content = `# ${sName}'s ZIMSEC School-Based Project
 
@@ -1567,6 +1591,53 @@ app.get('/api/web-stats', requireAuth, async (_req, res) => {
       topChatters,
       totalMessages: totalMessages[0]?.total || 0,
     });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Saved work (student) ─────────────────────────────────────────────────────
+app.post('/api/student/saved-work', requireStudent, async (req, res) => {
+  try {
+    const { type, title, content, subject, level } = req.body;
+    if (!title || !content) return res.status(400).json({ error: 'title and content required' });
+    const item = await SavedWorkModel.create({
+      phone: req.student.phone,
+      type: type || 'notes',
+      title: title.slice(0, 200),
+      content,
+      subject: subject || '',
+      level: level || '',
+    });
+    res.json(item);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/student/saved-work', requireStudent, async (req, res) => {
+  try {
+    const { type } = req.query;
+    const query = { phone: req.student.phone };
+    if (type) query.type = type;
+    const items = await SavedWorkModel.find(query)
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .select('type title subject level createdAt')
+      .lean();
+    res.json(items);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/student/saved-work/:id', requireStudent, async (req, res) => {
+  try {
+    const item = await SavedWorkModel.findOne({ _id: req.params.id, phone: req.student.phone }).lean();
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    res.json(item);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/student/saved-work/:id', requireStudent, async (req, res) => {
+  try {
+    const item = await SavedWorkModel.findOneAndDelete({ _id: req.params.id, phone: req.student.phone });
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -8,6 +8,7 @@ import {
   Flame, Target, BarChart3, Menu, Sun, Moon, Camera, X, Eye,
   FolderOpen, Lock, FileCheck, BookMarked, Gift, UploadCloud, Share2, Link2,
   Bell, Info, CheckCircle, AlertTriangle,
+  Clock, Pencil, Trash2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -133,11 +134,14 @@ const TABS = [
   { id:'project',   icon:FolderOpen,     label:'Projects'  },
   { id:'exam',      icon:ClipboardCheck, label:'Mock Exam' },
   { id:'knowledge', icon:BookMarked,     label:'Study Docs'},
+  { id:'history',   icon:Clock,          label:'History'   },
   { id:'materials', icon:BookOpen,       label:'Library'   },
   { id:'referral',  icon:Gift,           label:'Referral'  },
   { id:'myuploads', icon:UploadCloud,    label:'My Uploads'},
   { id:'profile',   icon:User,           label:'Profile'   },
 ];
+// Tabs shown in mobile bottom nav (limited to keep it usable)
+const BOTTOM_TABS = TABS.filter(t => ['chat','notes','project','exam','history','materials','profile'].includes(t.id));
 
 /* ─────────────────────────── API ────────────────────────────────────────── */
 const tok = () => localStorage.getItem('fundo_token') || '';
@@ -906,6 +910,8 @@ function NotesTab({ profile, plan, isMobile, p, bumpUsage }) {
       setNotes(d.notes);
       setView('notes');
       bumpUsage?.('pdfToday'); bumpUsage?.('pdfMonth');
+      // Auto-save generated notes
+      api('/api/student/saved-work', { method:'POST', body:{ type:'notes', title:form.topic, content:d.notes, subject:form.subject||'', level:form.level||'' } }).catch(() => {});
     } catch(e) { setError(e.message); }
     finally { setLoading(false); }
   }
@@ -1046,6 +1052,8 @@ function ProjectTab({ profile, plan, isMobile, p, bumpUsage }) {
       setProject(d);
       if (isMobile) setView('project');
       bumpUsage?.('projectsMonth');
+      // Auto-save generated project
+      api('/api/student/saved-work', { method:'POST', body:{ type:'project', title:form.topic, content:d.content, subject:form.subject||'', level:form.level||'' } }).catch(() => {});
     } catch(e) { setError(e.message); }
     finally { setLoading(false); }
   }
@@ -1607,9 +1615,122 @@ function MaterialsTab({ isMobile, p, bumpUsage }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   HISTORY — saved notes & projects
+══════════════════════════════════════════════════════════════════════════ */
+function HistoryTab({ isMobile, p }) {
+  const [items, setItems]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [typeFilter, setType]   = useState('all');
+  const [selected, setSelected] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [viewContent, setView]  = useState(null); // { title, content }
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const qs = typeFilter !== 'all' ? `?type=${typeFilter}` : '';
+      const d = await api(`/api/student/saved-work${qs}`);
+      setItems(Array.isArray(d) ? d : []);
+    } catch { setItems([]); }
+    finally { setLoading(false); }
+  }, [typeFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function del(id) {
+    setDeleting(id);
+    try {
+      await api(`/api/student/saved-work/${id}`, { method:'DELETE' });
+      setItems(prev => prev.filter(i => i._id !== id));
+      if (viewContent?._id === id) setView(null);
+    } catch {}
+    finally { setDeleting(null); }
+  }
+
+  async function openItem(item) {
+    try {
+      const d = await api(`/api/student/saved-work/${item._id}`);
+      setView(d);
+    } catch {}
+  }
+
+  const fmt = (d) => {
+    const dt = new Date(d);
+    return dt.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  };
+
+  return (
+    <div style={{ padding:isMobile?'14px 12px':'18px 22px', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ flexShrink:0, marginBottom:14 }}>
+        <SectionHeader title="My History" sub="Auto-saved notes and project reports." icon={Clock} p={p}/>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {[['all','All'],['notes','Notes'],['project','Projects']].map(([v,l]) => (
+            <button key={v} onClick={() => setType(v)}
+              style={{ padding:'6px 16px', borderRadius:99, fontSize:12.5, fontWeight:600, border:`1.5px solid ${typeFilter===v?p.accent:p.border}`, background:typeFilter===v?p.accentBg:'transparent', color:typeFilter===v?p.accent:p.muted, cursor:'pointer', fontFamily:'inherit', transition:'all .15s' }}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Viewer modal overlay */}
+      {viewContent && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.55)', zIndex:100, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setView(null)}>
+          <motion.div initial={{ y:60, opacity:0 }} animate={{ y:0, opacity:1 }} onClick={e => e.stopPropagation()}
+            style={{ width:'100%', maxWidth:720, maxHeight:'88vh', background:p.surface, borderRadius:'20px 20px 0 0', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            <div style={{ padding:'16px 20px', borderBottom:`1px solid ${p.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+              <div>
+                <div style={{ fontSize:15, fontWeight:800, color:p.text }}>{viewContent.title}</div>
+                <div style={{ fontSize:11.5, color:p.dim }}>{viewContent.subject} · {viewContent.level}</div>
+              </div>
+              <button onClick={() => setView(null)} style={{ background:'none', border:'none', cursor:'pointer', color:p.dim, display:'flex', alignItems:'center' }}><X size={20}/></button>
+            </div>
+            <div className="md-body" style={{ flex:1, overflowY:'auto', padding:'20px' }}>
+              <ReactMarkdown>{viewContent.content || ''}</ReactMarkdown>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      <div style={{ flex:1, overflowY:'auto' }}>
+        {loading ? (
+          <div style={{ display:'flex', justifyContent:'center', padding:48 }}><Loader size={22} style={{ color:p.accent, animation:'spin .8s linear infinite' }}/></div>
+        ) : items.length === 0 ? (
+          <div style={{ textAlign:'center', padding:'48px 20px' }}>
+            <Clock size={44} style={{ color:p.dim, marginBottom:14 }}/>
+            <p style={{ fontSize:15, fontWeight:700, color:p.muted }}>No saved work yet</p>
+            <p style={{ fontSize:13, color:p.dim, maxWidth:280, margin:'6px auto 0' }}>
+              Generate notes or a project report — they'll be auto-saved here for you to return to.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:`repeat(auto-fill,minmax(${isMobile?'155px':'230px'},1fr))`, gap:10 }}>
+            {items.map(item => (
+              <motion.div key={item._id} initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} whileHover={{ y:-2 }}
+                style={{ background:p.surface, border:`1px solid ${p.border}`, borderRadius:13, padding:'14px', boxShadow:p.shadow, cursor:'pointer' }}
+                onClick={() => openItem(item)}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
+                  <Tag color={item.type==='project'?'#2563eb':'#7c3aed'} p={p}>{item.type==='project'?'Project':'Notes'}</Tag>
+                  <button onClick={e => { e.stopPropagation(); del(item._id); }} style={{ background:'none', border:'none', cursor:'pointer', padding:2, display:'flex', alignItems:'center', opacity:.6 }}>
+                    {deleting===item._id ? <Loader size={12} style={{ animation:'spin .8s linear infinite', color:p.dim }}/> : <Trash2 size={12} style={{ color:'#ef4444' }}/>}
+                  </button>
+                </div>
+                <h4 style={{ fontSize:13, fontWeight:700, color:p.text, marginBottom:5, lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{item.title}</h4>
+                {item.subject && <div style={{ fontSize:11, color:p.muted, marginBottom:2 }}>{item.subject}</div>}
+                <div style={{ fontSize:10.5, color:p.dim, marginTop:6 }}>{fmt(item.createdAt)}</div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    PROFILE
 ══════════════════════════════════════════════════════════════════════════ */
-function ProfileTab({ profile, usage, limits, isMobile, p }) {
+function ProfileTab({ profile, usage, limits, isMobile, p, refreshProfile }) {
   const plan = profile?.plan || 'FREE';
   const pc = PLAN_COLOR[plan] || '#6b7280';
   const PIcon = PLAN_ICONS[plan] || Zap;
@@ -1620,65 +1741,182 @@ function ProfileTab({ profile, usage, limits, isMobile, p }) {
     PRO:     ['1,000 AI chats/month','50 image generations/month','50 notes/projects/month','PDF download','Priority AI responses'],
     PREMIUM: ['Unlimited everything','All features unlocked','Priority support','Early access to new features'],
   };
+  const LEVEL_OPTIONS = [
+    { value:'primary',    label:'Primary School' },
+    { value:'olevel',     label:'O-Level (Form 1–4)' },
+    { value:'alevel',     label:'A-Level (Form 5–6)' },
+    { value:'university', label:'University / Tertiary' },
+  ];
+
+  const [editing, setEditing] = useState(false);
+  const [form, setForm]       = useState({ name:'', school:'', levelType:'', levelLabel:'', grade:'' });
+  const [saving, setSaving]   = useState(false);
+  const [err, setErr]         = useState('');
+  const [ok, setOk]           = useState('');
+
+  useEffect(() => {
+    if (profile) setForm({
+      name:       profile.name       || '',
+      school:     profile.school     || '',
+      levelType:  profile.levelType  || '',
+      levelLabel: profile.levelLabel || '',
+      grade:      profile.grade      || '',
+    });
+  }, [profile?.phone]);
+
+  const setF = (k, v) => setForm(f => ({ ...f, [k]:v }));
+
+  async function save() {
+    if (!form.name.trim()) return setErr('Name is required.');
+    setSaving(true); setErr(''); setOk('');
+    try {
+      const d = await api('/api/student/update-profile', { method:'POST', body:form });
+      setOk('Profile updated successfully!');
+      refreshProfile?.(d.user || form);
+      setTimeout(() => { setOk(''); setEditing(false); }, 1600);
+    } catch(e) { setErr(e.message); }
+    finally { setSaving(false); }
+  }
+
+  // Countdown until plan resets
+  const now = new Date();
+  const isMonthly = limits?.period === 'monthly';
+  const resetDate = isMonthly
+    ? new Date(now.getFullYear(), now.getMonth()+1, 0, 23, 59, 59)
+    : new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0, 0, 0);
+  const daysLeft = Math.max(0, Math.ceil((resetDate - now) / (1000*60*60*24)));
+  const hoursLeft = Math.max(0, Math.ceil((resetDate - now) / (1000*60*60)));
 
   return (
     <div style={{ padding:isMobile?'16px 14px':'26px 32px', maxWidth:680, margin:'0 auto', overflowY:'auto', height:'100%' }}>
-      <SectionHeader title="My Profile" sub="Manage your account and track daily usage." icon={User} p={p}/>
+      {/* Header row */}
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:18 }}>
+        <SectionHeader title="My Profile" sub="Manage your account and track usage." icon={User} p={p}/>
+        {!editing ? (
+          <button onClick={() => setEditing(true)}
+            style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 14px', borderRadius:9, border:`1.5px solid ${p.border}`, background:p.surface, color:p.muted, fontSize:12.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit', flexShrink:0, transition:'all .15s' }}>
+            <Pencil size={12}/> Edit
+          </button>
+        ) : (
+          <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+            <button onClick={() => { setEditing(false); setErr(''); }}
+              style={{ padding:'7px 14px', borderRadius:9, border:`1.5px solid ${p.border}`, background:p.surface, color:p.muted, fontSize:12.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit', transition:'all .15s' }}>
+              Cancel
+            </button>
+            <button onClick={save} disabled={saving}
+              style={{ display:'flex', alignItems:'center', gap:5, padding:'7px 16px', borderRadius:9, border:'none', background:p.accent, color:'#fff', fontSize:12.5, fontWeight:700, cursor:saving?'wait':'pointer', fontFamily:'inherit', opacity:saving?.7:1, transition:'all .15s' }}>
+              {saving ? <Loader size={12} style={{ animation:'spin .8s linear infinite' }}/> : <Check size={12}/>}
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        )}
+      </div>
 
+      {(err||ok) && <div style={{ marginBottom:12, padding:'10px 14px', borderRadius:10, background:err?'#fee2e2':'#d1fae5', color:err?'#b91c1c':'#065f46', fontSize:13, fontWeight:600 }}>{err||ok}</div>}
+
+      {/* Avatar + info / edit form */}
       <Card p={p} style={{ padding:isMobile?'20px 16px':'24px', marginBottom:16 }}>
         <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:20 }}>
-          <div style={{ width:62, height:62, borderRadius:18, background:`linear-gradient(135deg,${pc},${pc}99)`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, fontWeight:900, color:'#fff', boxShadow:`0 4px 16px ${pc}40`, flexShrink:0 }}>
-            {(profile?.name||'S')[0].toUpperCase()}
+          <div style={{ width:62, height:62, borderRadius:18, background:`linear-gradient(135deg,${pc},${pc}aa)`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, fontWeight:900, color:'#fff', boxShadow:`0 4px 16px ${pc}40`, flexShrink:0 }}>
+            {(form.name||profile?.name||'S')[0].toUpperCase()}
           </div>
-          <div>
-            <h2 style={{ fontSize:isMobile?19:21, fontWeight:900, color:p.text, marginBottom:6 }}>{profile?.name||'Student'}</h2>
-            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-              <PlanBadge plan={plan} p={p}/>
-              {profile?.grade && <span style={{ fontSize:12, color:p.muted }}>{profile.levelLabel} · {profile.grade}</span>}
-            </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            {!editing ? (
+              <>
+                <h2 style={{ fontSize:isMobile?18:20, fontWeight:900, color:p.text, marginBottom:5 }}>{profile?.name||'Student'}</h2>
+                <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
+                  <PlanBadge plan={plan} p={p}/>
+                  {profile?.grade && <span style={{ fontSize:12, color:p.muted }}>{profile.levelLabel} · {profile.grade}</span>}
+                </div>
+              </>
+            ) : (
+              <div>
+                <label style={{ fontSize:10.5, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px', display:'block', marginBottom:4 }}>Display Name *</label>
+                <input value={form.name} onChange={e => setF('name', e.target.value)} placeholder="Your full name"
+                  style={{ width:'100%', padding:'9px 12px', borderRadius:9, border:`1.5px solid ${p.inputBdr}`, background:p.inputBg, color:p.text, fontSize:isMobile?16:13.5, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }}/>
+              </div>
+            )}
           </div>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr 1fr':'repeat(3,1fr)', gap:10 }}>
-          {[
-            { label:'Phone',  val: profile?.phone ? `+${profile.phone}` : '—' },
-            { label:'School', val: profile?.school || '—' },
-            { label:'Level',  val: profile?.levelLabel || '—' },
-          ].map(({ label, val }) => (
-            <div key={label} style={{ background:p.bg, border:`1px solid ${p.border}`, borderRadius:11, padding:'12px 14px' }}>
-              <div style={{ fontSize:10, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px', fontWeight:700, marginBottom:4 }}>{label}</div>
-              <div style={{ fontSize:13, fontWeight:700, color:p.text, wordBreak:'break-all' }}>{val}</div>
+
+        {!editing ? (
+          <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr 1fr':'repeat(3,1fr)', gap:10 }}>
+            {[
+              { label:'Phone',  val: profile?.phone ? `+${profile.phone}` : '—' },
+              { label:'School', val: profile?.school || '—' },
+              { label:'Level',  val: profile?.levelLabel || '—' },
+              { label:'Grade',  val: profile?.grade || '—' },
+            ].map(({ label, val }) => (
+              <div key={label} style={{ background:p.bg, border:`1px solid ${p.border}`, borderRadius:11, padding:'12px 14px' }}>
+                <div style={{ fontSize:10, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px', fontWeight:700, marginBottom:4 }}>{label}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:p.text, wordBreak:'break-all' }}>{val}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'1fr 1fr', gap:12 }}>
+            <div>
+              <label style={{ fontSize:10.5, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px', display:'block', marginBottom:4 }}>School / Institution</label>
+              <input value={form.school} onChange={e => setF('school', e.target.value)} placeholder="e.g. Harare High School"
+                style={{ width:'100%', padding:'9px 12px', borderRadius:9, border:`1.5px solid ${p.inputBdr}`, background:p.inputBg, color:p.text, fontSize:isMobile?16:13.5, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }}/>
             </div>
-          ))}
-        </div>
+            <div>
+              <label style={{ fontSize:10.5, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px', display:'block', marginBottom:4 }}>Education Level</label>
+              <select value={form.levelType} onChange={e => { const opt = LEVEL_OPTIONS.find(o => o.value===e.target.value); setF('levelType', e.target.value); setF('levelLabel', opt?.label||''); }}
+                style={{ width:'100%', padding:'9px 12px', borderRadius:9, border:`1.5px solid ${p.inputBdr}`, background:p.inputBg, color:p.text, fontSize:isMobile?16:13.5, outline:'none', fontFamily:'inherit', boxSizing:'border-box', cursor:'pointer' }}>
+                <option value="">Select level…</option>
+                {LEVEL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize:10.5, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px', display:'block', marginBottom:4 }}>Grade / Form</label>
+              <input value={form.grade} onChange={e => setF('grade', e.target.value)} placeholder="e.g. Form 4, Grade 7"
+                style={{ width:'100%', padding:'9px 12px', borderRadius:9, border:`1.5px solid ${p.inputBdr}`, background:p.inputBg, color:p.text, fontSize:isMobile?16:13.5, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }}/>
+            </div>
+            <div>
+              <label style={{ fontSize:10.5, fontWeight:700, color:p.dim, textTransform:'uppercase', letterSpacing:'.5px', display:'block', marginBottom:4 }}>Phone (read-only)</label>
+              <input value={profile?.phone ? `+${profile.phone}` : '—'} readOnly
+                style={{ width:'100%', padding:'9px 12px', borderRadius:9, border:`1.5px solid ${p.inputBdr}`, background:p.bg, color:p.dim, fontSize:isMobile?16:13.5, outline:'none', fontFamily:'inherit', boxSizing:'border-box', cursor:'not-allowed' }}/>
+            </div>
+          </div>
+        )}
       </Card>
 
+      {/* Usage card */}
       {usage && limits && (
         <Card p={p} style={{ padding:isMobile?'18px 16px':'22px', marginBottom:16 }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
             <div>
-              <h3 style={{ fontSize:14.5, fontWeight:800, color:p.text, marginBottom:2 }}>{limits?.period==='monthly' ? 'Monthly' : "Today's"} Usage</h3>
-              <p style={{ fontSize:11.5, color:p.dim }}>Shared across WhatsApp + Web · Resets {limits?.period==='monthly' ? 'monthly' : 'at midnight'}</p>
+              <h3 style={{ fontSize:14.5, fontWeight:800, color:p.text, marginBottom:2 }}>{isMonthly ? 'Monthly' : "Today's"} Usage</h3>
+              <p style={{ fontSize:11.5, color:p.dim }}>Shared across WhatsApp + Web</p>
             </div>
-            <BarChart3 size={18} style={{ color:p.accent }}/>
+            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 11px', borderRadius:8, background:daysLeft<=3?'#fee2e2':p.accentBg, border:`1px solid ${daysLeft<=3?'#fca5a5':p.accentBorder}` }}>
+              <Clock size={11} style={{ color:daysLeft<=3?'#ef4444':p.accent }}/>
+              <span style={{ fontSize:11, fontWeight:700, color:daysLeft<=3?'#ef4444':p.accent }}>
+                {isMonthly ? `${daysLeft}d left` : `${hoursLeft}h left`}
+              </span>
+            </div>
           </div>
-          <UsageBar label="AI Chats" used={limits?.period==='monthly'?(usage.chatMonth||0):(usage.chatToday||0)}   limit={limits.chat||25}  icon={MessageSquare} p={p}/>
-          <UsageBar label="Images"   used={limits?.period==='monthly'?(usage.imagesMonth||0):(usage.imagesToday||0)} limit={limits.images||3}  icon={Image} p={p}/>
-          <UsageBar label="Notes & Exams" used={limits?.period==='monthly'?(usage.pdfMonth||0):(usage.pdfToday||0)} limit={limits.pdf||1} icon={FileText} p={p}/>
-          <UsageBar label="Projects" used={usage.projectsMonth||0} limit={limits.projects||2} icon={FolderOpen} p={p}/>
-          <UsageBar label="Library Downloads" used={limits?.period==='monthly'?(usage.mediaDownloadsMonth||0):(usage.mediaDownloadsToday||0)} limit={limits.library||5} icon={Download} p={p}/>
-          <div style={{ marginTop:12, padding:'10px 13px', background:p.accentBg, border:`1px solid ${p.accentBorder}`, borderRadius:10, fontSize:12, color:p.muted }}>
-            📱 WhatsApp + web usage is shared — a chat sent on WhatsApp reduces your web quota too.
+          <UsageBar label="AI Chats"  used={isMonthly?(usage.chatMonth||0):(usage.chatToday||0)}       limit={limits.chat||25}     icon={MessageSquare} p={p}/>
+          <UsageBar label="Images"    used={isMonthly?(usage.imagesMonth||0):(usage.imagesToday||0)}   limit={limits.images||3}    icon={Image} p={p}/>
+          <UsageBar label="Notes"     used={isMonthly?(usage.pdfMonth||0):(usage.pdfToday||0)}         limit={limits.pdf||1}       icon={FileText} p={p}/>
+          <UsageBar label="Exams"     used={usage.mockMonth||0}                                        limit={limits.pdf||1}       icon={ClipboardCheck} p={p}/>
+          <UsageBar label="Projects"  used={usage.projectsMonth||0}                                    limit={limits.projects||2}  icon={FolderOpen} p={p}/>
+          <UsageBar label="Downloads" used={isMonthly?(usage.mediaDownloadsMonth||0):(usage.mediaDownloadsToday||0)} limit={limits.library||5} icon={Download} p={p}/>
+          <div style={{ marginTop:12, padding:'9px 12px', background:p.accentBg, border:`1px solid ${p.accentBorder}`, borderRadius:9, fontSize:12, color:p.muted }}>
+            📱 WhatsApp + web usage is shared — a chat sent on WhatsApp counts toward the same quota.
           </div>
         </Card>
       )}
 
+      {/* Plan perks */}
       <Card p={p} style={{ padding:isMobile?'18px 16px':'22px', marginBottom:16 }}>
         <h3 style={{ fontSize:14.5, fontWeight:800, color:p.text, marginBottom:4 }}>Your Plan — <span style={{ color:pc }}>{plan}</span></h3>
         <p style={{ fontSize:12.5, color:p.muted, marginBottom:14 }}>What's included in your current plan:</p>
         <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
           {(PLAN_PERKS[plan]||PLAN_PERKS.FREE).map(perk => (
             <div key={perk} style={{ display:'flex', alignItems:'center', gap:9 }}>
-              <div style={{ width:18, height:18, borderRadius:'50%', background:`${pc}15`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <div style={{ width:18, height:18, borderRadius:'50%', background:`${pc}18`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                 <Check size={11} style={{ color:pc }}/>
               </div>
               <span style={{ fontSize:13, color:p.text }}>{perk}</span>
@@ -1917,8 +2155,23 @@ function SidebarContent({ profile, usage, limits, tab, setTab, signOut, plan, on
           <UsageBar label="Chats"    used={limits?.period==='monthly'?(usage.chatMonth||0):(usage.chatToday||0)}   limit={limits.chat||25} icon={MessageSquare} p={p}/>
           <UsageBar label="Images"   used={limits?.period==='monthly'?(usage.imagesMonth||0):(usage.imagesToday||0)} limit={limits.images||3} icon={Image} p={p}/>
           <UsageBar label="Notes"    used={limits?.period==='monthly'?(usage.pdfMonth||0):(usage.pdfToday||0)}    limit={limits.pdf||1}    icon={FileText} p={p}/>
+          <UsageBar label="Exams"    used={usage.mockMonth||0} limit={limits.pdf||1} icon={ClipboardCheck} p={p}/>
           <UsageBar label="Projects" used={usage.projectsMonth||0} limit={limits.projects||2} icon={FolderOpen} p={p}/>
           <UsageBar label="Library"  used={limits?.period==='monthly'?(usage.mediaDownloadsMonth||0):(usage.mediaDownloadsToday||0)} limit={limits.library||5} icon={Download} p={p}/>
+          {limits?.period === 'monthly' && (() => {
+            const now = new Date();
+            const end = new Date(now.getFullYear(), now.getMonth()+1, 0, 23, 59, 59);
+            const daysLeft = Math.max(0, Math.ceil((end - now) / (1000*60*60*24)));
+            return (
+              <div style={{ marginTop:8, padding:'7px 9px', background:p.accentBg, border:`1px solid ${p.accentBorder}`, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                  <Clock size={10} style={{ color:p.dim }}/>
+                  <span style={{ fontSize:10, color:p.dim, fontWeight:600, textTransform:'uppercase', letterSpacing:'.4px' }}>Resets in</span>
+                </div>
+                <span style={{ fontSize:11.5, fontWeight:800, color: daysLeft <= 3 ? '#ef4444' : p.accent }}>{daysLeft} day{daysLeft !== 1 ? 's' : ''}</span>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1991,7 +2244,14 @@ export default function StudentApp() {
     localStorage.setItem('fundo_notif_seen', JSON.stringify(ids));
   }
 
-  const tabProps = { profile, plan, isMobile, p, limits, bumpUsage };
+  const refreshProfile = (updated) => {
+    setProfile(prev => {
+      const next = { ...prev, ...updated };
+      try { localStorage.setItem('fundo_user', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const tabProps = { profile, plan, isMobile, p, limits, bumpUsage, usage, refreshProfile };
 
   return (
     <div style={{ display:'flex', height:'100dvh', fontFamily:"'Inter',system-ui,-apple-system,sans-serif", background:p.bg, overflow:'hidden' }}>
@@ -2109,10 +2369,11 @@ export default function StudentApp() {
               {tab==='project'   && <ProjectTab {...tabProps}/>}
               {tab==='exam'      && <ExamTab {...tabProps}/>}
               {tab==='knowledge' && <KnowledgeBaseTab {...tabProps}/>}
+              {tab==='history'   && <HistoryTab {...tabProps}/>}
               {tab==='materials' && <MaterialsTab {...tabProps}/>}
               {tab==='referral'  && <ReferralTab {...tabProps}/>}
               {tab==='myuploads' && <MyUploadsTab {...tabProps}/>}
-              {tab==='profile'   && <ProfileTab {...tabProps} usage={usage} limits={limits}/>}
+              {tab==='profile'   && <ProfileTab {...tabProps}/>}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -2120,7 +2381,7 @@ export default function StudentApp() {
         {/* Mobile bottom nav */}
         {isMobile && (
           <div style={{ position:'fixed', bottom:0, left:0, right:0, height:62, display:'flex', alignItems:'stretch', background:p.bottomNav, backdropFilter:'blur(16px)', borderTop:`1px solid ${p.border}`, zIndex:30, boxShadow:'0 -2px 12px rgba(0,0,0,0.06)', paddingBottom:'env(safe-area-inset-bottom)' }}>
-            {TABS.map(t => {
+            {BOTTOM_TABS.map(t => {
               const active = tab === t.id;
               return (
                 <button key={t.id} onClick={() => setTab(t.id)}
