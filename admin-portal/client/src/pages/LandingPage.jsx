@@ -7,7 +7,7 @@ import {
   Sparkles, Zap, Clock, Volume2, Image as Img, FileText,
   ChevronDown, Star, Menu, X, Shield, Rocket, Brain,
   BookMarked, FolderOpen, ClipboardList, Youtube, Search,
-  Award, CheckCircle2, Lightbulb,
+  Award, CheckCircle2, Lightbulb, ChevronRight,
 } from 'lucide-react';
 
 /* ─────────────── DESIGN TOKENS ─────────────── */
@@ -898,7 +898,7 @@ function Footer() {
     { title:'Features', links:[['AI Chat Tutor','#features'],['AI Image Generator','#features'],['Past Papers','#features'],['Voice Learning','#features'],['Study Notes','#features']] },
     { title:'Subjects (ZIMSEC)', links:[['Mathematics','#features'],['Biology','#features'],['Chemistry','#features'],['Physics','#features'],['History & Geography','#features'],['English Language','#features'],['Commerce & Accounts','#features']] },
     { title:'Subjects (Cambridge)', links:[['IGCSE Sciences','#features'],['O-Level Maths','#features'],['A-Level Biology','#features'],['A-Level Chemistry','#features'],['English Literature','#features']] },
-    { title:'Support', links:[['Help Centre','/help'],['Contact Us','/contact'],['Upload Materials','/upload'],['WhatsApp Us','https://wa.me/263719647303'],['Admin Portal','/admin'],['WA Channel','https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X']] },
+    { title:'Support', links:[['Help Centre','/help'],['Contact Us','/contact'],['About Us','/about'],['Upload Materials','/upload'],['WhatsApp Us','https://wa.me/263719647303'],['Admin Portal','/admin'],['WA Channel','https://whatsapp.com/channel/0029VbCigmv96H4JhJDwsd0X']] },
   ];
 
   return (
@@ -962,6 +962,132 @@ function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+/* ─────────────── RECENT MATERIALS ─────────────── */
+const CAT_COLOR_MAP = { paper:'#3b82f6', textbook:'#10b981', syllabus:'#7c3aed', marking_scheme:'#f59e0b' };
+const CAT_LABEL_MAP = { paper:'Past Paper', textbook:'Textbook', syllabus:'Syllabus', marking_scheme:'Marking Scheme' };
+const LVL_LABEL_MAP = { primary:'Primary', olevel:'O-Level', alevel:'A-Level' };
+
+function RecentMaterialsSection() {
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [userLevel, setUserLevel] = useState(null);
+  const [activeLevel, setActiveLevel] = useState(null);
+  const ref = useRef();
+  const inView = useInView(ref, { once: true, amount: 0.1 });
+
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('fundo_user') || 'null');
+      if (u?.levelType) { setUserLevel(u.levelType); setActiveLevel(u.levelType); }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const pr = new URLSearchParams({ limit: 9 });
+    if (activeLevel) pr.set('level', activeLevel);
+    fetch(`/api/public/recent-materials?${pr}`)
+      .then(r => r.json())
+      .then(d => setMaterials(Array.isArray(d) ? d : []))
+      .catch(() => setMaterials([]))
+      .finally(() => setLoading(false));
+  }, [activeLevel]);
+
+  const LEVELS = [
+    { id:null,       label:'All Levels' },
+    { id:'primary',  label:'Primary' },
+    { id:'olevel',   label:'O-Level' },
+    { id:'alevel',   label:'A-Level' },
+  ];
+
+  return (
+    <section ref={ref} style={{ background:C.gray50, padding:'88px clamp(16px,4vw,56px)', borderTop:`1px solid ${C.gray200}` }}>
+      <div style={{ maxWidth:1160, margin:'0 auto' }}>
+        {/* Header */}
+        <motion.div initial={{ opacity:0, y:20 }} animate={inView?{opacity:1,y:0}:{}} transition={{ duration:.55 }} style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', flexWrap:'wrap', gap:16, marginBottom:32 }}>
+          <div>
+            <div style={{ fontSize:12.5, fontWeight:700, color:C.purple, textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:10 }}>
+              {userLevel ? `📚 New ${LVL_LABEL_MAP[userLevel]||'Level'} Materials` : '📚 Recently Added'}
+            </div>
+            <h2 style={{ fontSize:'clamp(1.7rem,3.5vw,2.4rem)', fontWeight:900, color:C.gray900, letterSpacing:'-.04em', lineHeight:1.2 }}>
+              {userLevel ? `Fresh resources for your level` : 'Newly uploaded study materials'}
+            </h2>
+            {userLevel && (
+              <p style={{ fontSize:14, color:C.gray500, marginTop:8 }}>Personalised to your level — <a href="/student/app" style={{ color:C.purple, fontWeight:700, textDecoration:'none' }}>go to Library →</a></p>
+            )}
+          </div>
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            {LEVELS.map(lv => (
+              <button key={lv.id||'all'} onClick={() => setActiveLevel(lv.id)}
+                style={{ padding:'7px 16px', borderRadius:99, fontSize:13, fontWeight:700, cursor:'pointer', border:`1.5px solid ${activeLevel===lv.id?C.purple:C.gray200}`, background:activeLevel===lv.id?C.purple:'#fff', color:activeLevel===lv.id?'#fff':C.gray600, fontFamily:'inherit', transition:'all .15s' }}>
+                {lv.label}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Grid */}
+        {loading ? (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:16 }}>
+            {Array.from({length:6}).map((_,i) => (
+              <div key={i} style={{ height:130, borderRadius:18, background:`linear-gradient(90deg,${C.gray100} 25%,${C.gray200} 50%,${C.gray100} 75%)`, backgroundSize:'200% 100%', animation:'shimmer 1.4s ease-in-out infinite' }}/>
+            ))}
+          </div>
+        ) : materials.length === 0 ? (
+          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} style={{ textAlign:'center', padding:'48px 16px' }}>
+            <BookOpen size={44} style={{ color:C.gray200, marginBottom:12 }}/>
+            <div style={{ fontSize:16, fontWeight:700, color:C.gray500 }}>No materials found for this level yet</div>
+          </motion.div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(clamp(240px,30vw,300px),1fr))', gap:16 }}>
+            {materials.map((m, i) => {
+              const cc = CAT_COLOR_MAP[m.category] || C.purple;
+              const daysAgo = Math.floor((Date.now() - new Date(m.createdAt)) / 86400000);
+              const isNew = daysAgo <= 7;
+              return (
+                <motion.a key={m._id} href="/student/app"
+                  initial={{ opacity:0, y:20 }} animate={inView?{opacity:1,y:0}:{}} transition={{ duration:.45, delay:i*.06 }}
+                  whileHover={{ y:-5, boxShadow:`0 16px 40px rgba(0,0,0,0.1)` }}
+                  style={{ background:'#fff', border:`1.5px solid ${C.gray200}`, borderRadius:18, padding:'20px', display:'flex', flexDirection:'column', gap:10, textDecoration:'none', cursor:'pointer', transition:'box-shadow .2s', position:'relative', overflow:'hidden' }}>
+                  <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,${cc},${cc}80)` }}/>
+                  <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+                    <div style={{ width:38, height:38, borderRadius:10, background:`${cc}18`, border:`1.5px solid ${cc}33`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <FileText size={16} style={{ color:cc }}/>
+                    </div>
+                    <div style={{ display:'flex', gap:5, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                      {isNew && <span style={{ fontSize:10, fontWeight:800, padding:'2px 7px', borderRadius:99, background:'#ecfdf5', color:'#059669', border:'1px solid #bbf7d0' }}>NEW</span>}
+                      <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:99, background:`${cc}18`, color:cc, border:`1px solid ${cc}30` }}>{CAT_LABEL_MAP[m.category]||m.category}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:800, color:C.gray900, lineHeight:1.45, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{m.title}</div>
+                    <div style={{ fontSize:12.5, color:C.gray500, marginTop:5 }}>
+                      {m.subject} · {LVL_LABEL_MAP[m.level]||m.level}{m.year ? ` · ${m.year}` : ''}
+                    </div>
+                  </div>
+                  <div style={{ fontSize:11.5, color:C.gray400, marginTop:'auto' }}>
+                    {daysAgo === 0 ? 'Added today' : daysAgo === 1 ? 'Added yesterday' : `Added ${daysAgo} days ago`}
+                  </div>
+                </motion.a>
+              );
+            })}
+          </div>
+        )}
+
+        <motion.div initial={{ opacity:0 }} animate={inView?{opacity:1}:{}} transition={{ delay:.5 }} style={{ textAlign:'center', marginTop:36 }}>
+          <a href="/student/app"
+            style={{ display:'inline-flex', alignItems:'center', gap:8, color:C.purple, textDecoration:'none', fontWeight:700, fontSize:14, padding:'10px 22px', border:`1.5px solid ${C.purple}`, borderRadius:10, transition:'all .15s' }}
+            onMouseEnter={e=>{e.currentTarget.style.background=C.purple;e.currentTarget.style.color='#fff';}}
+            onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color=C.purple;}}>
+            Browse Full Library <ChevronRight size={14}/>
+          </a>
+        </motion.div>
+      </div>
+      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+    </section>
   );
 }
 
@@ -1055,6 +1181,7 @@ export default function LandingPage() {
       <Comparison />
       <WhoSection />
       <ToolGrid />
+      <RecentMaterialsSection />
       <AboutSection />
       <Pricing />
       <DarkCTA />

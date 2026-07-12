@@ -7,6 +7,7 @@ import {
   FileText, CheckCircle, AlertCircle, RefreshCw, Zap, Lock,
   Layers, UserCheck, BookMarked, Activity, Settings, Save,
   MessageSquare, Image, Globe, Crown, Flame, Brain,
+  Bell, Pin, Send, UserCog, Plus, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast.jsx';
 import { useApi } from '../hooks/useApi.js';
@@ -1189,14 +1190,313 @@ function PendingTab({ api, toast }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   NOTIFICATIONS TAB
+   ══════════════════════════════════════════════════════════════════ */
+const NOTIF_TYPE_COLOR = { info:'#2563eb', success:'#059669', warning:'#d97706', alert:'#dc2626' };
+const NOTIF_TYPE_BG    = { info:'#eff6ff', success:'#f0fdf4', warning:'#fffbeb', alert:'#fef2f2' };
+const ALL_PLANS = ['FREE','STARTER','BASIC','PRO','PREMIUM'];
+
+function NotificationsTab({ api, toast }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title:'', message:'', type:'info', targetPlans:ALL_PLANS, pinned:false });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    setLoading(true);
+    try { const d = await api('GET', '/api/notifications'); setItems(d || []); }
+    catch (e) { toast(e.message, 'error'); }
+    setLoading(false);
+  }
+
+  async function save() {
+    if (!form.title.trim() || !form.message.trim()) return toast('Title and message required', 'error');
+    setSaving(true);
+    try {
+      await api('POST', '/api/notifications', form);
+      toast('Notification sent!', 'success');
+      setShowForm(false);
+      setForm({ title:'', message:'', type:'info', targetPlans:ALL_PLANS, pinned:false });
+      load();
+    } catch (e) { toast(e.message, 'error'); }
+    setSaving(false);
+  }
+
+  async function toggle(id, field, val) {
+    try { await api('PATCH', `/api/notifications/${id}`, { [field]: val }); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function del(id) {
+    if (!window.confirm('Delete this notification?')) return;
+    try { await api('DELETE', `/api/notifications/${id}`); toast('Deleted', 'info'); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  }
+
+  function togglePlan(plan) {
+    setForm(f => ({
+      ...f,
+      targetPlans: f.targetPlans.includes(plan)
+        ? f.targetPlans.filter(p => p !== plan)
+        : [...f.targetPlans, plan],
+    }));
+  }
+
+  return (
+    <div style={{ padding:24, display:'flex', flexDirection:'column', gap:16, maxWidth:960, margin:'0 auto' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10 }}>
+        <div>
+          <h2 style={{ fontSize:18, fontWeight:800, color:'var(--gray-900)' }}>Notifications</h2>
+          <p style={{ fontSize:12.5, color:'var(--gray-500)', marginTop:2 }}>Push messages to your students inside the portal</p>
+        </div>
+        <Btn variant="primary" onClick={() => setShowForm(s => !s)}>
+          <Bell size={13}/> {showForm ? 'Cancel' : 'New Notification'}
+        </Btn>
+      </div>
+
+      {/* Create form */}
+      <AnimatePresence>
+        {showForm && (
+          <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }} style={{ overflow:'hidden' }}>
+            <div className="card" style={{ padding:24, display:'flex', flexDirection:'column', gap:14 }}>
+              <div style={{ fontSize:14, fontWeight:800, color:'var(--gray-900)', marginBottom:2 }}>Create Notification</div>
+              <FormGroup label="Title">
+                <input value={form.title} onChange={e => setForm(f => ({...f, title:e.target.value}))} placeholder="e.g. New A-Level papers added!" maxLength={80}/>
+              </FormGroup>
+              <FormGroup label="Message">
+                <textarea value={form.message} onChange={e => setForm(f => ({...f, message:e.target.value}))} placeholder="Write your message to students…" rows={3} maxLength={400} style={{ resize:'vertical', fontFamily:'inherit', padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--gray-200)', fontSize:14, width:'100%', boxSizing:'border-box' }}/>
+              </FormGroup>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                <FormGroup label="Type">
+                  <select value={form.type} onChange={e => setForm(f => ({...f, type:e.target.value}))} style={{ width:'100%' }}>
+                    {['info','success','warning','alert'].map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+                  </select>
+                </FormGroup>
+                <FormGroup label="Pin to top">
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}>
+                    <button onClick={() => setForm(f => ({...f, pinned:!f.pinned}))} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontFamily:'inherit', fontSize:13, color:'var(--gray-700)' }}>
+                      {form.pinned ? <ToggleRight size={22} style={{ color:'#7c3aed' }}/> : <ToggleLeft size={22} style={{ color:'var(--gray-400)' }}/>}
+                      {form.pinned ? 'Pinned' : 'Not pinned'}
+                    </button>
+                  </div>
+                </FormGroup>
+              </div>
+              <FormGroup label="Target Plans (who sees this)">
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                  {ALL_PLANS.map(plan => (
+                    <button key={plan} onClick={() => togglePlan(plan)}
+                      style={{ padding:'4px 12px', borderRadius:99, fontSize:12, fontWeight:700, cursor:'pointer', border:`1.5px solid ${form.targetPlans.includes(plan)?PLAN_COLOR[plan]:C.gray200}`, background:form.targetPlans.includes(plan)?PLAN_COLOR[plan]+'20':'transparent', color:form.targetPlans.includes(plan)?PLAN_COLOR[plan]:'var(--gray-500)', fontFamily:'inherit', transition:'all .14s' }}>
+                      {plan}
+                    </button>
+                  ))}
+                </div>
+              </FormGroup>
+              <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+                <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
+                <Btn variant="primary" onClick={save} disabled={saving}>
+                  {saving ? <><span className="spinner spinner-sm"/> Sending…</> : <><Send size={13}/> Send Notification</>}
+                </Btn>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* List */}
+      <div className="card" style={{ overflow:'hidden' }}>
+        {loading ? (
+          <div style={{ padding:52, textAlign:'center' }}><span className="spinner"/></div>
+        ) : items.length === 0 ? (
+          <div style={{ padding:'56px 20px', textAlign:'center' }}>
+            <Bell size={40} style={{ color:'var(--gray-300)', marginBottom:14 }}/>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--gray-900)', marginBottom:4 }}>No notifications yet</div>
+            <div style={{ fontSize:13, color:'var(--gray-500)' }}>Create one to communicate with your students.</div>
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column' }}>
+            {items.map((n, i) => {
+              const tc = NOTIF_TYPE_COLOR[n.type] || '#2563eb';
+              const tb = NOTIF_TYPE_BG[n.type] || '#eff6ff';
+              return (
+                <motion.div key={n._id} initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*.03 }}
+                  style={{ padding:'16px 20px', borderBottom:i<items.length-1?'1px solid var(--gray-100)':'none', display:'flex', alignItems:'flex-start', gap:14 }}>
+                  <div style={{ width:36, height:36, borderRadius:10, background:tb, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <Bell size={16} style={{ color:tc }}/>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:3 }}>
+                      <span style={{ fontSize:14, fontWeight:800, color:'var(--gray-900)' }}>{n.title}</span>
+                      {n.pinned && <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:99, background:'#f5f3ff', color:'#7c3aed', border:'1px solid #c4b5fd' }}>📌 Pinned</span>}
+                      <span style={{ fontSize:10.5, fontWeight:700, padding:'2px 8px', borderRadius:99, background:tb, color:tc, border:`1px solid ${tc}30` }}>{n.type}</span>
+                      <span style={{ fontSize:11, color:'var(--gray-400)', marginLeft:'auto' }}>{new Date(n.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <p style={{ fontSize:13.5, color:'var(--gray-600)', lineHeight:1.6, margin:'0 0 8px' }}>{n.message}</p>
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                      {(n.targetPlans || []).map(plan => (
+                        <span key={plan} style={{ fontSize:10.5, fontWeight:700, padding:'2px 8px', borderRadius:99, background:PLAN_BADGE_BG[plan]||'#f3f4f6', color:PLAN_COLOR[plan]||'#6b7280', border:`1px solid ${PLAN_COLOR[plan]||'#9ca3af'}30` }}>{plan}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                    <button onClick={() => toggle(n._id, 'active', !n.active)} title={n.active ? 'Deactivate' : 'Activate'}
+                      style={{ width:30, height:30, borderRadius:7, border:'1.5px solid var(--gray-200)', background:n.active?'#f0fdf4':'var(--gray-50)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all .14s' }}>
+                      {n.active ? <CheckCircle size={13} style={{ color:'#059669' }}/> : <X size={13} style={{ color:'var(--gray-400)' }}/>}
+                    </button>
+                    <button onClick={() => del(n._id)} style={{ width:30, height:30, borderRadius:7, border:'1.5px solid var(--gray-200)', background:'var(--gray-50)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition:'all .14s' }}>
+                      <Trash2 size={12} style={{ color:'var(--red)' }}/>
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const PLAN_BADGE_BG = { FREE:'#f3f4f6', STARTER:'#eff6ff', BASIC:'#f0fdf4', PRO:'#f5f3ff', PREMIUM:'#fffbeb' };
+
+/* ══════════════════════════════════════════════════════════════════
+   TEAM TAB
+   ══════════════════════════════════════════════════════════════════ */
+function TeamTab({ api, toast }) {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editId, setEditId]   = useState(null);
+  const [form, setForm]       = useState({ name:'', title:'', role:'', photo:'', quote:'', order:0 });
+  const [saving, setSaving]   = useState(false);
+
+  useEffect(() => { load(); }, []);
+  async function load() {
+    setLoading(true);
+    try { const d = await api('GET', '/api/team'); setMembers(d || []); }
+    catch (e) { toast(e.message, 'error'); }
+    setLoading(false);
+  }
+
+  function startEdit(m) { setEditId(m._id); setForm({ name:m.name, title:m.title, role:m.role, photo:m.photo||'', quote:m.quote||'', order:m.order||0 }); }
+  function startNew()   { setEditId('new'); setForm({ name:'', title:'', role:'', photo:'', quote:'', order:members.length }); }
+  function cancelEdit() { setEditId(null); }
+
+  async function save() {
+    if (!form.name || !form.title || !form.role) return toast('Name, title and role required', 'error');
+    setSaving(true);
+    try {
+      if (editId === 'new') await api('POST', '/api/team', form);
+      else await api('PATCH', `/api/team/${editId}`, form);
+      toast('Saved!', 'success'); setEditId(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+    setSaving(false);
+  }
+
+  async function del(id) {
+    if (!window.confirm('Delete this team member?')) return;
+    try { await api('DELETE', `/api/team/${id}`); toast('Removed', 'info'); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  }
+
+  const editing = editId !== null;
+
+  return (
+    <div style={{ padding:24, display:'flex', flexDirection:'column', gap:16, maxWidth:960, margin:'0 auto' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10 }}>
+        <div>
+          <h2 style={{ fontSize:18, fontWeight:800, color:'var(--gray-900)' }}>Team Members</h2>
+          <p style={{ fontSize:12.5, color:'var(--gray-500)', marginTop:2 }}>Manage the leadership team shown on the About Us page</p>
+        </div>
+        {!editing && <Btn variant="primary" onClick={startNew}><Plus size={13}/> Add Member</Btn>}
+      </div>
+
+      {/* Edit/create form */}
+      <AnimatePresence>
+        {editing && (
+          <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }} style={{ overflow:'hidden' }}>
+            <div className="card" style={{ padding:24, display:'flex', flexDirection:'column', gap:12 }}>
+              <div style={{ fontSize:14, fontWeight:800, color:'var(--gray-900)' }}>{editId==='new'?'Add Team Member':'Edit Team Member'}</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                <FormGroup label="Full Name"><input value={form.name} onChange={e => setForm(f => ({...f, name:e.target.value}))} placeholder="e.g. Darrell Mucheri"/></FormGroup>
+                <FormGroup label="Job Title"><input value={form.title} onChange={e => setForm(f => ({...f, title:e.target.value}))} placeholder="e.g. Chief Executive Officer"/></FormGroup>
+                <FormGroup label="Role (short)"><input value={form.role} onChange={e => setForm(f => ({...f, role:e.target.value}))} placeholder="e.g. CEO & Lead Engineer"/></FormGroup>
+                <FormGroup label="Display Order"><input type="number" value={form.order} onChange={e => setForm(f => ({...f, order:Number(e.target.value)}))} min={0}/></FormGroup>
+              </div>
+              <FormGroup label="Photo URL (from CDN)">
+                <input value={form.photo} onChange={e => setForm(f => ({...f, photo:e.target.value}))} placeholder="https://media.mrfrankofc.gleeze.com/…"/>
+                <div style={{ fontSize:11.5, color:'var(--gray-400)', marginTop:4 }}>Upload photo to the CDN and paste its URL here. Leave blank to use an avatar with initials.</div>
+              </FormGroup>
+              {form.photo && (
+                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <img src={form.photo} alt="" style={{ width:56, height:56, borderRadius:'50%', objectFit:'cover', border:'2px solid var(--purple)' }} onError={e=>{e.target.style.display='none';}}/>
+                  <span style={{ fontSize:12.5, color:'var(--gray-500)' }}>Photo preview</span>
+                </div>
+              )}
+              <FormGroup label="Quote / Bio">
+                <textarea value={form.quote} onChange={e => setForm(f => ({...f, quote:e.target.value}))} placeholder="A short quote or bio…" rows={2} maxLength={300} style={{ fontFamily:'inherit', padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--gray-200)', fontSize:14, width:'100%', boxSizing:'border-box', resize:'vertical' }}/>
+              </FormGroup>
+              <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+                <Btn variant="ghost" onClick={cancelEdit}>Cancel</Btn>
+                <Btn variant="primary" onClick={save} disabled={saving}>
+                  {saving ? <><span className="spinner spinner-sm"/> Saving…</> : <><Save size={13}/> Save Member</>}
+                </Btn>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Members list */}
+      <div className="card" style={{ overflow:'hidden' }}>
+        {loading ? (
+          <div style={{ padding:52, textAlign:'center' }}><span className="spinner"/></div>
+        ) : members.length === 0 ? (
+          <div style={{ padding:'56px 20px', textAlign:'center' }}>
+            <UserCog size={40} style={{ color:'var(--gray-300)', marginBottom:14 }}/>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--gray-900)', marginBottom:4 }}>No team members yet</div>
+            <div style={{ fontSize:13, color:'var(--gray-500)' }}>Add the leadership team that will appear on your About page.</div>
+          </div>
+        ) : (
+          <div>
+            {members.map((m, i) => (
+              <motion.div key={m._id} initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }} transition={{ delay:i*.04 }}
+                style={{ display:'flex', alignItems:'center', gap:14, padding:'16px 20px', borderBottom:i<members.length-1?'1px solid var(--gray-100)':'none' }}>
+                <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, overflow:'hidden', background:'linear-gradient(135deg,#7c3aed,#a78bfa)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  {m.photo
+                    ? <img src={m.photo} alt={m.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>{e.target.style.display='none';}}/>
+                    : <span style={{ color:'#fff', fontWeight:800, fontSize:16 }}>{m.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</span>}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:14.5, fontWeight:800, color:'var(--gray-900)' }}>{m.name}</div>
+                  <div style={{ fontSize:12.5, color:'var(--gray-500)' }}>{m.title} · <span style={{ color:'#7c3aed', fontWeight:600 }}>{m.role}</span></div>
+                  {m.quote && <div style={{ fontSize:12, color:'var(--gray-400)', marginTop:3, fontStyle:'italic', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>"{m.quote}"</div>}
+                </div>
+                <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                  <Btn variant="ghost" size="xs" onClick={() => startEdit(m)}><Edit3 size={11}/> Edit</Btn>
+                  <Btn variant="danger" size="xs" onClick={() => del(m._id)}><Trash2 size={11}/></Btn>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
    MAIN ADMIN PAGE
    ══════════════════════════════════════════════════════════════════ */
 const TABS = [
-  { id:'resources', label:'Resources',   icon:Database },
-  { id:'analytics', label:'Analytics',   icon:BarChart3 },
-  { id:'users',     label:'Students',    icon:Users },
-  { id:'pending',   label:'Pending',     icon:Clock },
-  { id:'limits',    label:'Plan Limits', icon:Settings },
+  { id:'resources',      label:'Resources',     icon:Database },
+  { id:'analytics',      label:'Analytics',     icon:BarChart3 },
+  { id:'users',          label:'Students',      icon:Users },
+  { id:'pending',        label:'Pending',       icon:Clock },
+  { id:'limits',         label:'Plan Limits',   icon:Settings },
+  { id:'notifications',  label:'Notifications', icon:Bell },
+  { id:'team',           label:'Team',          icon:UserCog },
 ];
 
 export default function AdminPage() {
@@ -1287,11 +1587,13 @@ export default function AdminPage() {
       {/* Content */}
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} transition={{ duration:.14, ease:[.4,0,.2,1] }}>
-          {activeTab==='resources' && <ResourcesTab api={api} upload={upload} toast={toast} />}
-          {activeTab==='analytics' && <AnalyticsTab api={api} toast={toast} />}
-          {activeTab==='users'     && <UsersTab api={api} toast={toast} />}
-          {activeTab==='pending'   && <PendingTab api={api} toast={toast} />}
-          {activeTab==='limits'    && <PlanLimitsTab api={api} toast={toast} />}
+          {activeTab==='resources'     && <ResourcesTab api={api} upload={upload} toast={toast} />}
+          {activeTab==='analytics'     && <AnalyticsTab api={api} toast={toast} />}
+          {activeTab==='users'         && <UsersTab api={api} toast={toast} />}
+          {activeTab==='pending'       && <PendingTab api={api} toast={toast} />}
+          {activeTab==='limits'        && <PlanLimitsTab api={api} toast={toast} />}
+          {activeTab==='notifications' && <NotificationsTab api={api} toast={toast} />}
+          {activeTab==='team'          && <TeamTab api={api} toast={toast} />}
         </motion.div>
       </AnimatePresence>
     </div>

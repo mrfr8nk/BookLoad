@@ -189,6 +189,29 @@ const settingsSchema = new mongoose.Schema({
 }, { timestamps: true });
 const SettingsModel = mongoose.models?.Settings || mongoose.model('Settings', settingsSchema);
 
+// ─── Notification model ────────────────────────────────────────────────────────
+const notificationSchema = new mongoose.Schema({
+  title:       { type: String, required: true },
+  message:     { type: String, required: true },
+  type:        { type: String, default: 'info', enum: ['info','success','warning','alert'] },
+  targetPlans: { type: [String], default: ['FREE','STARTER','BASIC','PRO','PREMIUM'] },
+  active:      { type: Boolean, default: true },
+  pinned:      { type: Boolean, default: false },
+}, { timestamps: true });
+const NotificationModel = mongoose.models?.Notification || mongoose.model('Notification', notificationSchema);
+
+// ─── Team member model ─────────────────────────────────────────────────────────
+const teamSchema = new mongoose.Schema({
+  name:    { type: String, required: true },
+  title:   { type: String, required: true },
+  role:    { type: String, required: true },
+  photo:   { type: String, default: '' },
+  quote:   { type: String, default: '' },
+  order:   { type: Number, default: 0 },
+  active:  { type: Boolean, default: true },
+}, { timestamps: true });
+const TeamModel = mongoose.models?.Team || mongoose.model('Team', teamSchema);
+
 // ─── Plan limits (mutable — updated by admin portal) ──────────────────────────
 let PLAN_LIMITS = {
   FREE:    { chat: 25,    images: 3,    pdf: 1,    projects: 2,    library: 5,    period: 'daily'   },
@@ -1423,6 +1446,99 @@ app.put('/api/plan-limits', requireAuth, async (req, res) => {
     );
     PLAN_LIMITS = limits;
     res.json({ ok: true, limits: PLAN_LIMITS });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Notifications (admin) ────────────────────────────────────────────────────
+app.get('/api/notifications', requireAuth, async (_req, res) => {
+  try {
+    const notifs = await NotificationModel.find().sort({ pinned: -1, createdAt: -1 }).lean();
+    res.json(notifs);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/notifications', requireAuth, async (req, res) => {
+  try {
+    const { title, message, type = 'info', targetPlans, pinned = false } = req.body;
+    if (!title || !message) return res.status(400).json({ error: 'title and message required' });
+    const plans = Array.isArray(targetPlans) && targetPlans.length > 0
+      ? targetPlans
+      : ['FREE','STARTER','BASIC','PRO','PREMIUM'];
+    const n = await NotificationModel.create({ title, message, type, targetPlans: plans, pinned, active: true });
+    res.json(n);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/notifications/:id', requireAuth, async (req, res) => {
+  try {
+    const n = await NotificationModel.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+    if (!n) return res.status(404).json({ error: 'Not found' });
+    res.json(n);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/notifications/:id', requireAuth, async (req, res) => {
+  try {
+    await NotificationModel.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Notifications (student) ──────────────────────────────────────────────────
+app.get('/api/student/notifications', requireStudent, async (req, res) => {
+  try {
+    const user = await UserModel.findOne({ phone: req.student.phone }).select('plan').lean();
+    const plan = user?.plan || 'FREE';
+    const notifs = await NotificationModel.find({ active: true, targetPlans: plan })
+      .sort({ pinned: -1, createdAt: -1 }).limit(20).lean();
+    res.json(notifs);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Team members (public read, admin write) ──────────────────────────────────
+app.get('/api/team', async (_req, res) => {
+  try {
+    const members = await TeamModel.find({ active: true }).sort({ order: 1, createdAt: 1 }).lean();
+    res.json(members);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/team', requireAuth, async (req, res) => {
+  try {
+    const { name, title, role, photo = '', quote = '', order = 0 } = req.body;
+    if (!name || !title || !role) return res.status(400).json({ error: 'name, title and role required' });
+    const m = await TeamModel.create({ name, title, role, photo, quote, order, active: true });
+    res.json(m);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/team/:id', requireAuth, async (req, res) => {
+  try {
+    const m = await TeamModel.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+    if (!m) return res.status(404).json({ error: 'Not found' });
+    res.json(m);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/team/:id', requireAuth, async (req, res) => {
+  try {
+    await TeamModel.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Recent materials (public) ─────────────────────────────────────────────────
+app.get('/api/public/recent-materials', async (req, res) => {
+  try {
+    const { level, limit = 8 } = req.query;
+    const query = { approved: true };
+    if (level) query.level = level;
+    const items = await MaterialModel.find(query)
+      .select('title subject level category year mimeType createdAt')
+      .sort({ createdAt: -1 })
+      .limit(Math.min(Number(limit), 20))
+      .lean();
+    res.json(items);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -8,6 +8,7 @@ import TermsPage    from './pages/TermsPage.jsx';
 import HelpPage     from './pages/HelpPage.jsx';
 import StudentAuth  from './pages/StudentAuth.jsx';
 import StudentApp   from './pages/StudentApp.jsx';
+import AboutPage    from './pages/AboutPage.jsx';
 import { ToastProvider } from './hooks/useToast.jsx';
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/"            element={<LandingPage />} />
+          <Route path="/about"       element={<AboutPage />} />
           <Route path="/upload"      element={<UploadPage />} />
           <Route path="/admin"       element={<AdminPage />} />
           <Route path="/contact"     element={<ContactPage />} />

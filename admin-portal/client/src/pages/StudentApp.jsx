@@ -7,6 +7,7 @@ import {
   ChevronDown, Brain, Trophy, RotateCcw, PlayCircle, Star,
   Flame, Target, BarChart3, Menu, Sun, Moon, Camera, X, Eye,
   FolderOpen, Lock, FileCheck, BookMarked, Gift, UploadCloud, Share2, Link2,
+  Bell, Info, CheckCircle, AlertTriangle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -1973,6 +1974,23 @@ export default function StudentApp() {
 
   const plan = profile?.plan || 'FREE';
 
+  // ── Notifications ─────────────────────────────────────────────
+  const [notifications, setNotifications] = useState([]);
+  const [notifOpen, setNotifOpen]         = useState(false);
+  const [notifSeen, setNotifSeen]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem('fundo_notif_seen') || '[]'); } catch { return []; }
+  });
+  useEffect(() => {
+    if (!tok()) return;
+    api('/api/student/notifications').then(d => setNotifications(d || [])).catch(() => {});
+  }, [refreshKey]);
+  const unread = notifications.filter(n => !notifSeen.includes(n._id)).length;
+  function markSeen() {
+    const ids = notifications.map(n => n._id);
+    setNotifSeen(ids);
+    localStorage.setItem('fundo_notif_seen', JSON.stringify(ids));
+  }
+
   const tabProps = { profile, plan, isMobile, p, limits, bumpUsage };
 
   return (
@@ -2018,6 +2036,64 @@ export default function StudentApp() {
               </motion.button>
             )}
             {!isMobile && profile?.school && <span style={{ fontSize:12, color:p.dim, maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{profile.school}</span>}
+
+            {/* Notification Bell */}
+            <div style={{ position:'relative' }}>
+              <motion.button onClick={() => { setNotifOpen(o => !o); if (!notifOpen) markSeen(); }} whileTap={{ scale:.88 }}
+                style={{ width:34, height:34, borderRadius:9, background:p.surface, border:`1px solid ${p.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', position:'relative' }}>
+                <Bell size={15} style={{ color: unread > 0 ? p.accent : p.muted }}/>
+                {unread > 0 && (
+                  <motion.div initial={{ scale:0 }} animate={{ scale:1 }} style={{ position:'absolute', top:-4, right:-4, width:17, height:17, borderRadius:'50%', background:'#ef4444', border:`2px solid ${p.pageBg}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ fontSize:9, fontWeight:800, color:'#fff' }}>{unread > 9 ? '9+' : unread}</span>
+                  </motion.div>
+                )}
+              </motion.button>
+
+              <AnimatePresence>
+                {notifOpen && (
+                  <>
+                    <motion.div key="notif-overlay" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+                      onClick={() => setNotifOpen(false)}
+                      style={{ position:'fixed', inset:0, zIndex:50 }}/>
+                    <motion.div key="notif-panel" initial={{ opacity:0, y:-8, scale:.97 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:-6, scale:.97 }} transition={{ duration:.14 }}
+                      style={{ position:'absolute', top:42, right:0, width:320, maxWidth:'90vw', background:p.pageBg, border:`1px solid ${p.border}`, borderRadius:16, boxShadow:p.shadowLg, zIndex:100, overflow:'hidden' }}>
+                      <div style={{ padding:'12px 16px', borderBottom:`1px solid ${p.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <div style={{ fontSize:13.5, fontWeight:800, color:p.text }}>Notifications</div>
+                        <button onClick={() => setNotifOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:p.dim, display:'flex' }}><X size={14}/></button>
+                      </div>
+                      <div style={{ maxHeight:340, overflowY:'auto' }}>
+                        {notifications.length === 0 ? (
+                          <div style={{ padding:'32px 16px', textAlign:'center' }}>
+                            <Bell size={28} style={{ color:p.dim, marginBottom:10 }}/>
+                            <div style={{ fontSize:13.5, fontWeight:700, color:p.text, marginBottom:4 }}>All clear!</div>
+                            <div style={{ fontSize:12.5, color:p.muted }}>No notifications right now.</div>
+                          </div>
+                        ) : notifications.map((n, i) => {
+                          const TYPE_COLOR = { info:'#2563eb', success:'#059669', warning:'#d97706', alert:'#ef4444' };
+                          const TYPE_ICON  = { info:Info, success:CheckCircle, warning:AlertTriangle, alert:AlertCircle };
+                          const Ico = TYPE_ICON[n.type] || Info;
+                          const cc  = TYPE_COLOR[n.type] || '#2563eb';
+                          return (
+                            <motion.div key={n._id} initial={{ opacity:0, x:6 }} animate={{ opacity:1, x:0 }} transition={{ delay:i*.04 }}
+                              style={{ padding:'12px 16px', borderBottom:i<notifications.length-1?`1px solid ${p.border}`:'none', display:'flex', gap:11, alignItems:'flex-start' }}>
+                              <div style={{ width:30, height:30, borderRadius:8, background:`${cc}18`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                                <Ico size={14} style={{ color:cc }}/>
+                              </div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:13, fontWeight:800, color:p.text, marginBottom:2 }}>{n.title}</div>
+                                <div style={{ fontSize:12.5, color:p.muted, lineHeight:1.6 }}>{n.message}</div>
+                                <div style={{ fontSize:11, color:p.dim, marginTop:5 }}>{new Date(n.createdAt).toLocaleDateString()}</div>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
             <PlanBadge plan={plan} p={p}/>
           </div>
         </div>
