@@ -8,6 +8,7 @@ import {
   Layers, UserCheck, BookMarked, Activity, Settings, Save,
   MessageSquare, Image, Globe, Crown, Flame, Brain,
   Bell, Pin, Send, UserCog, Plus, ToggleLeft, ToggleRight,
+  Calendar, Sparkles, Gift, Rocket,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast.jsx';
 import { useApi } from '../hooks/useApi.js';
@@ -1362,6 +1363,168 @@ function NotificationsTab({ api, toast }) {
 const PLAN_BADGE_BG = { FREE:'#f3f4f6', STARTER:'#eff6ff', BASIC:'#f0fdf4', PRO:'#f5f3ff', PREMIUM:'#fffbeb' };
 
 /* ══════════════════════════════════════════════════════════════════
+   SPECIAL OCCASIONS TAB
+   ══════════════════════════════════════════════════════════════════ */
+const OCCASION_PRESETS = [
+  { name:'Christmas 🎄',        desc:'Happy Christmas! Enjoy unlimited access as our festive gift.',               days:3  },
+  { name:'New Year 🎆',          desc:'Happy New Year! Start fresh with unlimited AI study power for all.',         days:2  },
+  { name:'Independence Day 🇿🇼', desc:'Happy Zimbabwe Independence Day! Celebrating with unlimited access today.',  days:1  },
+  { name:'Fundo Anniversary 🎂', desc:"It's our anniversary! Unlimited access for 48 hours — thank you!",          days:2  },
+  { name:'Back to School 📚',    desc:'Back to school season! Unlimited AI resources for the entire week.',         days:7  },
+  { name:'Exam Season 📝',       desc:'Exam season is here! Unlimited access so you can study without limits.',     days:14 },
+  { name:"Valentine's Day 💜",   desc:'Study smarter with love! Unlimited Fundo AI access today.',                  days:1  },
+  { name:'Easter 🐣',            desc:'Happy Easter! Celebrate with unlimited Fundo AI access.',                    days:2  },
+];
+
+function OccasionsTab({ api, toast }) {
+  const [event, setEvent]     = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [form, setForm]       = useState({ name:'', desc:'', active:false, endsAt:'' });
+  const setF = (k, v) => setForm(f => ({ ...f, [k]:v }));
+
+  useEffect(() => {
+    api('GET', '/api/special-event').then(d => {
+      if (d) {
+        setEvent(d);
+        setForm({ name:d.name||'', desc:d.desc||'', active:!!d.active, endsAt:d.endsAt ? new Date(d.endsAt).toISOString().slice(0,16) : '' });
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  function applyPreset(p) {
+    const end = new Date(Date.now() + p.days * 86400000).toISOString().slice(0,16);
+    setForm({ name:p.name, desc:p.desc, active:true, endsAt:end });
+  }
+
+  async function save() {
+    if (!form.name.trim()) return toast('Event name required', 'error');
+    setSaving(true);
+    try {
+      const payload = { name:form.name, desc:form.desc, active:form.active, endsAt:form.endsAt ? new Date(form.endsAt).toISOString() : null };
+      const d = await api('PUT', '/api/special-event', payload);
+      setEvent(d.event);
+      toast(form.active ? `🎉 "${form.name}" is now live for all users!` : 'Event saved (inactive)', 'success');
+    } catch(e) { toast(e.message, 'error'); }
+    setSaving(false);
+  }
+
+  async function deactivate() {
+    setSaving(true);
+    try {
+      const d = await api('PUT', '/api/special-event', { ...form, active:false, endsAt:form.endsAt ? new Date(form.endsAt).toISOString() : null });
+      setEvent(d.event); setF('active', false);
+      toast('Event deactivated — normal limits restored', 'info');
+    } catch(e) { toast(e.message, 'error'); }
+    setSaving(false);
+  }
+
+  const isLive = event?.active && (!event?.endsAt || new Date(event.endsAt) > new Date());
+  const fmtDate = s => s ? new Date(s).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'No end date';
+
+  if (loading) return <div style={{ padding:48, textAlign:'center' }}><RefreshCw size={22} style={{ color:'#7c3aed', animation:'spin .8s linear infinite' }}/></div>;
+
+  return (
+    <div style={{ padding:'32px 24px', maxWidth:900, margin:'0 auto' }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:28 }}>
+        <div style={{ width:42, height:42, borderRadius:12, background:'linear-gradient(135deg,#7c3aed,#a855f7)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <Calendar size={20} style={{ color:'#fff' }}/>
+        </div>
+        <div>
+          <h2 style={{ fontSize:20, fontWeight:900, color:'var(--gray-900)', margin:0 }}>Special Occasions</h2>
+          <p style={{ fontSize:13, color:'var(--gray-500)', margin:0 }}>Grant ALL users unlimited access for a period — Christmas, Independence Day, anniversaries, exam season & more.</p>
+        </div>
+      </div>
+
+      {/* Live event banner */}
+      {isLive && (
+        <div style={{ borderRadius:16, padding:'18px 24px', marginBottom:28, background:'linear-gradient(135deg,#7c3aed,#a855f7)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, boxShadow:'0 8px 24px rgba(124,58,237,.35)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <Sparkles size={22}/>
+            <div>
+              <div style={{ fontSize:17, fontWeight:900 }}>🎉 LIVE: {event.name}</div>
+              <div style={{ fontSize:12, opacity:.88 }}>All users have unlimited access · Ends {fmtDate(event.endsAt)}</div>
+            </div>
+          </div>
+          <button onClick={deactivate} disabled={saving}
+            style={{ padding:'9px 18px', borderRadius:9, background:'rgba(255,255,255,.2)', border:'1.5px solid rgba(255,255,255,.4)', color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit', transition:'all .15s' }}>
+            Deactivate Now
+          </button>
+        </div>
+      )}
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24, alignItems:'start' }}>
+        {/* Left — presets */}
+        <div>
+          <div style={{ fontSize:13, fontWeight:800, color:'var(--gray-700)', marginBottom:12 }}>Quick Presets</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+            {OCCASION_PRESETS.map(p => (
+              <button key={p.name} onClick={() => applyPreset(p)}
+                style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px', borderRadius:11, border:'1.5px solid var(--gray-200)', background:'#fff', cursor:'pointer', textAlign:'left', fontFamily:'inherit', transition:'all .15s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor='#7c3aed'; e.currentTarget.style.background='#faf5ff'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor='var(--gray-200)'; e.currentTarget.style.background='#fff'; }}>
+                <div style={{ fontSize:24, lineHeight:1, flexShrink:0 }}>{p.name.match(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{27BF}]/u)?.[0] || '🎉'}</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:'var(--gray-900)' }}>{p.name.replace(/\s[\S]*[\u{1F300}-\u{1FFFF}\u{2600}-\u{27BF}][\S]*$/u,'').trim()}</div>
+                  <div style={{ fontSize:11, color:'var(--gray-500)', marginTop:1 }}>{p.days} day{p.days>1?'s':''} · Unlimited access for everyone</div>
+                </div>
+                <Rocket size={12} style={{ color:'#7c3aed', flexShrink:0 }}/>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right — form */}
+        <div>
+          <div style={{ fontSize:13, fontWeight:800, color:'var(--gray-700)', marginBottom:12 }}>Event Configuration</div>
+          <div style={{ background:'#fff', border:'1.5px solid var(--gray-200)', borderRadius:14, padding:'22px', display:'flex', flexDirection:'column', gap:16 }}>
+            <FormGroup label="Event Name *">
+              <input value={form.name} onChange={e => setF('name', e.target.value)} placeholder="e.g. Christmas 2026 🎄"
+                style={{ padding:'9px 12px', borderRadius:8, border:'1.5px solid var(--gray-200)', fontSize:13.5, fontFamily:'inherit', outline:'none', width:'100%', boxSizing:'border-box' }}/>
+            </FormGroup>
+            <FormGroup label="Message / Description (optional)">
+              <textarea value={form.desc} onChange={e => setF('desc', e.target.value)} rows={2} placeholder="e.g. Happy Christmas! Enjoy unlimited access as our gift to you."
+                style={{ padding:'9px 12px', borderRadius:8, border:'1.5px solid var(--gray-200)', fontSize:13.5, fontFamily:'inherit', outline:'none', resize:'vertical', width:'100%', boxSizing:'border-box' }}/>
+            </FormGroup>
+            <FormGroup label="Auto-Deactivate At (leave blank for manual stop)">
+              <input type="datetime-local" value={form.endsAt} onChange={e => setF('endsAt', e.target.value)}
+                style={{ padding:'9px 12px', borderRadius:8, border:'1.5px solid var(--gray-200)', fontSize:13.5, fontFamily:'inherit', outline:'none', width:'100%', boxSizing:'border-box' }}/>
+            </FormGroup>
+
+            {/* Active toggle */}
+            <button onClick={() => setF('active', !form.active)}
+              style={{ display:'flex', alignItems:'center', gap:10, background:'none', border:`1.5px solid ${form.active?'#7c3aed':'var(--gray-200)'}`, borderRadius:10, padding:'10px 14px', cursor:'pointer', fontFamily:'inherit', background:form.active?'#faf5ff':'#f9fafb', transition:'all .2s' }}>
+              {form.active ? <ToggleRight size={26} style={{ color:'#7c3aed', flexShrink:0 }}/> : <ToggleLeft size={26} style={{ color:'var(--gray-400)', flexShrink:0 }}/>}
+              <div style={{ textAlign:'left' }}>
+                <div style={{ fontSize:13, fontWeight:700, color:form.active?'#6d28d9':'var(--gray-600)' }}>{form.active ? 'Active — unlimited access for all users' : 'Inactive — normal plan limits apply'}</div>
+                <div style={{ fontSize:11, color:'var(--gray-400)', marginTop:1 }}>Click to toggle</div>
+              </div>
+            </button>
+
+            <button onClick={save} disabled={saving}
+              style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px 20px', borderRadius:10, border:'none', background:form.active?'linear-gradient(135deg,#7c3aed,#a855f7)':'var(--gray-100)', color:form.active?'#fff':'var(--gray-600)', fontSize:14, fontWeight:700, cursor:saving?'wait':'pointer', fontFamily:'inherit', opacity:saving?.7:1, boxShadow:form.active?'0 4px 14px rgba(124,58,237,.35)':'none', transition:'all .2s' }}>
+              {saving ? <RefreshCw size={14} style={{ animation:'spin .8s linear infinite' }}/> : <Save size={14}/>}
+              {saving ? 'Saving…' : form.active ? '🚀 Activate Event for All Users' : 'Save as Draft (Inactive)'}
+            </button>
+          </div>
+
+          <div style={{ marginTop:14, padding:'13px 15px', borderRadius:11, background:'#fffbeb', border:'1px solid #fde68a' }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'#92400e', marginBottom:6 }}>ℹ️ How it works</div>
+            <ul style={{ fontSize:12, color:'#78350f', lineHeight:1.75, paddingLeft:16, margin:0 }}>
+              <li>All users (FREE → PREMIUM) get unlimited chat, notes, images, projects & downloads</li>
+              <li>Usage counters still track but limits are completely bypassed</li>
+              <li>Auto-deactivates at the set time, or deactivate manually from the banner above</li>
+              <li>The event is visible to students as a celebration banner in the app</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
    TEAM TAB
    ══════════════════════════════════════════════════════════════════ */
 function TeamTab({ api, toast }) {
@@ -1496,6 +1659,7 @@ const TABS = [
   { id:'pending',        label:'Pending',       icon:Clock },
   { id:'limits',         label:'Plan Limits',   icon:Settings },
   { id:'notifications',  label:'Notifications', icon:Bell },
+  { id:'occasions',      label:'Occasions',     icon:Calendar },
   { id:'team',           label:'Team',          icon:UserCog },
 ];
 
@@ -1593,6 +1757,7 @@ export default function AdminPage() {
           {activeTab==='pending'       && <PendingTab api={api} toast={toast} />}
           {activeTab==='limits'        && <PlanLimitsTab api={api} toast={toast} />}
           {activeTab==='notifications' && <NotificationsTab api={api} toast={toast} />}
+          {activeTab==='occasions'     && <OccasionsTab api={api} toast={toast} />}
           {activeTab==='team'          && <TeamTab api={api} toast={toast} />}
         </motion.div>
       </AnimatePresence>

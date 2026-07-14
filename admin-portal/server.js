@@ -232,11 +232,29 @@ let PLAN_LIMITS = {
   PREMIUM: { chat: 9999, images: 9999, pdf: 9999, projects: 9999, library: 9999, period: 'monthly' },
 };
 
+// ─── Special event (temporary unlimited access for all users) ─────────────────
+let SPECIAL_EVENT = null;
+const UNLIMITED = { chat: 9999, images: 9999, pdf: 9999, projects: 9999, library: 9999, period: 'monthly' };
+
+function getEffectiveLimits(plan) {
+  if (SPECIAL_EVENT?.active) {
+    const expired = SPECIAL_EVENT.endsAt && new Date(SPECIAL_EVENT.endsAt) < new Date();
+    if (!expired) return UNLIMITED;
+    // Auto-expire in memory
+    SPECIAL_EVENT = { ...SPECIAL_EVENT, active: false };
+  }
+  return PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+}
+
 mongoose.connection.once('open', async () => {
   try {
     const saved = await SettingsModel.findOne({ key: 'planLimits' });
     if (saved?.value) { PLAN_LIMITS = saved.value; console.log('✅ Plan limits loaded from DB'); }
   } catch (e) { console.error('⚠️  Could not load plan limits:', e.message); }
+  try {
+    const ev = await SettingsModel.findOne({ key: 'specialEvent' });
+    if (ev?.value) { SPECIAL_EVENT = ev.value; console.log('✅ Special event loaded from DB:', SPECIAL_EVENT?.name || 'none'); }
+  } catch (e) { console.error('⚠️  Could not load special event:', e.message); }
 });
 
 // ─── AI Config ─────────────────────────────────────────────────────────────────
@@ -318,15 +336,23 @@ async function callBK92Retry(systemPrompt, userMessage, retries = 2) {
   throw lastErr || new Error('AI unavailable');
 }
 
-// Runs an array of async task-factories with limited concurrency — firing
-// too many large BK9 prompts at once causes timeouts/failures upstream, so
-// we process them in small batches instead of one giant Promise.all.
-async function runWithConcurrency(taskFactories, batchSize = 2) {
+// Runs an array of async task-factories with limited concurrency.
+// Uses Promise.allSettled so a single failed stage doesn't abort the batch;
+// failed stages are retried once with a short backoff before re-throwing.
+async function runWithConcurrency(taskFactories, batchSize = 3) {
   const results = [];
   for (let i = 0; i < taskFactories.length; i += batchSize) {
     const batch = taskFactories.slice(i, i + batchSize);
-    const batchResults = await Promise.all(batch.map(fn => fn()));
-    results.push(...batchResults);
+    const settled = await Promise.allSettled(batch.map(fn => fn()));
+    for (let j = 0; j < settled.length; j++) {
+      if (settled[j].status === 'fulfilled') {
+        results.push(settled[j].value);
+      } else {
+        // One retry with brief backoff before propagating the error
+        await new Promise(r => setTimeout(r, 1200));
+        results.push(await batch[j]());
+      }
+    }
   }
   return results;
 }
@@ -547,7 +573,7 @@ app.get('/api/student/me', requireStudent, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
     const plan = user.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     res.json({
       phone: user.phone, name: user.name, plan, school: user.school,
       levelType: user.levelType, levelLabel: user.levelLabel, grade: user.grade,
@@ -585,7 +611,7 @@ app.post('/api/student/chat', requireStudent, async (req, res) => {
     user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
 
     const plan = user.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     const isMonthly = limits.period === 'monthly';
     const chatUsed = isMonthly ? (user.usage?.chatMonth || 0) : (user.usage?.chatToday || 0);
     const extra = user.extraMessages || 0;
@@ -629,7 +655,7 @@ app.get('/api/student/generate-image', requireStudent, async (req, res) => {
     user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
 
     const plan = user.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     const isMonthly = limits.period === 'monthly';
     const imgUsed = isMonthly ? (user.usage?.imagesMonth || 0) : (user.usage?.imagesToday || 0);
     const extra = user.extraImages || 0;
@@ -665,7 +691,7 @@ app.post('/api/student/analyze-image', requireStudent, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
     const plan = user.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     const chatUsed = user.usage?.chatToday || 0;
     const extra = user.extraMessages || 0;
     if (chatUsed >= limits.chat + extra) {
@@ -706,7 +732,18 @@ app.get('/api/student/my-referral', requireStudent, async (req, res) => {
         { phone: req.student.phone }, { referralCode: code }, { new: true }
       );
     }
-    res.json({ referralCode: user.referralCode, referralCount: user.referralCount || 0 });
+    // Fetch students who signed up using this referral code
+    const referredUsers = await UserModel
+      .find({ referredBy: user.referralCode })
+      .select('name createdAt')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    res.json({
+      referralCode: user.referralCode,
+      referralCount: user.referralCount || 0,
+      referredUsers: referredUsers.map(u => ({ name: u.name || 'Student', joinedAt: u.createdAt })),
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -728,7 +765,7 @@ app.post('/api/student/generate-notes', requireStudent, async (req, res) => {
     user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
 
     const plan = user.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     const isMonthlyNotes = limits.period === 'monthly';
     const pdfUsed = isMonthlyNotes ? (user.usage?.pdfMonth || 0) : (user.usage?.pdfToday || 0);
     if (pdfUsed >= limits.pdf) {
@@ -795,7 +832,7 @@ app.post('/api/student/generate-mock-exam', requireStudent, async (req, res) => 
     user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
 
     const plan = user.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     const isMonthlyExam = limits.period === 'monthly';
     const pdfUsed = isMonthlyExam ? (user.usage?.pdfMonth || 0) : (user.usage?.pdfToday || 0);
     if (pdfUsed >= limits.pdf) {
@@ -864,7 +901,7 @@ app.post('/api/student/generate-project', requireStudent, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
     const plan = user.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     const projectLimit = limits.projects ?? 2;
     const projectsUsed = user.usage?.projectsMonth || 0;
     if (projectsUsed >= projectLimit && (user.extraProjects || 0) <= 0) {
@@ -901,10 +938,7 @@ app.post('/api/student/generate-project', requireStudent, async (req, res) => {
       { role: 'user', content: prompt + materialsContext },
     ]);
 
-    // Run all 7 stages fully in parallel — each stage independently races NVIDIA + BK9
-    // (resolving in ~5–12 s), so running them all at once finishes the project in
-    // ~12–18 s instead of the old 3-batch approach (which could hit 40–60 s and
-    // exceed reverse-proxy timeouts).
+    // Run 7 stages in batches of 3 with allSettled + per-stage retry for resilience.
     const [preamble, s1, s2, s3, s4, s5, s6] = await runWithConcurrency([
       () => stageAI(PREAMBLE_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
       () => stageAI(STAGE1_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
@@ -913,7 +947,7 @@ app.post('/api/student/generate-project', requireStudent, async (req, res) => {
       () => stageAI(STAGE4_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
       () => stageAI(STAGE5_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
       () => stageAI(STAGE6_PROMPT_MD(subj, zimsecLevel, isForm, topic)),
-    ], 7);
+    ], 3);
 
     const content = `# ${sName}'s ZIMSEC School-Based Project
 
@@ -989,56 +1023,204 @@ app.post('/api/student/export-pdf', requireStudent, async (req, res) => {
     const plan = user.plan || 'FREE';
     const isPaid = plan !== 'FREE';
 
-    const doc = new PDFDocument({ margin: 60, size: 'A4', info: { Title: title || 'Fundo AI', Author: 'Fundo AI' } });
+    const W = 595.28; // A4 width in points
+    const M = 52;     // left/right margin
+    const CONTENT_W = W - M * 2;
+
+    const doc = new PDFDocument({
+      margin: M, size: 'A4', bufferPages: true,
+      info: { Title: title || 'Fundo AI Study Notes', Author: 'Fundo AI', Subject: title || 'Study Notes' },
+    });
     const chunks = [];
     doc.on('data', c => chunks.push(c));
 
-    // Header bar
-    doc.rect(0, 0, doc.page.width, 54).fill('#7c3aed');
-    doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold').text('FUNDO AI', 60, 17, { continued: true });
-    doc.fillColor('#c4b5fd').fontSize(11).font('Helvetica').text(`  ·  ${type === 'project' ? 'Academic Project' : type === 'exam' ? 'Mock Exam' : 'Study Notes'}`, { baseline: 'middle' });
+    // ── Helper: render a line with inline bold/italic ──────────────────
+    function renderInline(text, { x = M, width = CONTENT_W, lineGap = 2.5, continued = false } = {}) {
+      const segments = [];
+      const re = /(\*\*(.*?)\*\*|\*(.*?)\*|`([^`]+)`)/g;
+      let last = 0, m;
+      while ((m = re.exec(text)) !== null) {
+        if (m.index > last) segments.push({ t: text.slice(last, m.index), bold: false, code: false });
+        if (m[2] != null) segments.push({ t: m[2], bold: true,  code: false });
+        else if (m[3] != null) segments.push({ t: m[3], bold: false, code: false, italic: true });
+        else if (m[4] != null) segments.push({ t: m[4], bold: false, code: true });
+        last = m.index + m[0].length;
+      }
+      if (last < text.length) segments.push({ t: text.slice(last), bold: false, code: false });
+      if (!segments.length) segments.push({ t: text, bold: false, code: false });
 
-    // Title
-    doc.fillColor('#18063a').fontSize(20).font('Helvetica-Bold').text(title || 'Study Notes', 60, 80);
-    doc.fontSize(10).fillColor('#6b7280').font('Helvetica').text(`Generated by Fundo AI  ·  ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}  ·  ${plan} Plan`, 60, 106);
-    doc.moveTo(60, 122).lineTo(doc.page.width - 60, 122).strokeColor('#e5e7eb').lineWidth(1).stroke();
-    doc.moveDown(1.5);
-
-    // Content — parse markdown-ish formatting
-    const lines = content.split('\n');
-    doc.fillColor('#1f2937').fontSize(11).font('Helvetica');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) { doc.moveDown(0.4); continue; }
-      if (trimmed.startsWith('# ')) {
-        doc.moveDown(0.6).fillColor('#7c3aed').fontSize(15).font('Helvetica-Bold').text(trimmed.slice(2)).fillColor('#1f2937').fontSize(11).font('Helvetica').moveDown(0.3);
-      } else if (trimmed.startsWith('## ')) {
-        doc.moveDown(0.4).fillColor('#5b21b6').fontSize(13).font('Helvetica-Bold').text(trimmed.slice(3)).fillColor('#1f2937').fontSize(11).font('Helvetica').moveDown(0.2);
-      } else if (trimmed.startsWith('### ')) {
-        doc.moveDown(0.3).fillColor('#374151').fontSize(12).font('Helvetica-Bold').text(trimmed.slice(4)).fillColor('#1f2937').fontSize(11).font('Helvetica').moveDown(0.2);
-      } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        doc.fontSize(11).font('Helvetica').text(`• ${trimmed.slice(2)}`, { indent: 14, lineGap: 2 });
-      } else if (/^\d+\.\s/.test(trimmed)) {
-        doc.fontSize(11).font('Helvetica').text(trimmed, { indent: 14, lineGap: 2 });
-      } else if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-        doc.fontSize(11).font('Helvetica-Bold').text(trimmed.replace(/\*\*/g, ''));
-      } else {
-        const clean = trimmed.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`(.*?)`/g, '$1');
-        doc.fontSize(11).font('Helvetica').text(clean, { lineGap: 2 });
+      for (let i = 0; i < segments.length; i++) {
+        const s = segments[i];
+        const isLast = i === segments.length - 1;
+        doc.font(s.bold ? 'Helvetica-Bold' : s.code ? 'Courier' : 'Helvetica')
+           .fillColor(s.code ? '#6b21a8' : '#1f2937');
+        doc.text(s.t, i === 0 ? x : undefined, i === 0 ? undefined : undefined, {
+          continued: isLast ? continued : true, lineGap, width,
+        });
       }
     }
 
-    // Footer watermark for free users
-    if (!isPaid) {
-      const pages = doc.bufferedPageRange ? doc.bufferedPageRange().count : 1;
-      for (let i = 0; i < (pages || 1); i++) {
-        if (i > 0) doc.switchToPage(i);
-        doc.save().fillColor('#d1d5db').fontSize(8).font('Helvetica')
-          .text('Generated by Fundo AI — Free Plan · Upgrade at fundoai.gleeze.com for premium features', 60, doc.page.height - 38, { align: 'center', width: doc.page.width - 120 }).restore();
+    // ── Header band ────────────────────────────────────────────────────
+    doc.rect(0, 0, W, 68).fill('#6d28d9');
+    // Subtle diagonal stripe
+    doc.save().rect(0, 0, W, 68).clip()
+       .moveTo(W - 120, 0).lineTo(W, 0).lineTo(W, 68).lineTo(W - 180, 68).fill('#7c3aed').restore();
+    doc.fillColor('#ffffff').fontSize(20).font('Helvetica-Bold').text('FUNDO AI', M, 16);
+    const typeLabel = type === 'project' ? 'Academic Project Report' : type === 'exam' ? 'Mock Exam' : 'Study Notes';
+    doc.fillColor('#c4b5fd').fontSize(10).font('Helvetica').text(typeLabel.toUpperCase(), M, 41, { letterSpacing: 1 });
+
+    // ── Title block ────────────────────────────────────────────────────
+    doc.moveDown(0);
+    const titleY = 84;
+    doc.fillColor('#1e0a3c').fontSize(22).font('Helvetica-Bold')
+       .text(title || 'Study Notes', M, titleY, { width: CONTENT_W - 10 });
+
+    // Date + plan pill
+    const dateStr = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+    const pillY = doc.y + 6;
+    doc.roundedRect(M, pillY, 120, 18, 4).fill(isPaid ? '#ede9fe' : '#f3f4f6');
+    doc.fillColor(isPaid ? '#6d28d9' : '#6b7280').fontSize(8.5).font('Helvetica-Bold')
+       .text((isPaid ? '★ ' : '') + plan + ' PLAN', M + 8, pillY + 5);
+
+    doc.fillColor('#6b7280').fontSize(9.5).font('Helvetica')
+       .text(`Generated ${dateStr} · fundoai.synapex.co.zw`, M + 130, pillY + 4);
+
+    // Divider
+    const divY = doc.y + 10;
+    doc.rect(M, divY, CONTENT_W, 2.5).fill('#6d28d9');
+    doc.rect(M + CONTENT_W - 60, divY, 60, 2.5).fill('#a78bfa');
+    doc.y = divY + 16;
+
+    // ── Content parser ─────────────────────────────────────────────────
+    const lines = content.split('\n');
+    let inCode = false;
+    let codeBuffer = [];
+
+    function flushCode() {
+      if (!codeBuffer.length) return;
+      const codeText = codeBuffer.join('\n');
+      const boxH = Math.min(codeText.split('\n').length * 14 + 16, 300);
+      doc.save();
+      doc.roundedRect(M, doc.y, CONTENT_W, boxH, 5).fill('#faf5ff').stroke('#e9d5ff');
+      doc.fillColor('#6b21a8').fontSize(9).font('Courier')
+         .text(codeText, M + 10, doc.y + 8, { width: CONTENT_W - 20, lineGap: 3 });
+      doc.restore();
+      doc.y = doc.y + boxH + 10;
+      codeBuffer = [];
+    }
+
+    for (const rawLine of lines) {
+      const line = rawLine;
+      const trimmed = line.trim();
+
+      // Code fence
+      if (trimmed.startsWith('```')) {
+        if (inCode) { flushCode(); } else { inCode = true; }
+        continue;
       }
-    } else {
-      doc.save().fillColor('#d1d5db').fontSize(8).font('Helvetica')
-        .text('Generated by Fundo AI · fundoai.gleeze.com', 60, doc.page.height - 38, { align: 'center', width: doc.page.width - 120 }).restore();
+      if (inCode) { codeBuffer.push(trimmed); continue; }
+
+      // Empty line
+      if (!trimmed) { doc.moveDown(0.35); continue; }
+
+      // Horizontal rule
+      if (/^---+$/.test(trimmed)) {
+        doc.moveDown(0.3);
+        doc.moveTo(M, doc.y).lineTo(M + CONTENT_W, doc.y).strokeColor('#e5e7eb').lineWidth(0.8).stroke();
+        doc.moveDown(0.5);
+        continue;
+      }
+
+      // H1 — big section with accent left border
+      if (trimmed.startsWith('# ')) {
+        doc.moveDown(0.5);
+        const txt = trimmed.slice(2).replace(/\*\*/g,'').replace(/\*/g,'');
+        const hY = doc.y;
+        doc.rect(M, hY, 4, 22).fill('#6d28d9');
+        doc.rect(M + 4, hY, CONTENT_W - 4, 22).fill('#f5f3ff');
+        doc.fillColor('#4c1d95').fontSize(15.5).font('Helvetica-Bold')
+           .text(txt, M + 14, hY + 4, { width: CONTENT_W - 20 });
+        doc.y = doc.y + 8;
+        continue;
+      }
+
+      // H2 — sub-section
+      if (trimmed.startsWith('## ')) {
+        doc.moveDown(0.4);
+        const txt = trimmed.slice(3).replace(/\*\*/g,'').replace(/\*/g,'');
+        doc.rect(M, doc.y, CONTENT_W, 18).fill('#ede9fe');
+        doc.fillColor('#5b21b6').fontSize(12.5).font('Helvetica-Bold')
+           .text(txt, M + 8, doc.y + 3, { width: CONTENT_W - 16 });
+        doc.y = doc.y + 8;
+        doc.moveDown(0.2);
+        continue;
+      }
+
+      // H3
+      if (trimmed.startsWith('### ')) {
+        doc.moveDown(0.3);
+        const txt = trimmed.slice(4).replace(/\*\*/g,'').replace(/\*/g,'');
+        doc.fillColor('#374151').fontSize(11.5).font('Helvetica-Bold')
+           .text('▸ ' + txt, M, doc.y, { width: CONTENT_W });
+        doc.moveDown(0.2);
+        continue;
+      }
+
+      // Bullet list
+      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        const txt = trimmed.slice(2);
+        doc.fontSize(11).fillColor('#374151').font('Helvetica')
+           .text('•', M + 4, doc.y, { continued: true, width: 12, lineGap: 2 });
+        renderInline(txt, { x: M + 18, width: CONTENT_W - 18 });
+        continue;
+      }
+
+      // Numbered list
+      if (/^\d+\.\s/.test(trimmed)) {
+        const num = trimmed.match(/^(\d+)\./)[1];
+        const txt = trimmed.replace(/^\d+\.\s*/, '');
+        doc.fillColor('#6d28d9').fontSize(11).font('Helvetica-Bold')
+           .text(num + '.', M + 4, doc.y, { continued: true, width: 16, lineGap: 2 });
+        renderInline(txt, { x: M + 22, width: CONTENT_W - 22 });
+        continue;
+      }
+
+      // Blockquote
+      if (trimmed.startsWith('> ')) {
+        doc.rect(M, doc.y, 3, 16).fill('#a78bfa');
+        renderInline(trimmed.slice(2), { x: M + 10, width: CONTENT_W - 10 });
+        doc.moveDown(0.2);
+        continue;
+      }
+
+      // Bold-only line (acts as mini heading)
+      if (trimmed.startsWith('**') && trimmed.endsWith('**') && !trimmed.slice(2,-2).includes('**')) {
+        doc.moveDown(0.2);
+        doc.fillColor('#1f2937').fontSize(11.5).font('Helvetica-Bold')
+           .text(trimmed.slice(2,-2), M, doc.y, { width: CONTENT_W, lineGap: 2 });
+        doc.moveDown(0.1);
+        continue;
+      }
+
+      // Regular paragraph — render inline
+      doc.fontSize(11);
+      renderInline(trimmed, { lineGap: 2.5 });
+    }
+    flushCode();
+
+    // ── Page numbers & footer ──────────────────────────────────────────
+    const pageCount = doc.bufferedPageRange().count;
+    const footerMsg = isPaid
+      ? 'Generated by Fundo AI · fundoai.synapex.co.zw'
+      : 'Generated by Fundo AI — Free Plan · Upgrade for unlimited notes, projects & more';
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      const fy = doc.page.height - 34;
+      doc.moveTo(M, fy - 4).lineTo(W - M, fy - 4).strokeColor('#e5e7eb').lineWidth(0.6).stroke();
+      doc.fillColor('#9ca3af').fontSize(8).font('Helvetica')
+         .text(footerMsg, M, fy, { width: CONTENT_W - 50, align: 'left' });
+      doc.fillColor('#7c3aed').fontSize(8).font('Helvetica-Bold')
+         .text(`${i + 1} / ${pageCount}`, W - M - 40, fy, { width: 40, align: 'right' });
     }
 
     await new Promise(resolve => { doc.on('end', resolve); doc.end(); });
@@ -1070,7 +1252,7 @@ app.post('/api/student/knowledge-chat', requireStudent, async (req, res) => {
     user = await resetUsageIfNeeded(user.toObject ? user.toObject() : user);
 
     const plan = user.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     if ((user.usage?.chatToday || 0) >= (limits.chat || 25)) {
       return res.status(429).json({ error: `Daily chat limit reached (${limits.chat}). Upgrade for more!` });
     }
@@ -1127,7 +1309,7 @@ app.get('/api/student/materials', requireStudent, async (req, res) => {
     let user = await UserModel.findOne({ phone: req.student.phone });
     if (user) user = await resetUsageIfNeeded(user);
     const plan = user?.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     const isMonthly = limits.period === 'monthly';
     const used = isMonthly ? (user?.usage?.mediaDownloadsMonth || 0) : (user?.usage?.mediaDownloadsToday || 0);
     const canDownload = used < (limits.library ?? 5);
@@ -1150,7 +1332,7 @@ app.post('/api/student/materials/:id/download', requireStudent, async (req, res)
     user = await resetUsageIfNeeded(user);
 
     const plan = user.plan || 'FREE';
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.FREE;
+    const limits = getEffectiveLimits(plan);
     const isMonthly = limits.period === 'monthly';
     const field = isMonthly ? 'mediaDownloadsMonth' : 'mediaDownloadsToday';
     const used = user.usage?.[field] || 0;
@@ -1591,6 +1773,24 @@ app.get('/api/web-stats', requireAuth, async (_req, res) => {
       topChatters,
       totalMessages: totalMessages[0]?.total || 0,
     });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Special event (admin) ────────────────────────────────────────────────────
+app.get('/api/special-event', async (_req, res) => {
+  res.json(SPECIAL_EVENT || null);
+});
+
+app.put('/api/special-event', requireAuth, async (req, res) => {
+  try {
+    const event = req.body;
+    await SettingsModel.findOneAndUpdate(
+      { key: 'specialEvent' },
+      { value: event },
+      { upsert: true, new: true }
+    );
+    SPECIAL_EVENT = event;
+    res.json({ ok: true, event: SPECIAL_EVENT });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
