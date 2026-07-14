@@ -8,7 +8,7 @@ import {
   Flame, Target, BarChart3, Menu, Sun, Moon, Camera, X, Eye,
   FolderOpen, Lock, FileCheck, BookMarked, Gift, UploadCloud, Share2, Link2,
   Bell, Info, CheckCircle, AlertTriangle,
-  Clock, Pencil, Trash2,
+  Clock, Pencil, Trash2, Globe,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -16,6 +16,17 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
+
+/* ─────────────────────────── LANGUAGE ───────────────────────────────────── */
+const LANGS = [
+  { code:'en', name:'English',   native:'English',       flag:'🇬🇧' },
+  { code:'sn', name:'Shona',     native:'ChiShona',      flag:'🇿🇼' },
+  { code:'nd', name:'Ndebele',   native:'isiNdebele',    flag:'🇿🇼' },
+  { code:'tn', name:'Tonga',     native:'chiTonga',      flag:'🇿🇼' },
+  { code:'ny', name:'Chewa',     native:'chiChewa',      flag:'🇿🇼' },
+  { code:'kl', name:'Kalanga',   native:'ikalanga',      flag:'🇿🇼' },
+  { code:'ve', name:'Venda',     native:'Tshivenda',     flag:'🇿🇼' },
+];
 
 /* ─────────────────────────── THEME ──────────────────────────────────────── */
 const LIGHT = {
@@ -1748,11 +1759,25 @@ function ProfileTab({ profile, usage, limits, isMobile, p, refreshProfile }) {
     { value:'university', label:'University / Tertiary' },
   ];
 
-  const [editing, setEditing] = useState(false);
-  const [form, setForm]       = useState({ name:'', school:'', levelType:'', levelLabel:'', grade:'' });
-  const [saving, setSaving]   = useState(false);
-  const [err, setErr]         = useState('');
-  const [ok, setOk]           = useState('');
+  const [editing, setEditing]     = useState(false);
+  const [form, setForm]           = useState({ name:'', school:'', levelType:'', levelLabel:'', grade:'' });
+  const [saving, setSaving]       = useState(false);
+  const [err, setErr]             = useState('');
+  const [ok, setOk]               = useState('');
+  const [langSaving, setLangSaving] = useState(false);
+  const [langOk, setLangOk]        = useState(false);
+
+  async function changeLang(code) {
+    if (code === (profile?.preferredLang || 'en') || langSaving) return;
+    setLangSaving(true);
+    try {
+      await api('/api/student/update-language', { method:'PUT', body:{ lang: code } });
+      refreshProfile?.({ ...profile, preferredLang: code });
+      setLangOk(true);
+      setTimeout(() => setLangOk(false), 3000);
+    } catch(e) { console.error(e); }
+    finally { setLangSaving(false); }
+  }
 
   useEffect(() => {
     if (profile) setForm({
@@ -1929,6 +1954,36 @@ function ProfileTab({ profile, usage, limits, isMobile, p, refreshProfile }) {
             </div>
           ))}
         </div>
+      </Card>
+
+      {/* Language / AI Response Language */}
+      <Card p={p} style={{ padding:isMobile?'18px 16px':'22px', marginBottom:16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
+          <Globe size={16} style={{ color:p.accent, flexShrink:0 }}/>
+          <h3 style={{ fontSize:14.5, fontWeight:800, color:p.text, margin:0 }}>AI Language / Mutauro</h3>
+        </div>
+        <p style={{ fontSize:12.5, color:p.muted, marginBottom:14, lineHeight:1.5 }}>
+          The AI will teach and respond in the selected language. All subjects, notes, and chat will use this language.
+        </p>
+        <div style={{ display:'grid', gridTemplateColumns:isMobile?'repeat(2,1fr)':'repeat(4,1fr)', gap:8 }}>
+          {LANGS.map(lang => {
+            const isActive = (profile?.preferredLang || 'en') === lang.code;
+            return (
+              <button key={lang.code} onClick={() => changeLang(lang.code)} disabled={langSaving}
+                style={{ padding:'10px 6px', borderRadius:11, border:`1.5px solid ${isActive ? p.accent : p.border}`, background:isActive ? p.accentBg : p.surface, cursor:langSaving?'wait':'pointer', fontFamily:'inherit', transition:'all .18s', display:'flex', flexDirection:'column', alignItems:'center', gap:4, outline:'none', position:'relative' }}>
+                <div style={{ fontSize:22, lineHeight:1 }}>{lang.flag}</div>
+                <div style={{ fontSize:12, fontWeight:700, color:isActive ? p.accent : p.text }}>{lang.name}</div>
+                <div style={{ fontSize:9.5, color:p.dim }}>{lang.native}</div>
+                {isActive && <div style={{ position:'absolute', top:6, right:6, width:7, height:7, borderRadius:'50%', background:p.accent }}/>}
+              </button>
+            );
+          })}
+        </div>
+        {langOk && (
+          <div style={{ marginTop:10, padding:'8px 12px', borderRadius:8, background:'#d1fae5', color:'#065f46', fontSize:12.5, fontWeight:600 }}>
+            ✓ Language updated! The AI will now respond in {LANGS.find(l => l.code === (profile?.preferredLang || 'en'))?.name}.
+          </div>
+        )}
       </Card>
 
       {plan !== 'PREMIUM' && (

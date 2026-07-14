@@ -68,6 +68,7 @@ const userSchema = new mongoose.Schema({
   referralCode:  { type: String, default: '' },
   referralCount: { type: Number, default: 0 },
   referredBy:    { type: String, default: '' },
+  preferredLang: { type: String, default: 'en' },
   usage: {
     chatToday:      { type: Number, default: 0 },
     imagesToday:    { type: Number, default: 0 },
@@ -289,6 +290,23 @@ const WEB_SYSTEM_PROMPT = `You are Fundo AI, a world-class educational AI assist
 - Project research and writing
 
 Always be warm, encouraging, and educational. Sign responses with — *Fundo AI* 🤖✨`;
+
+// ─── Language support ─────────────────────────────────────────────────────────
+const SUPPORTED_LANGS = {
+  en: 'English',
+  sn: 'ChiShona (Shona)',
+  nd: 'isiNdebele (Ndebele)',
+  tn: 'chiTonga (Tonga)',
+  ny: 'chiChewa (Chewa / Nyanja)',
+  kl: 'ikalanga (Kalanga)',
+  ve: 'Tshivenda (Venda)',
+};
+
+function withLanguage(basePrompt, lang = 'en') {
+  if (!lang || lang === 'en') return basePrompt;
+  const name = SUPPORTED_LANGS[lang] || 'English';
+  return basePrompt + `\n\n**LANGUAGE REQUIREMENT: You MUST respond entirely in ${name}. Write all explanations, headings, examples, bullet points, tables, and paragraphs in ${name}. Only use English for specific proper nouns like ZIMSEC, Cambridge, subject names, or internationally fixed terms that have no direct translation. If the student writes to you in ${name}, always reply in ${name}. Never switch languages mid-response.**`;
+}
 
 async function callBK92(systemPrompt, userMessage) {
   const q = userMessage.substring(0, 4000);
@@ -567,6 +585,16 @@ app.post('/api/student/update-profile', requireStudent, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.put('/api/student/update-language', requireStudent, async (req, res) => {
+  try {
+    const { lang } = req.body;
+    const VALID = Object.keys(SUPPORTED_LANGS);
+    if (!VALID.includes(lang)) return res.status(400).json({ error: 'Invalid language code' });
+    await UserModel.findOneAndUpdate({ phone: req.student.phone }, { preferredLang: lang });
+    res.json({ ok: true, lang });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/student/me', requireStudent, async (req, res) => {
   try {
     let user = await UserModel.findOne({ phone: req.student.phone });
@@ -576,6 +604,7 @@ app.get('/api/student/me', requireStudent, async (req, res) => {
     const limits = getEffectiveLimits(plan);
     res.json({
       phone: user.phone, name: user.name, plan, school: user.school,
+      preferredLang: user.preferredLang || 'en',
       levelType: user.levelType, levelLabel: user.levelLabel, grade: user.grade,
       usage: {
         chatToday:    user.usage?.chatToday    || 0,
@@ -626,7 +655,7 @@ app.post('/api/student/chat', requireStudent, async (req, res) => {
       { role: 'user', content: message },
     ];
 
-    const sysPrompt = WEB_SYSTEM_PROMPT;
+    const sysPrompt = withLanguage(WEB_SYSTEM_PROMPT, user.preferredLang);
     const historyContext = history.slice(-8).map(m => `${m.role === 'user' ? 'Student' : 'Fundo AI'}: ${m.content}`).join('\n');
     const fullQ = historyContext ? `${historyContext}\n\nStudent: ${message}` : message;
     const reply = await callBK92(sysPrompt, fullQ);
@@ -801,7 +830,7 @@ Please provide:
 Format with clear headings, bullet points, and make it easy to study from.`;
 
     const messages = [
-      { role: 'system', content: WEB_SYSTEM_PROMPT },
+      { role: 'system', content: withLanguage(WEB_SYSTEM_PROMPT, user.preferredLang) },
       { role: 'user', content: prompt },
     ];
 
@@ -934,7 +963,7 @@ app.post('/api/student/generate-project', requireStudent, async (req, res) => {
     // Helper: race NVIDIA + BK9 for each stage — same dual-provider approach
     // as chat, so a single provider outage won't stall the whole generation.
     const stageAI = (prompt) => askAI([
-      { role: 'system', content: WEB_SYSTEM_PROMPT },
+      { role: 'system', content: withLanguage(WEB_SYSTEM_PROMPT, user.preferredLang) },
       { role: 'user', content: prompt + materialsContext },
     ]);
 
@@ -1023,204 +1052,250 @@ app.post('/api/student/export-pdf', requireStudent, async (req, res) => {
     const plan = user.plan || 'FREE';
     const isPaid = plan !== 'FREE';
 
-    const W = 595.28; // A4 width in points
-    const M = 52;     // left/right margin
-    const CONTENT_W = W - M * 2;
+    const W  = 595.28;        // A4 width (pt)
+    const M  = 50;            // left/right margin
+    const CW = W - M * 2;    // content width
 
     const doc = new PDFDocument({
-      margin: M, size: 'A4', bufferPages: true,
-      info: { Title: title || 'Fundo AI Study Notes', Author: 'Fundo AI', Subject: title || 'Study Notes' },
+      size: 'A4',
+      margins: { top: M, bottom: M + 20, left: M, right: M },
+      bufferPages: true,
+      info: { Title: title || 'Fundo AI', Author: 'Fundo AI', Subject: type },
     });
     const chunks = [];
     doc.on('data', c => chunks.push(c));
 
-    // ── Helper: render a line with inline bold/italic ──────────────────
-    function renderInline(text, { x = M, width = CONTENT_W, lineGap = 2.5, continued = false } = {}) {
-      const segments = [];
-      const re = /(\*\*(.*?)\*\*|\*(.*?)\*|`([^`]+)`)/g;
-      let last = 0, m;
-      while ((m = re.exec(text)) !== null) {
-        if (m.index > last) segments.push({ t: text.slice(last, m.index), bold: false, code: false });
-        if (m[2] != null) segments.push({ t: m[2], bold: true,  code: false });
-        else if (m[3] != null) segments.push({ t: m[3], bold: false, code: false, italic: true });
-        else if (m[4] != null) segments.push({ t: m[4], bold: false, code: true });
-        last = m.index + m[0].length;
+    // ── renderLine: inline bold with correct PDFKit continued pattern ─────
+    // Rule: ONLY the first segment in a continued chain gets explicit (x, y).
+    // Subsequent segments MUST omit x/y — passing them resets cursor position.
+    function renderLine(raw, startX, startY, { width = CW, lineGap = 3 } = {}) {
+      const stripMd = s => s.replace(/\*([^*]+)\*/g, '$1').replace(/`([^`]+)`/g, '$1');
+      const segs = [];
+      const re = /\*\*([^*]+)\*\*/g;
+      let pos = 0, hit;
+      while ((hit = re.exec(raw)) !== null) {
+        if (hit.index > pos) segs.push({ t: stripMd(raw.slice(pos, hit.index)), b: false });
+        segs.push({ t: hit[1], b: true });
+        pos = hit.index + hit[0].length;
       }
-      if (last < text.length) segments.push({ t: text.slice(last), bold: false, code: false });
-      if (!segments.length) segments.push({ t: text, bold: false, code: false });
+      if (pos < raw.length) segs.push({ t: stripMd(raw.slice(pos)), b: false });
+      const valid = segs.filter(s => s.t.length > 0);
+      if (!valid.length) return;
 
-      for (let i = 0; i < segments.length; i++) {
-        const s = segments[i];
-        const isLast = i === segments.length - 1;
-        doc.font(s.bold ? 'Helvetica-Bold' : s.code ? 'Courier' : 'Helvetica')
-           .fillColor(s.code ? '#6b21a8' : '#1f2937');
-        doc.text(s.t, i === 0 ? x : undefined, i === 0 ? undefined : undefined, {
-          continued: isLast ? continued : true, lineGap, width,
-        });
+      if (valid.length === 1) {
+        doc.font(valid[0].b ? 'Helvetica-Bold' : 'Helvetica')
+           .fillColor('#374151')
+           .text(valid[0].t, startX, startY, { width, lineGap });
+        return;
+      }
+      for (let i = 0; i < valid.length; i++) {
+        const s = valid[i];
+        const isLast = i === valid.length - 1;
+        doc.font(s.b ? 'Helvetica-Bold' : 'Helvetica').fillColor('#374151');
+        if (i === 0) {
+          doc.text(s.t, startX, startY, { continued: !isLast, width, lineGap });
+        } else {
+          // No (x,y) here — PDFKit continues from internal cursor
+          doc.text(s.t, { continued: !isLast, lineGap });
+        }
       }
     }
 
-    // ── Header band ────────────────────────────────────────────────────
-    doc.rect(0, 0, W, 68).fill('#6d28d9');
-    // Subtle diagonal stripe
-    doc.save().rect(0, 0, W, 68).clip()
-       .moveTo(W - 120, 0).lineTo(W, 0).lineTo(W, 68).lineTo(W - 180, 68).fill('#7c3aed').restore();
-    doc.fillColor('#ffffff').fontSize(20).font('Helvetica-Bold').text('FUNDO AI', M, 16);
-    const typeLabel = type === 'project' ? 'Academic Project Report' : type === 'exam' ? 'Mock Exam' : 'Study Notes';
-    doc.fillColor('#c4b5fd').fontSize(10).font('Helvetica').text(typeLabel.toUpperCase(), M, 41, { letterSpacing: 1 });
+    // ── HEADER BAND ────────────────────────────────────────────────────
+    doc.save();
+    doc.rect(0, 0, W, 62).fill('#6d28d9');
+    doc.rect(W - 140, 0, 140, 62).fill('#7c3aed');
+    doc.restore();
+    doc.fillColor('#fff').fontSize(20).font('Helvetica-Bold').text('FUNDO AI', M, 14);
+    const typeLabel = type === 'project' ? 'ACADEMIC PROJECT REPORT' : type === 'exam' ? 'MOCK EXAM' : 'STUDY NOTES';
+    doc.fillColor('#c4b5fd').fontSize(9).font('Helvetica').text(typeLabel, M, 39);
 
-    // ── Title block ────────────────────────────────────────────────────
-    doc.moveDown(0);
-    const titleY = 84;
-    doc.fillColor('#1e0a3c').fontSize(22).font('Helvetica-Bold')
-       .text(title || 'Study Notes', M, titleY, { width: CONTENT_W - 10 });
+    // ── TITLE ──────────────────────────────────────────────────────────
+    const cleanTitle = (title || 'Study Notes').replace(/\*\*/g,'').replace(/\*/g,'').replace(/`/g,'');
+    doc.fillColor('#18063a').fontSize(21).font('Helvetica-Bold')
+       .text(cleanTitle, M, 78, { width: CW });
 
-    // Date + plan pill
+    // ── META ROW (plan badge + date) ───────────────────────────────────
     const dateStr = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
-    const pillY = doc.y + 6;
-    doc.roundedRect(M, pillY, 120, 18, 4).fill(isPaid ? '#ede9fe' : '#f3f4f6');
-    doc.fillColor(isPaid ? '#6d28d9' : '#6b7280').fontSize(8.5).font('Helvetica-Bold')
-       .text((isPaid ? '★ ' : '') + plan + ' PLAN', M + 8, pillY + 5);
+    const metaY = doc.y + 6;
+    doc.save();
+    doc.roundedRect(M, metaY, 96, 16, 3).fill(isPaid ? '#ede9fe' : '#f3f4f6');
+    doc.restore();
+    doc.fillColor(isPaid ? '#6d28d9' : '#6b7280').fontSize(7.5).font('Helvetica-Bold')
+       .text((isPaid ? '★ ' : '') + plan + ' PLAN', M + 5, metaY + 4);
+    doc.fillColor('#9ca3af').fontSize(9).font('Helvetica')
+       .text(`Generated ${dateStr} · fundoai.synapex.co.zw`, M + 104, metaY + 3);
 
-    doc.fillColor('#6b7280').fontSize(9.5).font('Helvetica')
-       .text(`Generated ${dateStr} · fundoai.synapex.co.zw`, M + 130, pillY + 4);
-
-    // Divider
+    // ── DIVIDER ────────────────────────────────────────────────────────
     const divY = doc.y + 10;
-    doc.rect(M, divY, CONTENT_W, 2.5).fill('#6d28d9');
-    doc.rect(M + CONTENT_W - 60, divY, 60, 2.5).fill('#a78bfa');
-    doc.y = divY + 16;
+    doc.save();
+    doc.rect(M, divY, CW, 2).fill('#6d28d9');
+    doc.rect(M + CW - 48, divY, 48, 2).fill('#a78bfa');
+    doc.restore();
+    // Advance cursor below divider using a zero-size text anchor
+    doc.text('', M, divY + 14, { lineGap: 0 });
 
-    // ── Content parser ─────────────────────────────────────────────────
+    // ── CONTENT PARSER ─────────────────────────────────────────────────
     const lines = content.split('\n');
     let inCode = false;
-    let codeBuffer = [];
+    const codeBuf = [];
 
     function flushCode() {
-      if (!codeBuffer.length) return;
-      const codeText = codeBuffer.join('\n');
-      const boxH = Math.min(codeText.split('\n').length * 14 + 16, 300);
+      if (!codeBuf.length) return;
+      const codeText = codeBuf.join('\n');
+      const boxH = Math.min(codeBuf.length * 13 + 20, 280);
+      const boxY = doc.y;
       doc.save();
-      doc.roundedRect(M, doc.y, CONTENT_W, boxH, 5).fill('#faf5ff').stroke('#e9d5ff');
-      doc.fillColor('#6b21a8').fontSize(9).font('Courier')
-         .text(codeText, M + 10, doc.y + 8, { width: CONTENT_W - 20, lineGap: 3 });
+      doc.roundedRect(M, boxY, CW, boxH, 5).fill('#faf5ff');
+      doc.roundedRect(M, boxY, CW, boxH, 5).stroke('#e9d5ff');
       doc.restore();
-      doc.y = doc.y + boxH + 10;
-      codeBuffer = [];
+      doc.fillColor('#5b21b6').fontSize(8.5).font('Courier')
+         .text(codeText, M + 10, boxY + 8, { width: CW - 20, lineGap: 2.5 });
+      const afterCode = Math.max(doc.y, boxY + boxH) + 10;
+      doc.text('', M, afterCode, { lineGap: 0 });
+      codeBuf.length = 0;
     }
 
     for (const rawLine of lines) {
-      const line = rawLine;
-      const trimmed = line.trim();
+      const t = rawLine.trim();
 
-      // Code fence
-      if (trimmed.startsWith('```')) {
-        if (inCode) { flushCode(); } else { inCode = true; }
-        continue;
-      }
-      if (inCode) { codeBuffer.push(trimmed); continue; }
+      if (t.startsWith('```')) { inCode = !inCode; if (!inCode) flushCode(); continue; }
+      if (inCode) { codeBuf.push(t); continue; }
+      if (!t) { doc.moveDown(0.3); continue; }
 
-      // Empty line
-      if (!trimmed) { doc.moveDown(0.35); continue; }
-
-      // Horizontal rule
-      if (/^---+$/.test(trimmed)) {
-        doc.moveDown(0.3);
-        doc.moveTo(M, doc.y).lineTo(M + CONTENT_W, doc.y).strokeColor('#e5e7eb').lineWidth(0.8).stroke();
-        doc.moveDown(0.5);
+      // ── Horizontal rule
+      if (/^-{3,}$/.test(t) || /^\*{3,}$/.test(t)) {
+        const hrY = doc.y + 3;
+        doc.save().moveTo(M, hrY).lineTo(M + CW, hrY)
+           .strokeColor('#e5e7eb').lineWidth(0.6).stroke().restore();
+        doc.text('', M, hrY + 7, { lineGap: 0 });
         continue;
       }
 
-      // H1 — big section with accent left border
-      if (trimmed.startsWith('# ')) {
-        doc.moveDown(0.5);
-        const txt = trimmed.slice(2).replace(/\*\*/g,'').replace(/\*/g,'');
-        const hY = doc.y;
-        doc.rect(M, hY, 4, 22).fill('#6d28d9');
-        doc.rect(M + 4, hY, CONTENT_W - 4, 22).fill('#f5f3ff');
-        doc.fillColor('#4c1d95').fontSize(15.5).font('Helvetica-Bold')
-           .text(txt, M + 14, hY + 4, { width: CONTENT_W - 20 });
-        doc.y = doc.y + 8;
-        continue;
-      }
-
-      // H2 — sub-section
-      if (trimmed.startsWith('## ')) {
+      // ── H1
+      if (t.startsWith('# ')) {
+        flushCode();
+        const txt = t.slice(2).replace(/\*\*/g,'').replace(/\*/g,'');
         doc.moveDown(0.4);
-        const txt = trimmed.slice(3).replace(/\*\*/g,'').replace(/\*/g,'');
-        doc.rect(M, doc.y, CONTENT_W, 18).fill('#ede9fe');
-        doc.fillColor('#5b21b6').fontSize(12.5).font('Helvetica-Bold')
-           .text(txt, M + 8, doc.y + 3, { width: CONTENT_W - 16 });
-        doc.y = doc.y + 8;
-        doc.moveDown(0.2);
-        continue;
-      }
-
-      // H3
-      if (trimmed.startsWith('### ')) {
+        const hY = doc.y;
+        doc.save();
+        doc.rect(M, hY, 5, 22).fill('#6d28d9');
+        doc.rect(M + 5, hY, CW - 5, 22).fill('#f0ebff');
+        doc.restore();
+        doc.fillColor('#3b0764').fontSize(14.5).font('Helvetica-Bold')
+           .text(txt, M + 13, hY + 4, { width: CW - 18 });
         doc.moveDown(0.3);
-        const txt = trimmed.slice(4).replace(/\*\*/g,'').replace(/\*/g,'');
+        continue;
+      }
+
+      // ── H2
+      if (t.startsWith('## ')) {
+        flushCode();
+        const txt = t.slice(3).replace(/\*\*/g,'').replace(/\*/g,'');
+        doc.moveDown(0.3);
+        const hY = doc.y;
+        doc.save();
+        doc.rect(M, hY, CW, 17).fill('#ede9fe');
+        doc.restore();
+        doc.fillColor('#5b21b6').fontSize(12).font('Helvetica-Bold')
+           .text(txt, M + 8, hY + 3, { width: CW - 16 });
+        doc.moveDown(0.2);
+        continue;
+      }
+
+      // ── H3
+      if (t.startsWith('### ')) {
+        const txt = t.slice(4).replace(/\*\*/g,'').replace(/\*/g,'');
+        doc.moveDown(0.25);
         doc.fillColor('#374151').fontSize(11.5).font('Helvetica-Bold')
-           .text('▸ ' + txt, M, doc.y, { width: CONTENT_W });
+           .text('▸ ' + txt, M, doc.y, { width: CW });
+        doc.moveDown(0.15);
+        continue;
+      }
+
+      // ── H4
+      if (t.startsWith('#### ')) {
+        const txt = t.slice(5).replace(/\*\*/g,'').replace(/\*/g,'');
         doc.moveDown(0.2);
-        continue;
-      }
-
-      // Bullet list
-      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-        const txt = trimmed.slice(2);
-        doc.fontSize(11).fillColor('#374151').font('Helvetica')
-           .text('•', M + 4, doc.y, { continued: true, width: 12, lineGap: 2 });
-        renderInline(txt, { x: M + 18, width: CONTENT_W - 18 });
-        continue;
-      }
-
-      // Numbered list
-      if (/^\d+\.\s/.test(trimmed)) {
-        const num = trimmed.match(/^(\d+)\./)[1];
-        const txt = trimmed.replace(/^\d+\.\s*/, '');
         doc.fillColor('#6d28d9').fontSize(11).font('Helvetica-Bold')
-           .text(num + '.', M + 4, doc.y, { continued: true, width: 16, lineGap: 2 });
-        renderInline(txt, { x: M + 22, width: CONTENT_W - 22 });
-        continue;
-      }
-
-      // Blockquote
-      if (trimmed.startsWith('> ')) {
-        doc.rect(M, doc.y, 3, 16).fill('#a78bfa');
-        renderInline(trimmed.slice(2), { x: M + 10, width: CONTENT_W - 10 });
-        doc.moveDown(0.2);
-        continue;
-      }
-
-      // Bold-only line (acts as mini heading)
-      if (trimmed.startsWith('**') && trimmed.endsWith('**') && !trimmed.slice(2,-2).includes('**')) {
-        doc.moveDown(0.2);
-        doc.fillColor('#1f2937').fontSize(11.5).font('Helvetica-Bold')
-           .text(trimmed.slice(2,-2), M, doc.y, { width: CONTENT_W, lineGap: 2 });
+           .text(txt, M, doc.y, { width: CW });
         doc.moveDown(0.1);
         continue;
       }
 
-      // Regular paragraph — render inline
+      // ── Bullet
+      if (t.startsWith('- ') || t.startsWith('* ')) {
+        const raw = t.slice(2);
+        const dotY = doc.y;
+        doc.fillColor('#6d28d9').fontSize(10).font('Helvetica')
+           .text('•', M + 4, dotY + 1.5, { lineBreak: false });
+        renderLine(raw, M + 16, dotY, { width: CW - 16, lineGap: 2.5 });
+        continue;
+      }
+
+      // ── Sub-bullet (two spaces or tab indent)
+      if (/^  [-*]/.test(rawLine) || /^\t[-*]/.test(rawLine)) {
+        const raw = t.slice(2);
+        const dotY = doc.y;
+        doc.fillColor('#9ca3af').fontSize(9).font('Helvetica')
+           .text('–', M + 20, dotY + 1.5, { lineBreak: false });
+        renderLine(raw, M + 32, dotY, { width: CW - 32, lineGap: 2 });
+        continue;
+      }
+
+      // ── Numbered list
+      if (/^\d+\.\s/.test(t)) {
+        const num = t.match(/^(\d+)\./)[1];
+        const raw = t.replace(/^\d+\.\s*/, '');
+        const numY = doc.y;
+        doc.fillColor('#6d28d9').fontSize(10.5).font('Helvetica-Bold')
+           .text(num + '.', M + 4, numY, { lineBreak: false });
+        renderLine(raw, M + 22, numY, { width: CW - 22, lineGap: 2.5 });
+        continue;
+      }
+
+      // ── Blockquote
+      if (t.startsWith('> ')) {
+        const raw = t.slice(2).replace(/\*\*/g,'').replace(/\*/g,'');
+        const qY = doc.y;
+        doc.save().rect(M, qY, 3, 14).fill('#a78bfa').restore();
+        doc.fillColor('#6b7280').fontSize(10.5).font('Helvetica')
+           .text(raw, M + 9, qY, { width: CW - 9, lineGap: 2 });
+        doc.moveDown(0.15);
+        continue;
+      }
+
+      // ── Standalone bold line → mini-heading
+      if (/^\*\*[^*]+\*\*$/.test(t)) {
+        doc.moveDown(0.15);
+        doc.fillColor('#1f2937').fontSize(11.5).font('Helvetica-Bold')
+           .text(t.slice(2, -2), M, doc.y, { width: CW, lineGap: 2 });
+        doc.moveDown(0.1);
+        continue;
+      }
+
+      // ── Regular paragraph
       doc.fontSize(11);
-      renderInline(trimmed, { lineGap: 2.5 });
+      renderLine(t, M, doc.y, { width: CW, lineGap: 3 });
     }
     flushCode();
 
-    // ── Page numbers & footer ──────────────────────────────────────────
+    // ── FOOTER ON EVERY PAGE ───────────────────────────────────────────
     const pageCount = doc.bufferedPageRange().count;
-    const footerMsg = isPaid
+    const footerTxt = isPaid
       ? 'Generated by Fundo AI · fundoai.synapex.co.zw'
-      : 'Generated by Fundo AI — Free Plan · Upgrade for unlimited notes, projects & more';
+      : 'Fundo AI — Free Plan · Upgrade for unlimited access at fundoai.synapex.co.zw';
     for (let i = 0; i < pageCount; i++) {
       doc.switchToPage(i);
-      const fy = doc.page.height - 34;
-      doc.moveTo(M, fy - 4).lineTo(W - M, fy - 4).strokeColor('#e5e7eb').lineWidth(0.6).stroke();
-      doc.fillColor('#9ca3af').fontSize(8).font('Helvetica')
-         .text(footerMsg, M, fy, { width: CONTENT_W - 50, align: 'left' });
-      doc.fillColor('#7c3aed').fontSize(8).font('Helvetica-Bold')
-         .text(`${i + 1} / ${pageCount}`, W - M - 40, fy, { width: 40, align: 'right' });
+      const fy = doc.page.height - 28;
+      doc.save();
+      doc.moveTo(M, fy - 5).lineTo(W - M, fy - 5)
+         .strokeColor('#e5e7eb').lineWidth(0.5).stroke();
+      doc.restore();
+      doc.fillColor('#9ca3af').fontSize(7.5).font('Helvetica')
+         .text(footerTxt, M, fy, { width: CW - 36, align: 'left', lineBreak: false });
+      doc.fillColor('#7c3aed').fontSize(7.5).font('Helvetica-Bold')
+         .text(`${i + 1} / ${pageCount}`, W - M - 30, fy, { width: 30, align: 'right', lineBreak: false });
     }
 
     await new Promise(resolve => { doc.on('end', resolve); doc.end(); });
@@ -1269,7 +1344,7 @@ app.post('/api/student/knowledge-chat', requireStudent, async (req, res) => {
       }
     }
 
-    const systemPrompt = WEB_SYSTEM_PROMPT + materialsContext;
+    const systemPrompt = withLanguage(WEB_SYSTEM_PROMPT, user.preferredLang) + materialsContext;
 
     const messages = [
       { role: 'system', content: systemPrompt },
