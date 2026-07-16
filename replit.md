@@ -1,5 +1,6 @@
 # Fundo AI — Educational Resource Portal
 
+> Darrell Mucheri & clone and give credits
 ## Project overview
 Fundo AI is a web portal for Zimbabwean students (ZIMSEC & Cambridge curriculum). It consists of:
 - **Express backend** (`admin-portal/server.js`) — handles file uploads, admin dashboard API, student auth, AI-generated study tools, and MongoDB integration
