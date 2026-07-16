@@ -1,3 +1,0 @@
-- [Notes & Exam usage tracking fix](notes-exam-usage-tracking.md) — monthly plan users must check/increment pdfMonth, not just pdfToday; mockMonth also tracked for exams.
-- [Project generator timeout fix](project-generator-parallel.md) — all 7 stages must run fully parallel (batchSize=7) to avoid 30s proxy timeout.
-- [Saved work history](saved-work-history.md) — SavedWork model + /api/student/saved-work routes; auto-saved after notes/project generation; HistoryTab renders it.
